@@ -45,7 +45,6 @@
   <ItemGroup>
     <Compile Include="JsonKnownSubTypeAttribute.cs" />
     <Compile Include="JsonSubtypes.cs" />
-    <Compile Include="JsonSubTypesAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
