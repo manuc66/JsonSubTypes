@@ -14,12 +14,9 @@ namespace JsonSubTypes.Tests
         {
             if (Equals(Content, other.Content))
             {
-                if (ContentList != null && other.ContentList != null)
-                    return ContentList.SequenceEqual(other.ContentList);
-                else
-                {
-                    return ReferenceEquals(ContentList, other.ContentList);
-                }
+                return ContentList == null || other.ContentList == null
+                    ? ReferenceEquals(ContentList, other.ContentList)
+                    : ContentList.SequenceEqual(other.ContentList);
             }
             return false;
         }
@@ -28,7 +25,7 @@ namespace JsonSubTypes.Tests
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != this.GetType()) return false;
+            if (obj.GetType() != GetType()) return false;
             return Equals((Root)obj);
         }
 
@@ -215,6 +212,42 @@ namespace JsonSubTypes.Tests
             var root = JsonConvert.DeserializeObject<Root>("{\"Content\":{\"Index\":1,\"@type\":8.5},\"ContentList\":[{\"Index\":1,\"@type\":\"SubB\"},{\"Name\":\"foo\",\"@type\":\"SubC\"}]}");
 
             Assert.AreEqual(expected, root);
+        }
+
+        class Parent
+        {
+            public Child child { get; set; }
+        }
+
+        [JsonConverter(typeof(JsonSubtypes), "ChildType")]
+        [JsonSubtypes.KnownSubType(typeof(Child1), 1)]
+        [JsonSubtypes.KnownSubType(typeof(Child2), 2)]
+        class Child
+        {
+            public virtual int ChildType { get; }
+        }
+
+        class Child1 : Child
+        {
+            public override int ChildType { get; } = 1;
+        }
+        class Child2 : Child
+        {
+            public override int ChildType { get; } = 2;
+        }
+
+        [TestMethod]
+        public void DiscriminatorValueCanBeANumber()
+        {
+            var root1 = JsonConvert.DeserializeObject<Parent>("{\"Child\":{\"ChildType\":1}}");
+            var root2 = JsonConvert.DeserializeObject<Parent>("{\"Child\":{\"ChildType\":2}}");
+            var root3 = JsonConvert.DeserializeObject<Parent>("{\"Child\":{\"ChildType\":8}}");
+            var root4 = JsonConvert.DeserializeObject<Parent>("{\"Child\":{\"ChildType\":null}}");
+
+            Assert.IsNotNull(root1.child as Child1);
+            Assert.IsNotNull(root2.child as Child2);
+            Assert.AreEqual(typeof(Child), root3.child.GetType());
+            Assert.AreEqual(typeof(Child), root4.child.GetType());
         }
     }
 }

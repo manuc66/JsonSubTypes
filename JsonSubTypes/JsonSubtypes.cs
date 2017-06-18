@@ -62,14 +62,15 @@ namespace JsonSubTypes
 
         public Type GetType(JObject jObject, Type type)
         {
-            var typeMapping = type.GetCustomAttributes<KnownSubTypeAttribute>().ToDictionary(x => x.AssociatedValue?.ToString() ?? "null", x => x.SubType);
+            if (!jObject.TryGetValue(_typeMappingPropertyName, out JToken jToken)) return null;
 
-            var objectType = jObject[_typeMappingPropertyName].Value<string>();
-            if (objectType != null && typeMapping.ContainsKey(objectType))
-            {
-                return typeMapping[objectType];
-            }
-            return null;
+            var objectType = jToken.ToObject<object>();
+            if (objectType == null) return null;
+
+            var typeMapping = type.GetCustomAttributes<KnownSubTypeAttribute>().ToDictionary(x => x.AssociatedValue, x => x.SubType);
+            var lookupValue = Convert.ChangeType(objectType, typeMapping.First().Key.GetType());
+
+            return typeMapping.TryGetValue(lookupValue, out Type targetType) ? targetType : null;
         }
 
         public override bool CanConvert(Type objectType)
