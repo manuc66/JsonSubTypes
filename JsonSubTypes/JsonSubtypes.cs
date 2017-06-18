@@ -31,8 +31,8 @@ namespace JsonSubTypes
         [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
         public class KnownSubTypeAttribute : Attribute
         {
-            public Type SubType { get; }
-            public object AssociatedValue { get; }
+            public Type SubType { get; private set; }
+            public object AssociatedValue { get; private set; }
 
             public KnownSubTypeAttribute(Type subType, object associatedValue)
             {
@@ -45,8 +45,15 @@ namespace JsonSubTypes
 
         private bool _isInsideRead;
 
-        public override bool CanRead => !_isInsideRead;
-        public sealed override bool CanWrite => false;
+        public override bool CanRead
+        {
+            get { return !_isInsideRead; }
+        }
+
+        public sealed override bool CanWrite
+        {
+            get { return false; }
+        }
 
         public JsonSubtypes(string typeMappingPropertyName)
         {
@@ -66,14 +73,10 @@ namespace JsonSubTypes
             }
         }
 
-        protected void _WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
-        {
-            throw new NotImplementedException();
-        }
-
         public Type GetType(JObject jObject, Type type)
         {
-            if (!jObject.TryGetValue(_typeMappingPropertyName, out JToken jToken)) return null;
+            JToken jToken;
+            if (!jObject.TryGetValue(_typeMappingPropertyName, out jToken)) return null;
 
             var objectType = jToken.ToObject<object>();
             if (objectType == null) return null;
@@ -81,7 +84,8 @@ namespace JsonSubTypes
             var typeMapping = type.GetCustomAttributes<KnownSubTypeAttribute>().ToDictionary(x => x.AssociatedValue, x => x.SubType);
             var lookupValue = Convert.ChangeType(objectType, typeMapping.First().Key.GetType());
 
-            return typeMapping.TryGetValue(lookupValue, out Type targetType) ? targetType : null;
+            Type targetType;
+            return typeMapping.TryGetValue(lookupValue, out targetType) ? targetType : null;
         }
 
         public override bool CanConvert(Type objectType)
@@ -91,7 +95,7 @@ namespace JsonSubTypes
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-            _WriteJson(writer, value, serializer);
+            throw new NotImplementedException();
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
