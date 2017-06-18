@@ -243,11 +243,13 @@ namespace JsonSubTypes.Tests
             var root2 = JsonConvert.DeserializeObject<Parent>("{\"Child\":{\"ChildType\":2}}");
             var root3 = JsonConvert.DeserializeObject<Parent>("{\"Child\":{\"ChildType\":8}}");
             var root4 = JsonConvert.DeserializeObject<Parent>("{\"Child\":{\"ChildType\":null}}");
+            var root5 = JsonConvert.DeserializeObject<Parent>("{\"Child\":{}}");
 
             Assert.IsNotNull(root1.child as Child1);
             Assert.IsNotNull(root2.child as Child2);
             Assert.AreEqual(typeof(Child), root3.child.GetType());
             Assert.AreEqual(typeof(Child), root4.child.GetType());
+            Assert.AreEqual(typeof(Child), root5.child.GetType());
         }
     }
 }
