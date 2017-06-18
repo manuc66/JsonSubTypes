@@ -12,9 +12,16 @@ namespace JsonSubTypes.Tests
 
         protected bool Equals(Root other)
         {
-            if (Equals(Content, other.Content) && ContentList != null && other.ContentList != null)
-                return ContentList.SequenceEqual(other.ContentList);
-            return ReferenceEquals(ContentList, other.ContentList);
+            if (Equals(Content, other.Content))
+            {
+                if (ContentList != null && other.ContentList != null)
+                    return ContentList.SequenceEqual(other.ContentList);
+                else
+                {
+                    return ReferenceEquals(ContentList, other.ContentList);
+                }
+            }
+            return false;
         }
 
         public override bool Equals(object obj)
@@ -29,9 +36,12 @@ namespace JsonSubTypes.Tests
         {
             unchecked
             {
-                return ((Content != null ? Content.GetHashCode() : 0) * 397) ^ (ContentList != null ? ContentList.Aggregate(0, (x, y) => x.GetHashCode() ^ y.GetHashCode()) : 0);
+                var hashCode = (Content != null ? Content.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (ContentList != null ? ContentList.Aggregate(0, (x, y) => x.GetHashCode() ^ y.GetHashCode()) : 0);
+                return hashCode;
             }
         }
+
     }
 
     [JsonConverter(typeof(JsonSubtypes), "@type")]
@@ -42,9 +52,12 @@ namespace JsonSubTypes.Tests
         [JsonProperty("@type")]
         public virtual string Type { get; }
 
+        [JsonProperty("4-you")]
+        public int _4You { get; set; }
+
         protected bool Equals(Base other)
         {
-            return string.Equals(Type, other.Type);
+            return string.Equals(Type, other.Type) && _4You == other._4You;
         }
 
         public override bool Equals(object obj)
@@ -56,7 +69,12 @@ namespace JsonSubTypes.Tests
 
         public override int GetHashCode()
         {
-            return Type != null ? Type.GetHashCode() : 0;
+            unchecked
+            {
+                var hashCode = Type != null ? Type.GetHashCode() : 0;
+                hashCode = (hashCode * 397) ^ _4You;
+                return hashCode;
+            }
         }
     }
 
@@ -120,12 +138,16 @@ namespace JsonSubTypes.Tests
 
             var root = new Root
             {
-                Content = new SubB { Index = 1 }
+                Content = new SubB
+                {
+                    Index = 1,
+                    _4You = 2
+                }
             };
 
             string str = JsonConvert.SerializeObject(root);
 
-            Assert.AreEqual("{\"Content\":{\"@type\":\"SubB\",\"Index\":1},\"ContentList\":null}", str);
+            Assert.AreEqual("{\"Content\":{\"@type\":\"SubB\",\"Index\":1,\"4-you\":2},\"ContentList\":null}", str);
         }
 
         [TestMethod]
@@ -187,7 +209,7 @@ namespace JsonSubTypes.Tests
             var expected = new Root
             {
                 Content = new Base(),
-                ContentList = new List<Base>() { new SubB { Index = 1 }, new SubC { Name = "foo" } }
+                ContentList = new List<Base> { new SubB { Index = 1 }, new SubC { Name = "foo" } }
             };
 
             var root = JsonConvert.DeserializeObject<Root>("{\"Content\":{\"Index\":1,\"@type\":8.5},\"ContentList\":[{\"Index\":1,\"@type\":\"SubB\"},{\"Name\":\"foo\",\"@type\":\"SubC\"}]}");
