@@ -2,4 +2,4 @@
 *.suo
 bin
 obj
-/*.user
+*.user

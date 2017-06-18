@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using Newtonsoft.Json;
@@ -6,6 +7,25 @@ using Newtonsoft.Json.Linq;
 
 namespace JsonSubTypes
 {
+    public class JsonSubtypesWithNested : JsonSubtypes
+    {
+        public JsonSubtypesWithNested(string typeMappingPropertyName) : base(typeMappingPropertyName)
+        {
+        }
+
+        public override bool CanRead
+        {
+            get
+            {
+                if (base.CanRead)
+                    return true;
+
+                var frame = new StackFrame(1);
+                var method = frame.GetMethod();
+                return method.Name == "SetPropertyValue";
+            }
+        }
+    }
     public class JsonSubtypes : JsonConverter
     {
         [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
@@ -26,7 +46,7 @@ namespace JsonSubTypes
         private bool _isInsideRead;
         private bool _isInsideWrite;
 
-        public sealed override bool CanRead => !_isInsideRead;
+        public override bool CanRead => !_isInsideRead;
         public sealed override bool CanWrite => !_isInsideWrite;
 
         public JsonSubtypes(string typeMappingPropertyName)
