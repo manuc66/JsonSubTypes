@@ -1,4 +1,6 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using System.Collections.Generic;
+using System.Linq;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 
 namespace JsonSubTypes.Tests
@@ -6,23 +8,29 @@ namespace JsonSubTypes.Tests
     class Root
     {
         public Base Content { get; set; }
+        public List<Base> ContentList { get; set; }
 
         protected bool Equals(Root other)
         {
-            return Equals(Content, other.Content);
+            if (Equals(Content, other.Content) && ContentList != null && other.ContentList != null)
+                return ContentList.SequenceEqual(other.ContentList);
+            return ReferenceEquals(ContentList, other.ContentList);
         }
 
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != GetType()) return false;
+            if (obj.GetType() != this.GetType()) return false;
             return Equals((Root)obj);
         }
 
         public override int GetHashCode()
         {
-            return Content != null ? Content.GetHashCode() : 0;
+            unchecked
+            {
+                return ((Content != null ? Content.GetHashCode() : 0) * 397) ^ (ContentList != null ? ContentList.Aggregate(0, (x, y) => x.GetHashCode() ^ y.GetHashCode()) : 0);
+            }
         }
     }
 
@@ -117,7 +125,7 @@ namespace JsonSubTypes.Tests
 
             string str = JsonConvert.SerializeObject(root);
 
-            Assert.AreEqual("{\"Content\":{\"@type\":\"SubB\",\"Index\":1}}", str);
+            Assert.AreEqual("{\"Content\":{\"@type\":\"SubB\",\"Index\":1},\"ContentList\":null}", str);
         }
 
         [TestMethod]
@@ -169,6 +177,20 @@ namespace JsonSubTypes.Tests
             };
 
             var root = JsonConvert.DeserializeObject<Root>("{\"Content\":{\"Index\":1,\"@type\":8.5}}");
+
+            Assert.AreEqual(expected, root);
+        }
+
+        [TestMethod]
+        public void WorkWithSubList()
+        {
+            var expected = new Root
+            {
+                Content = new Base(),
+                ContentList = new List<Base>() { new SubB { Index = 1 }, new SubC { Name = "foo" } }
+            };
+
+            var root = JsonConvert.DeserializeObject<Root>("{\"Content\":{\"Index\":1,\"@type\":8.5},\"ContentList\":[{\"Index\":1,\"@type\":\"SubB\"},{\"Name\":\"foo\",\"@type\":\"SubC\"}]}");
 
             Assert.AreEqual(expected, root);
         }
