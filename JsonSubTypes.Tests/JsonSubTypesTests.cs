@@ -27,8 +27,8 @@ namespace JsonSubTypes.Tests
     }
 
     [JsonConverter(typeof(JsonSubtypes), "@type")]
-    [JsonKnownSubType(typeof(SubB), "SubB")]
-    [JsonKnownSubType(typeof(SubC), "SubC")]
+    [JsonSubtypes.KnownSubType(typeof(SubB), "SubB")]
+    [JsonSubtypes.KnownSubType(typeof(SubC), "SubC")]
     class Base
     {
         [JsonProperty("@type")]

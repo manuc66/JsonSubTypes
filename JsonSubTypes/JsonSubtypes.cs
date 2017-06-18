@@ -8,6 +8,19 @@ namespace JsonSubTypes
 {
     public class JsonSubtypes : JsonConverter
     {
+        [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+        public class KnownSubTypeAttribute : Attribute
+        {
+            public Type SubType { get; }
+            public object AssociatedValue { get; }
+
+            public KnownSubTypeAttribute(Type subType, object associatedValue)
+            {
+                SubType = subType;
+                AssociatedValue = associatedValue;
+            }
+        }
+
         private readonly string _typeMappingPropertyName;
 
         private bool _isInsideRead;
@@ -49,7 +62,7 @@ namespace JsonSubTypes
 
         public Type GetType(JObject jObject, Type type)
         {
-            var typeMapping = type.GetCustomAttributes<JsonKnownSubTypeAttribute>().ToDictionary(x => x.AssociatedValue?.ToString() ?? "null", x => x.SubType);
+            var typeMapping = type.GetCustomAttributes<KnownSubTypeAttribute>().ToDictionary(x => x.AssociatedValue?.ToString() ?? "null", x => x.SubType);
 
             var objectType = jObject[_typeMappingPropertyName].Value<string>();
             if (objectType != null && typeMapping.ContainsKey(objectType))
@@ -61,7 +74,7 @@ namespace JsonSubTypes
 
         public override bool CanConvert(Type objectType)
         {
-            return _typeMappingPropertyName != null && objectType.GetCustomAttributes<JsonKnownSubTypeAttribute>().Any();
+            return _typeMappingPropertyName != null && objectType.GetCustomAttributes<KnownSubTypeAttribute>().Any();
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
