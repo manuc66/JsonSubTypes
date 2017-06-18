@@ -71,11 +71,10 @@ namespace JsonSubTypes
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
-            var jObject = JObject.Load(reader);
-            if (jObject == null)
-            {
+            if (reader.TokenType == JsonToken.Null)
                 return null;
-            }
+
+            var jObject = JObject.Load(reader);
 
             var targetType = GetType(jObject, objectType) ?? objectType;
 
