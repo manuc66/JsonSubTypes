@@ -44,10 +44,9 @@ namespace JsonSubTypes
         private readonly string _typeMappingPropertyName;
 
         private bool _isInsideRead;
-        private bool _isInsideWrite;
 
         public override bool CanRead => !_isInsideRead;
-        public sealed override bool CanWrite => !_isInsideWrite;
+        public sealed override bool CanWrite => false;
 
         public JsonSubtypes(string typeMappingPropertyName)
         {
@@ -69,15 +68,7 @@ namespace JsonSubTypes
 
         protected void _WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-            _isInsideWrite = true;
-            try
-            {
-                serializer.Serialize(writer, value);
-            }
-            finally
-            {
-                _isInsideWrite = false;
-            }
+            throw new NotImplementedException();
         }
 
         public Type GetType(JObject jObject, Type type)
