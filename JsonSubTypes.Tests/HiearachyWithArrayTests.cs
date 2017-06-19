@@ -5,36 +5,36 @@ using Newtonsoft.Json;
 
 namespace JsonSubTypes.Tests
 {
-    public class Hierachy
-    {
-        [JsonConverter(typeof(JsonSubtypes), "NodeType")]
-        public Node Root { get; set; }
-    }
-
-    [JsonSubtypes.KnownSubType(typeof(FolderNode), 1)]
-    [JsonSubtypes.KnownSubType(typeof(ElemNode), 2)]
-    public class Node
-    {
-        public virtual int NodeType { get; set; }
-    }
-
-    public class FolderNode : Node
-    {
-        public sealed override int NodeType { get; set; } = 1;
-
-        [JsonConverter(typeof(JsonSubtypes), "NodeType")]
-        public List<Node> Children { get; set; }
-    }
-
-    public class ElemNode : Node
-    {
-        public sealed override int NodeType { get; set; } = 2;
-        public long Size { get; set; }
-    }
-
     [TestClass]
-    public class HiearachyTests
+    public class HiearachyWithArrayTests
     {
+        public class Hierachy
+        {
+            [JsonConverter(typeof(JsonSubtypes), "NodeType")]
+            public Node Root { get; set; }
+        }
+
+        [JsonSubtypes.KnownSubType(typeof(FolderNode), 1)]
+        [JsonSubtypes.KnownSubType(typeof(ElemNode), 2)]
+        public class Node
+        {
+            public virtual int NodeType { get; set; }
+        }
+
+        public class FolderNode : Node
+        {
+            public sealed override int NodeType { get; set; } = 1;
+
+            [JsonConverter(typeof(JsonSubtypes), "NodeType")]
+            public Node[] Children { get; set; }
+        }
+
+        public class ElemNode : Node
+        {
+            public sealed override int NodeType { get; set; } = 2;
+            public long Size { get; set; }
+        }
+
         [TestMethod]
         public void SerializeHierachyTest()
         {
@@ -42,11 +42,11 @@ namespace JsonSubTypes.Tests
             {
                 Root = new FolderNode
                 {
-                    Children = new List<Node>
+                    Children = new[]
                     {
                         new FolderNode
                         {
-                            Children = new List<Node> {new ElemNode {Size = 3}}
+                            Children = new [] {new ElemNode {Size = 3}}
                         }
                     }
                 }

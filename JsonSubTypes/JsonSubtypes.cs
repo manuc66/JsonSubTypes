@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Newtonsoft.Json;
@@ -109,18 +110,20 @@ namespace JsonSubTypes
 
         private IList ReadArray(JsonReader reader, Type objectType, JsonSerializer serializer)
         {
-            var array = (IList)Activator.CreateInstance(objectType);
+            var elementType = objectType.IsArray ? objectType.GetElementType() : objectType.GenericTypeArguments[0];
+            var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
+
             while (reader.TokenType != JsonToken.EndArray && reader.Read())
             {
                 switch (reader.TokenType)
                 {
                     case JsonToken.Null:
-                        array.Add(reader.Value);
+                        list.Add(reader.Value);
                         break;
                     case JsonToken.Comment:
                         break;
                     case JsonToken.StartObject:
-                        array.Add(ReadObject(reader, objectType.GenericTypeArguments[0], serializer));
+                        list.Add(ReadObject(reader, elementType, serializer));
                         break;
                     case JsonToken.EndArray:
                         break;
@@ -128,7 +131,13 @@ namespace JsonSubTypes
                         throw new Exception("Array: Unrecognized token: " + reader.TokenType);
                 }
             }
-            return array;
+            if (objectType.IsArray)
+            {
+                var array = Array.CreateInstance(objectType.GetElementType(), list.Count);
+                list.CopyTo(array, 0);
+                list = array;
+            }
+            return list;
         }
 
         private object ReadObject(JsonReader reader, Type objectType, JsonSerializer serializer)
