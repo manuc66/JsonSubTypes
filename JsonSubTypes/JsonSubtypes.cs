@@ -71,15 +71,20 @@ namespace JsonSubTypes
             if (objectType == null) return null;
 
             var typeMapping = type.GetCustomAttributes<KnownSubTypeAttribute>().ToDictionary(x => x.AssociatedValue, x => x.SubType);
-            var lookupValue = Convert.ChangeType(objectType, typeMapping.First().Key.GetType());
-            
-            Type targetType;
-            return typeMapping.TryGetValue(lookupValue, out targetType) ? targetType : null;
+            if (typeMapping.Any())
+            {
+                var lookupValue = Convert.ChangeType(objectType, typeMapping.First().Key.GetType());
+
+                Type targetType;
+                return typeMapping.TryGetValue(lookupValue, out targetType) ? targetType : null;
+            }
+            var typeName = objectType as string;
+            return typeName != null ? type.Assembly.GetType(typeName) : null;
         }
 
         public override bool CanConvert(Type objectType)
         {
-            return _typeMappingPropertyName != null && objectType.GetCustomAttributes<KnownSubTypeAttribute>().Any();
+            return _typeMappingPropertyName != null;
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
