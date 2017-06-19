@@ -71,7 +71,7 @@ namespace JsonSubTypes.Tests
         [TestMethod]
         public void DeserializeHierachyDeeperTest()
         {
-            var input = "{\"Root\":{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":2,\"Size\":3},{\"NodeType\":2,\"Size\":13}]}]}]}}";
+            var input = "{\"Root\":{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":2,\"Size\":3},{\"NodeType\":2,\"Size\":13}, null]}]}]}}";
 
             var deserialized = JsonConvert.DeserializeObject<Hierachy>(input);
 
