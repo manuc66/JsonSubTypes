@@ -104,7 +104,7 @@ namespace JsonSubTypes
 
         private IList ReadArray(JsonReader reader, Type objectType, JsonSerializer serializer)
         {
-            IList array = (IList)Activator.CreateInstance(objectType);
+            var array = (IList)Activator.CreateInstance(objectType);
             while (reader.TokenType != JsonToken.EndArray && reader.Read())
             {
                 switch (reader.TokenType)
