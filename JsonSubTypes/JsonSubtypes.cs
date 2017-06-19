@@ -9,7 +9,7 @@ namespace JsonSubTypes
 {
     public class JsonSubtypes : JsonConverter
     {
-        [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+        [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
         public class KnownSubTypeAttribute : Attribute
         {
             public Type SubType { get; private set; }
