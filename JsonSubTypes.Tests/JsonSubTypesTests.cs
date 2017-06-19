@@ -127,7 +127,7 @@ namespace JsonSubTypes.Tests
         }
     }
     [TestClass]
-    public class UnitTest1
+    public class JsonSubTypesTests
     {
         [TestMethod]
         public void SerializeTest()
