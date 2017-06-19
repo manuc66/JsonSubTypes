@@ -8,25 +8,6 @@ using Newtonsoft.Json.Linq;
 
 namespace JsonSubTypes
 {
-    public class JsonSubtypesWithNested : JsonSubtypes
-    {
-        public JsonSubtypesWithNested(string typeMappingPropertyName) : base(typeMappingPropertyName)
-        {
-        }
-
-        public override bool CanRead
-        {
-            get
-            {
-                if (base.CanRead)
-                    return true;
-
-                var frame = new StackFrame(1);
-                var method = frame.GetMethod();
-                return method.Name == "SetPropertyValue";
-            }
-        }
-    }
     public class JsonSubtypes : JsonConverter
     {
         [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
@@ -45,10 +26,17 @@ namespace JsonSubTypes
         private readonly string _typeMappingPropertyName;
 
         private bool _isInsideRead;
+        private JsonReader _reader;
 
         public override bool CanRead
         {
-            get { return !_isInsideRead; }
+            get
+            {
+                if (!_isInsideRead)
+                    return true;
+
+                return !string.IsNullOrEmpty(_reader.Path);
+            }
         }
 
         public sealed override bool CanWrite
@@ -63,6 +51,7 @@ namespace JsonSubTypes
 
         protected object _ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
+            _reader = reader;
             _isInsideRead = true;
             try
             {
@@ -84,7 +73,7 @@ namespace JsonSubTypes
 
             var typeMapping = type.GetCustomAttributes<KnownSubTypeAttribute>().ToDictionary(x => x.AssociatedValue, x => x.SubType);
             var lookupValue = Convert.ChangeType(objectType, typeMapping.First().Key.GetType());
-
+            
             Type targetType;
             return typeMapping.TryGetValue(lookupValue, out targetType) ? targetType : null;
         }

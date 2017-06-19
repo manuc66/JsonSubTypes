@@ -22,7 +22,7 @@ namespace JsonSubTypes.Tests
     {
         public sealed override int NodeType { get; set; } = 1;
 
-        [JsonConverter(typeof(JsonSubtypesWithNested), "NodeType")]
+        [JsonConverter(typeof(JsonSubtypes), "NodeType")]
         public List<Node> Children { get; set; }
     }
 
