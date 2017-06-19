@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
@@ -100,9 +101,45 @@ namespace JsonSubTypes
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
-            if (reader.TokenType == JsonToken.Null)
-                return null;
+            switch (reader.TokenType)
+            {
+                case JsonToken.Null:
+                    return null;
+                case JsonToken.StartArray:
+                    return ReadArray(reader, objectType, serializer);
+                case JsonToken.StartObject:
+                    return ReadObject(reader, objectType, serializer);
+                default:
+                    throw new Exception("Array: Unrecognized token: " + reader.TokenType);
+            }
+        }
 
+        private IList ReadArray(JsonReader reader, Type objectType, JsonSerializer serializer)
+        {
+            IList array = (IList)Activator.CreateInstance(objectType);
+            while (reader.TokenType != JsonToken.EndArray && reader.Read())
+            {
+                switch (reader.TokenType)
+                {
+                    case JsonToken.Null:
+                        array.Add(reader.Value);
+                        break;
+                    case JsonToken.Comment:
+                        break;
+                    case JsonToken.StartObject:
+                        array.Add(ReadObject(reader, objectType.GenericTypeArguments[0], serializer));
+                        break;
+                    case JsonToken.EndArray:
+                        break;
+                    default:
+                        throw new Exception("Array: Unrecognized token: " + reader.TokenType);
+                }
+            }
+            return array;
+        }
+
+        private object ReadObject(JsonReader reader, Type objectType, JsonSerializer serializer)
+        {
             var jObject = JObject.Load(reader);
 
             var targetType = GetType(jObject, objectType) ?? objectType;

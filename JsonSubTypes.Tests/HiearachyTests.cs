@@ -1,4 +1,6 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using System.Collections.Generic;
+using System.Linq;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 
 namespace JsonSubTypes.Tests
@@ -21,8 +23,9 @@ namespace JsonSubTypes.Tests
         public sealed override int NodeType { get; set; } = 1;
 
         [JsonConverter(typeof(JsonSubtypesWithNested), "NodeType")]
-        public Node Child { get; set; }
+        public List<Node> Children { get; set; }
     }
+
     public class ElemNode : Node
     {
         public sealed override int NodeType { get; set; } = 2;
@@ -39,41 +42,42 @@ namespace JsonSubTypes.Tests
             {
                 Root = new FolderNode
                 {
-                    Child = new FolderNode
+                    Children = new List<Node>
                     {
-                        Child = new ElemNode { Size = 3 }
+                        new FolderNode
+                        {
+                            Children = new List<Node> {new ElemNode {Size = 3}}
+                        }
                     }
                 }
             };
 
-            string str = JsonConvert.SerializeObject(root);
+            var str = JsonConvert.SerializeObject(root);
 
-            Assert.AreEqual("{\"Root\":{\"NodeType\":1,\"Child\":{\"NodeType\":1,\"Child\":{\"NodeType\":2,\"Size\":3}}}}", str);
+            Assert.AreEqual("{\"Root\":{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":2,\"Size\":3}]}]}}", str);
         }
 
         [TestMethod]
         public void DeserializeHierachyTest()
         {
-            var expected = "{\"Root\":{\"NodeType\":1,\"Child\":{\"NodeType\":2,\"Size\":3}}}";
+            var input = "{\"Root\":{\"NodeType\":1,\"Children\":[{\"NodeType\":2,\"Size\":3}]}}";
 
-            var deserialized = JsonConvert.DeserializeObject<Hierachy>(expected);
+            var deserialized = JsonConvert.DeserializeObject<Hierachy>(input);
 
-            var elemNode = ((deserialized?.Root as FolderNode)?.Child as ElemNode)?.Size;
+            var elemNode = ((deserialized?.Root as FolderNode)?.Children.First() as ElemNode)?.Size;
             Assert.AreEqual(3, elemNode);
         }
 
         [TestMethod]
         public void DeserializeHierachyDeeperTest()
         {
-            var expected = "{\"Root\":{\"NodeType\":1,\"Child\":{\"NodeType\":1,\"Child\":{\"NodeType\":1,\"Child\":{\"NodeType\":2,\"Size\":3}}}}}";
+            var input = "{\"Root\":{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":2,\"Size\":3},{\"NodeType\":2,\"Size\":13}]}]}]}}";
 
-            var deserialized = JsonConvert.DeserializeObject<Hierachy>(expected);
+            var deserialized = JsonConvert.DeserializeObject<Hierachy>(input);
 
-            var nodeType = (((deserialized?.Root as FolderNode)?.Child as FolderNode)?.Child as FolderNode)?.Child?.NodeType;
-            Assert.AreEqual(2, nodeType);
-            var elemNode = ((((deserialized?.Root as FolderNode)?.Child as FolderNode)?.Child as FolderNode)?.Child as ElemNode)?.Size;
-            Assert.AreEqual(3, elemNode);
+            Assert.IsNotNull(deserialized);
+
+            Assert.AreEqual(13, ((ElemNode)new List<Node>(((FolderNode)new List<Node>(((FolderNode)new List<Node>(((FolderNode)deserialized.Root).Children)[0]).Children)[0]).Children)[1]).Size);
         }
     }
-
 }

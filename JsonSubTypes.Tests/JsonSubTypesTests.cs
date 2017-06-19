@@ -33,7 +33,7 @@ namespace JsonSubTypes.Tests
         {
             unchecked
             {
-                var hashCode = (Content != null ? Content.GetHashCode() : 0);
+                var hashCode = Content != null ? Content.GetHashCode() : 0;
                 hashCode = (hashCode * 397) ^ (ContentList != null ? ContentList.Aggregate(0, (x, y) => x.GetHashCode() ^ y.GetHashCode()) : 0);
                 return hashCode;
             }
@@ -239,11 +239,11 @@ namespace JsonSubTypes.Tests
         [TestMethod]
         public void DiscriminatorValueCanBeANumber()
         {
-            var root1 = JsonConvert.DeserializeObject<Parent>("{\"Child\":{\"ChildType\":1}}");
-            var root2 = JsonConvert.DeserializeObject<Parent>("{\"Child\":{\"ChildType\":2}}");
-            var root3 = JsonConvert.DeserializeObject<Parent>("{\"Child\":{\"ChildType\":8}}");
-            var root4 = JsonConvert.DeserializeObject<Parent>("{\"Child\":{\"ChildType\":null}}");
-            var root5 = JsonConvert.DeserializeObject<Parent>("{\"Child\":{}}");
+            var root1 = JsonConvert.DeserializeObject<Parent>("{\"child\":{\"ChildType\":1}}");
+            var root2 = JsonConvert.DeserializeObject<Parent>("{\"child\":{\"ChildType\":2}}");
+            var root3 = JsonConvert.DeserializeObject<Parent>("{\"child\":{\"ChildType\":8}}");
+            var root4 = JsonConvert.DeserializeObject<Parent>("{\"child\":{\"ChildType\":null}}");
+            var root5 = JsonConvert.DeserializeObject<Parent>("{\"child\":{}}");
 
             Assert.IsNotNull(root1.child as Child1);
             Assert.IsNotNull(root2.child as Child2);
