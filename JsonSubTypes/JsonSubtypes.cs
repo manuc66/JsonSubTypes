@@ -153,7 +153,20 @@ namespace JsonSubTypes
 
             var targetType = GetType(jObject, objectType) ?? objectType;
 
-            return _ReadJson(jObject.CreateReader(), targetType, null, serializer);
+            return _ReadJson(CreateAnotherReader(jObject, reader), targetType, null, serializer);
+        }
+
+        private static JsonReader CreateAnotherReader(JObject jObject, JsonReader reader)
+        {
+            var jObjectReader = jObject.CreateReader();
+            jObjectReader.Culture = reader.Culture;
+            jObjectReader.CloseInput = reader.CloseInput;
+            jObjectReader.SupportMultipleContent = reader.SupportMultipleContent;
+            jObjectReader.DateTimeZoneHandling = reader.DateTimeZoneHandling;
+            jObjectReader.FloatParseHandling = reader.FloatParseHandling;
+            jObjectReader.DateFormatString = reader.DateFormatString;
+            jObjectReader.DateParseHandling = reader.DateParseHandling;
+            return jObjectReader;
         }
 
         public Type GetType(JObject jObject, Type parentType)
