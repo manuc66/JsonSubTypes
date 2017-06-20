@@ -54,7 +54,6 @@
     <Compile Include="DemoAlternativeTypePropertyNameTests.cs" />
     <Compile Include="DemoCustomSubclassMappingTests.cs" />
     <Compile Include="HiearachyWithCollectionTests.cs" />
-    <Compile Include="HiearachyWithArrayTests.cs" />
     <Compile Include="JsonSubTypesTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="BaseIsAnInterfaceTests.cs" />
