@@ -156,7 +156,7 @@ namespace JsonSubTypes
             return _ReadJson(jObject.CreateReader(), targetType, null, serializer);
         }
 
-        public Type GetType(JObject jObject, Type type)
+        public Type GetType(JObject jObject, Type parentType)
         {
             JToken jToken;
             if (!jObject.TryGetValue(_typeMappingPropertyName, out jToken)) return null;
@@ -164,19 +164,29 @@ namespace JsonSubTypes
             var discriminatorValue = jToken.ToObject<object>();
             if (discriminatorValue == null) return null;
 
-            var typeMapping = GetSubTypeMapping(type);
+            var typeMapping = GetSubTypeMapping(parentType);
             if (typeMapping.Any())
             {
                 return GetTypeFromMapping(typeMapping, discriminatorValue);
             }
 
-            return GetTypeByName(discriminatorValue, type.Assembly);
+            return GetTypeByName(discriminatorValue, parentType);
         }
 
-        private static Type GetTypeByName(object discriminatorValue, Assembly insideAssembly)
+        private static Type GetTypeByName(object discriminatorValue, Type parentType)
         {
             var typeName = discriminatorValue as string;
-            return typeName != null ? insideAssembly.GetType(typeName) : null;
+            if (typeName == null)
+                return null;
+
+            var insideAssembly = parentType.Assembly;
+
+            var typeByName = insideAssembly.GetType(typeName);
+            if (typeByName == null)
+            {
+                typeByName = insideAssembly.GetType(parentType.Namespace + "." + typeName);
+            }
+            return typeByName;
         }
 
         private static Type GetTypeFromMapping(IReadOnlyDictionary<object, Type> typeMapping, object discriminatorValue)
