@@ -86,7 +86,16 @@ namespace JsonSubTypes
             var typeMapping = type.GetCustomAttributes<KnownSubTypeAttribute>().ToDictionary(x => x.AssociatedValue, x => x.SubType);
             if (typeMapping.Any())
             {
-                var lookupValue = Convert.ChangeType(objectType, typeMapping.First().Key.GetType());
+                object lookupValue;
+                var targetlookupValueType = typeMapping.First().Key.GetType();
+                if (targetlookupValueType.IsEnum)
+                {
+                    lookupValue = Enum.ToObject(targetlookupValueType, objectType);
+                }
+                else
+                {
+                    lookupValue = Convert.ChangeType(objectType, targetlookupValueType);
+                }
 
                 Type targetType;
                 return typeMapping.TryGetValue(lookupValue, out targetType) ? targetType : null;
