@@ -34,6 +34,18 @@ namespace JsonSubTypes
                 AssociatedValue = associatedValue;
             }
         }
+        [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
+        public class KnownSubTypeWithPropertyAttribute : Attribute
+        {
+            public Type SubType { get; private set; }
+            public string PropertyName { get; private set; }
+
+            public KnownSubTypeWithPropertyAttribute(Type subType, string propertyName)
+            {
+                SubType = subType;
+                PropertyName = propertyName;
+            }
+        }
 
         private readonly string _typeMappingPropertyName;
 
@@ -54,6 +66,10 @@ namespace JsonSubTypes
         public sealed override bool CanWrite
         {
             get { return false; }
+        }
+
+        public JsonSubtypes()
+        {
         }
 
         public JsonSubtypes(string typeMappingPropertyName)
@@ -124,11 +140,11 @@ namespace JsonSubTypes
             IList list;
             if (targetContainerType.IsArray || targetContainerType.IsAbstract)
             {
-                list = (IList) Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
+                list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
             }
             else
             {
-                list = (IList) Activator.CreateInstance(targetContainerType);
+                list = (IList)Activator.CreateInstance(targetContainerType);
             }
             return list;
         }
@@ -171,6 +187,28 @@ namespace JsonSubTypes
 
         public Type GetType(JObject jObject, Type parentType)
         {
+            if (_typeMappingPropertyName == null)
+            {
+                return GetTypeByPropertyPresence(jObject, parentType);
+            }
+            return GetTypeFromDiscriminatorValue(jObject, parentType);
+        }
+
+        private static Type GetTypeByPropertyPresence(JObject jObject, Type parentType)
+        {
+            foreach (var type in parentType.GetCustomAttributes<KnownSubTypeWithPropertyAttribute>())
+            {
+                JToken ignore;
+                if (jObject.TryGetValue(type.PropertyName, StringComparison.InvariantCulture, out ignore))
+                {
+                    return type.SubType;
+                }
+            }
+            return null;
+        }
+
+        private Type GetTypeFromDiscriminatorValue(JObject jObject, Type parentType)
+        {
             JToken jToken;
             if (!jObject.TryGetValue(_typeMappingPropertyName, out jToken)) return null;
 
@@ -182,13 +220,11 @@ namespace JsonSubTypes
             {
                 return GetTypeFromMapping(typeMapping, discriminatorValue);
             }
-
-            return GetTypeByName(discriminatorValue, parentType);
+            return GetTypeByName(discriminatorValue as string, parentType);
         }
 
-        private static Type GetTypeByName(object discriminatorValue, Type parentType)
+        private static Type GetTypeByName(string typeName, Type parentType)
         {
-            var typeName = discriminatorValue as string;
             if (typeName == null)
                 return null;
 
