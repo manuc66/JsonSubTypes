@@ -80,28 +80,44 @@ namespace JsonSubTypes
             JToken jToken;
             if (!jObject.TryGetValue(_typeMappingPropertyName, out jToken)) return null;
 
-            var objectType = jToken.ToObject<object>();
-            if (objectType == null) return null;
+            var discriminatorValue = jToken.ToObject<object>();
+            if (discriminatorValue == null) return null;
 
-            var typeMapping = type.GetCustomAttributes<KnownSubTypeAttribute>().ToDictionary(x => x.AssociatedValue, x => x.SubType);
+            var typeMapping = GetSubTypeMapping(type);
             if (typeMapping.Any())
             {
-                object lookupValue;
-                var targetlookupValueType = typeMapping.First().Key.GetType();
-                if (targetlookupValueType.IsEnum)
-                {
-                    lookupValue = Enum.ToObject(targetlookupValueType, objectType);
-                }
-                else
-                {
-                    lookupValue = Convert.ChangeType(objectType, targetlookupValueType);
-                }
-
-                Type targetType;
-                return typeMapping.TryGetValue(lookupValue, out targetType) ? targetType : null;
+                return GetTypeFromMapping(typeMapping, discriminatorValue);
             }
-            var typeName = objectType as string;
+
+            return GetTypeByName(type, discriminatorValue);
+        }
+
+        private static Type GetTypeByName(Type type, object discriminatorValue)
+        {
+            var typeName = discriminatorValue as string;
             return typeName != null ? type.Assembly.GetType(typeName) : null;
+        }
+
+        private static Type GetTypeFromMapping(IReadOnlyDictionary<object, Type> typeMapping, object discriminatorValue)
+        {
+            var targetlookupValueType = typeMapping.First().Key.GetType();
+            var lookupValue = ConvertJsonValueToType(discriminatorValue, targetlookupValueType);
+
+            Type targetType;
+            return typeMapping.TryGetValue(lookupValue, out targetType) ? targetType : null;
+        }
+
+        private static Dictionary<object, Type> GetSubTypeMapping(Type type)
+        {
+            return type.GetCustomAttributes<KnownSubTypeAttribute>().ToDictionary(x => x.AssociatedValue, x => x.SubType);
+        }
+
+        private static object ConvertJsonValueToType(object objectType, Type targetlookupValueType)
+        {
+            if (targetlookupValueType.IsEnum)
+                return Enum.ToObject(targetlookupValueType, objectType);
+
+            return Convert.ChangeType(objectType, targetlookupValueType);
         }
 
         public override bool CanConvert(Type objectType)
