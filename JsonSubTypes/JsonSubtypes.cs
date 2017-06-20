@@ -61,65 +61,6 @@ namespace JsonSubTypes
             _typeMappingPropertyName = typeMappingPropertyName;
         }
 
-        protected object _ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
-        {
-            _reader = reader;
-            _isInsideRead = true;
-            try
-            {
-                return serializer.Deserialize(reader, objectType);
-            }
-            finally
-            {
-                _isInsideRead = false;
-            }
-        }
-
-        public Type GetType(JObject jObject, Type type)
-        {
-            JToken jToken;
-            if (!jObject.TryGetValue(_typeMappingPropertyName, out jToken)) return null;
-
-            var discriminatorValue = jToken.ToObject<object>();
-            if (discriminatorValue == null) return null;
-
-            var typeMapping = GetSubTypeMapping(type);
-            if (typeMapping.Any())
-            {
-                return GetTypeFromMapping(typeMapping, discriminatorValue);
-            }
-
-            return GetTypeByName(type, discriminatorValue);
-        }
-
-        private static Type GetTypeByName(Type type, object discriminatorValue)
-        {
-            var typeName = discriminatorValue as string;
-            return typeName != null ? type.Assembly.GetType(typeName) : null;
-        }
-
-        private static Type GetTypeFromMapping(IReadOnlyDictionary<object, Type> typeMapping, object discriminatorValue)
-        {
-            var targetlookupValueType = typeMapping.First().Key.GetType();
-            var lookupValue = ConvertJsonValueToType(discriminatorValue, targetlookupValueType);
-
-            Type targetType;
-            return typeMapping.TryGetValue(lookupValue, out targetType) ? targetType : null;
-        }
-
-        private static Dictionary<object, Type> GetSubTypeMapping(Type type)
-        {
-            return type.GetCustomAttributes<KnownSubTypeAttribute>().ToDictionary(x => x.AssociatedValue, x => x.SubType);
-        }
-
-        private static object ConvertJsonValueToType(object objectType, Type targetlookupValueType)
-        {
-            if (targetlookupValueType.IsEnum)
-                return Enum.ToObject(targetlookupValueType, objectType);
-
-            return Convert.ChangeType(objectType, targetlookupValueType);
-        }
-
         public override bool CanConvert(Type objectType)
         {
             return _typeMappingPropertyName != null;
@@ -184,6 +125,65 @@ namespace JsonSubTypes
             var targetType = GetType(jObject, objectType) ?? objectType;
 
             return _ReadJson(jObject.CreateReader(), targetType, null, serializer);
+        }
+
+        public Type GetType(JObject jObject, Type type)
+        {
+            JToken jToken;
+            if (!jObject.TryGetValue(_typeMappingPropertyName, out jToken)) return null;
+
+            var discriminatorValue = jToken.ToObject<object>();
+            if (discriminatorValue == null) return null;
+
+            var typeMapping = GetSubTypeMapping(type);
+            if (typeMapping.Any())
+            {
+                return GetTypeFromMapping(typeMapping, discriminatorValue);
+            }
+
+            return GetTypeByName(type, discriminatorValue);
+        }
+
+        private static Type GetTypeByName(Type type, object discriminatorValue)
+        {
+            var typeName = discriminatorValue as string;
+            return typeName != null ? type.Assembly.GetType(typeName) : null;
+        }
+
+        private static Type GetTypeFromMapping(IReadOnlyDictionary<object, Type> typeMapping, object discriminatorValue)
+        {
+            var targetlookupValueType = typeMapping.First().Key.GetType();
+            var lookupValue = ConvertJsonValueToType(discriminatorValue, targetlookupValueType);
+
+            Type targetType;
+            return typeMapping.TryGetValue(lookupValue, out targetType) ? targetType : null;
+        }
+
+        private static Dictionary<object, Type> GetSubTypeMapping(Type type)
+        {
+            return type.GetCustomAttributes<KnownSubTypeAttribute>().ToDictionary(x => x.AssociatedValue, x => x.SubType);
+        }
+
+        private static object ConvertJsonValueToType(object objectType, Type targetlookupValueType)
+        {
+            if (targetlookupValueType.IsEnum)
+                return Enum.ToObject(targetlookupValueType, objectType);
+
+            return Convert.ChangeType(objectType, targetlookupValueType);
+        }
+
+        protected object _ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            _reader = reader;
+            _isInsideRead = true;
+            try
+            {
+                return serializer.Deserialize(reader, objectType);
+            }
+            finally
+            {
+                _isInsideRead = false;
+            }
         }
     }
 }
