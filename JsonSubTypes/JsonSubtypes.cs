@@ -88,8 +88,9 @@ namespace JsonSubTypes
 
         private IList ReadArray(JsonReader reader, Type objectType, JsonSerializer serializer)
         {
-            var elementType = objectType.IsArray ? objectType.GetElementType() : objectType.GenericTypeArguments[0];
-            var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
+            var elementType = GetElementType(objectType);
+
+            var list = CreateCompatibleList(objectType, elementType);
 
             while (reader.TokenType != JsonToken.EndArray && reader.Read())
             {
@@ -118,6 +119,34 @@ namespace JsonSubTypes
             return list;
         }
 
+        private static IList CreateCompatibleList(Type objectType, Type elementType)
+        {
+            IList list;
+            if (objectType.IsArray || objectType.IsAbstract)
+            {
+                list = (IList) Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
+            }
+            else
+            {
+                list = (IList) Activator.CreateInstance(objectType);
+            }
+            return list;
+        }
+
+        private static Type GetElementType(Type objectType)
+        {
+            Type elementType;
+            if (objectType.IsArray)
+            {
+                elementType = objectType.GetElementType();
+            }
+            else
+            {
+                elementType = objectType.GenericTypeArguments[0];
+            }
+            return elementType;
+        }
+
         private object ReadObject(JsonReader reader, Type objectType, JsonSerializer serializer)
         {
             var jObject = JObject.Load(reader);
@@ -141,13 +170,13 @@ namespace JsonSubTypes
                 return GetTypeFromMapping(typeMapping, discriminatorValue);
             }
 
-            return GetTypeByName(type, discriminatorValue);
+            return GetTypeByName(discriminatorValue, type.Assembly);
         }
 
-        private static Type GetTypeByName(Type type, object discriminatorValue)
+        private static Type GetTypeByName(object discriminatorValue, Assembly insideAssembly)
         {
             var typeName = discriminatorValue as string;
-            return typeName != null ? type.Assembly.GetType(typeName) : null;
+            return typeName != null ? insideAssembly.GetType(typeName) : null;
         }
 
         private static Type GetTypeFromMapping(IReadOnlyDictionary<object, Type> typeMapping, object discriminatorValue)
