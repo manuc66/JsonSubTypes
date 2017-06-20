@@ -86,11 +86,11 @@ namespace JsonSubTypes
             }
         }
 
-        private IList ReadArray(JsonReader reader, Type objectType, JsonSerializer serializer)
+        private IList ReadArray(JsonReader reader, Type targetType, JsonSerializer serializer)
         {
-            var elementType = GetElementType(objectType);
+            var elementType = GetElementType(targetType);
 
-            var list = CreateCompatibleList(objectType, elementType);
+            var list = CreateCompatibleList(targetType, elementType);
 
             while (reader.TokenType != JsonToken.EndArray && reader.Read())
             {
@@ -110,39 +110,39 @@ namespace JsonSubTypes
                         throw new Exception("Array: Unrecognized token: " + reader.TokenType);
                 }
             }
-            if (objectType.IsArray)
+            if (targetType.IsArray)
             {
-                var array = Array.CreateInstance(objectType.GetElementType(), list.Count);
+                var array = Array.CreateInstance(targetType.GetElementType(), list.Count);
                 list.CopyTo(array, 0);
                 list = array;
             }
             return list;
         }
 
-        private static IList CreateCompatibleList(Type objectType, Type elementType)
+        private static IList CreateCompatibleList(Type targetContainerType, Type elementType)
         {
             IList list;
-            if (objectType.IsArray || objectType.IsAbstract)
+            if (targetContainerType.IsArray || targetContainerType.IsAbstract)
             {
                 list = (IList) Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
             }
             else
             {
-                list = (IList) Activator.CreateInstance(objectType);
+                list = (IList) Activator.CreateInstance(targetContainerType);
             }
             return list;
         }
 
-        private static Type GetElementType(Type objectType)
+        private static Type GetElementType(Type arrayOrGenericContainer)
         {
             Type elementType;
-            if (objectType.IsArray)
+            if (arrayOrGenericContainer.IsArray)
             {
-                elementType = objectType.GetElementType();
+                elementType = arrayOrGenericContainer.GetElementType();
             }
             else
             {
-                elementType = objectType.GenericTypeArguments[0];
+                elementType = arrayOrGenericContainer.GenericTypeArguments[0];
             }
             return elementType;
         }
