@@ -237,7 +237,7 @@ namespace JsonSubTypes
             if (typeByName == null)
             {
                 var searchLocation = parentType.FullName.Substring(0, parentType.FullName.Length - parentType.Name.Length);
-                typeByName = insideAssembly.GetType(searchLocation + typeName);
+                typeByName = insideAssembly.GetType(searchLocation + typeName, false, true);
             }
             return typeByName;
         }

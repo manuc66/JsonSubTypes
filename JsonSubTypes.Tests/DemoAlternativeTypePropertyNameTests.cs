@@ -70,6 +70,14 @@ namespace JsonSubTypes.Tests
                         "{\"ClassName\":\"Dog\",\"Breed\":\"Jack Russell Terrier\"}");
                 Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
             }
+            [TestMethod]
+            public void DemoCaseInsensitive()
+            {
+                var annimal =
+                    JsonConvert.DeserializeObject<Annimal>(
+                        "{\"ClassName\":\"dog\",\"Breed\":\"Jack Russell Terrier\"}");
+                Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
+            }
         }
     }
 
@@ -96,6 +104,15 @@ namespace JsonSubTypes.Tests
                 var annimal =
                     JsonConvert.DeserializeObject<IAnnimal>(
                         "{\"Kind\":\"Dog\",\"Breed\":\"Jack Russell Terrier\"}");
+                Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
+            }
+
+            [TestMethod]
+            public void DemoCaseInsensitive()
+            {
+                var annimal =
+                    JsonConvert.DeserializeObject<IAnnimal>(
+                        "{\"Kind\":\"dog\",\"Breed\":\"Jack Russell Terrier\"}");
                 Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
             }
         }
