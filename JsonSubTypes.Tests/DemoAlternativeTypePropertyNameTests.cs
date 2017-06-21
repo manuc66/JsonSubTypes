@@ -72,4 +72,32 @@ namespace JsonSubTypes.Tests
             }
         }
     }
+
+    namespace SimplyQualifiedNameNestedType
+    {
+        [TestClass]
+        public class DemoAlternativeTypePropertyNameTests
+        {
+            [JsonConverter(typeof(JsonSubtypes), "Kind")]
+            public interface IAnnimal
+            {
+                string Kind { get; }
+            }
+
+            public class Dog : IAnnimal
+            {
+                public string Kind { get; } = "Dog";
+                public string Breed { get; set; }
+            }
+
+            [TestMethod]
+            public void Demo()
+            {
+                var annimal =
+                    JsonConvert.DeserializeObject<IAnnimal>(
+                        "{\"Kind\":\"Dog\",\"Breed\":\"Jack Russell Terrier\"}");
+                Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
+            }
+        }
+    }
 }
