@@ -161,6 +161,19 @@ namespace JsonSubTypes.Tests
         }
 
         [TestMethod]
+        public void DeserializeSubTypeWithComments()
+        {
+            var expected = new Root
+            {
+                Content = new SubB { Index = 1 }
+            };
+
+            var root = JsonConvert.DeserializeObject<Root>("{\"Content\":/* foo bar */{\"Index\":1,\"@type\":\"SubB\"}}");
+
+            Assert.AreEqual(expected, root);
+        }
+
+        [TestMethod]
         public void DeserializeNull()
         {
             var expected = new Root

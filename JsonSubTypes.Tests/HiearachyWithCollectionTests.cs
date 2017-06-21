@@ -312,6 +312,25 @@ namespace JsonSubTypes.Tests
 
                 Assert.AreEqual(13, ((ElemNode)((FolderNode)((FolderNode)((FolderNode)deserialized.Root).Children.First()).Children.First()).Children.Skip(1).First()).Size);
             }
+
+            [TestMethod]
+            public void DeserializeHierachyDeeperTestWithComments()
+            {
+                var input = "/* foo bar */{/* foo bar */\"Root\":" +
+                            "/* foo bar */{/* foo bar */\"NodeType\":1,/* foo bar */\"Children\":" +
+                            "/* foo bar */[/* foo bar */{\"NodeType\":1,/* foo bar */\"Children\":" +
+                            "/* foo bar */[/* foo bar */{\"NodeType\":1,/* foo bar */\"Children\":" +
+                            "/* foo bar */[" +
+                            "/* foo bar */{/* foo bar */\"NodeType\":2,\"Size\":3}/* foo bar */," +
+                            "/* foo bar */{/* foo bar */\"NodeType\":2,\"Size\":13}/* foo bar */]" +
+                            "/* foo bar */}/* foo bar */]/* foo bar */}/* foo bar */]/* foo bar */}/* foo bar */}/* foo bar */";
+
+                var deserialized = JsonConvert.DeserializeObject<Hierachy>(input);
+
+                Assert.IsNotNull(deserialized);
+
+                Assert.AreEqual(13, ((ElemNode)((FolderNode)((FolderNode)((FolderNode)deserialized.Root).Children.First()).Children.First()).Children.Skip(1).First()).Size);
+            }
         }
     }
 }
