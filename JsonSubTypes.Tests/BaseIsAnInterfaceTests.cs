@@ -34,10 +34,17 @@ namespace JsonSubTypes.Tests
         }
 
         [TestMethod]
-        [ExpectedException(typeof(JsonSerializationException))]
         public void UnknownMappingFails()
         {
-            JsonConvert.DeserializeObject<IAnnimal>("{\"Sound\":\"Scream\"}");
+            try
+            {
+                JsonConvert.DeserializeObject<IAnnimal>("{\"Sound\":\"Scream\"}");
+                Assert.Fail();
+            }
+            catch (JsonSerializationException)
+            {
+                
+            }
         }
     }
 }
