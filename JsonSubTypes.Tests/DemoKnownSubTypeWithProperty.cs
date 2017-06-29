@@ -1,11 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
+using Xunit;
 
 namespace JsonSubTypes.Tests
 {
-    [TestClass]
     public class DemoKnownSubTypeWithProperty
     {
         [JsonConverter(typeof(JsonSubtypes))]
@@ -28,7 +27,7 @@ namespace JsonSubTypes.Tests
             public string Skill { get; set; }
         }
 
-        [TestMethod]
+        [Fact]
         public void Demo()
         {
             string json = "[{\"Department\":\"Department1\",\"JobTitle\":\"JobTitle1\",\"FirstName\":\"FirstName1\",\"LastName\":\"LastName1\"}," +
@@ -37,7 +36,7 @@ namespace JsonSubTypes.Tests
 
 
             var persons = JsonConvert.DeserializeObject<IReadOnlyCollection<Person>>(json);
-            Assert.AreEqual("Painter", (persons.Last() as Artist)?.Skill);
+            Assert.Equal("Painter", (persons.Last() as Artist)?.Skill);
         }
     }
 }

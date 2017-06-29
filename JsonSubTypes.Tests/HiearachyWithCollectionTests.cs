@@ -1,15 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
+using Xunit;
 
 namespace JsonSubTypes.Tests
 {
-    [TestClass]
     public class HiearachyWithCollectionTests
     {
-        [TestClass]
         public class HiearachyWithListsTests
         {
             public class Hierachy
@@ -39,7 +37,7 @@ namespace JsonSubTypes.Tests
                 public long Size { get; set; }
             }
 
-            [TestMethod]
+            [Fact]
             public void SerializeHierachyTest()
             {
                 var root = new Hierachy
@@ -58,12 +56,12 @@ namespace JsonSubTypes.Tests
 
                 var str = JsonConvert.SerializeObject(root);
 
-                Assert.AreEqual(
+                Assert.Equal(
                     "{\"Root\":{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":2,\"Size\":3}]}]}}",
                     str);
             }
 
-            [TestMethod]
+            [Fact]
             public void DeserializeHierachyTest()
             {
                 var input = "{\"Root\":{\"NodeType\":1,\"Children\":[{\"NodeType\":2,\"Size\":3}]}}";
@@ -71,10 +69,10 @@ namespace JsonSubTypes.Tests
                 var deserialized = JsonConvert.DeserializeObject<Hierachy>(input);
 
                 var elemNode = ((deserialized?.Root as FolderNode)?.Children.First() as ElemNode)?.Size;
-                Assert.AreEqual(3, elemNode);
+                Assert.Equal(3, elemNode);
             }
 
-            [TestMethod]
+            [Fact]
             public void DeserializeHierachyDeeperTest()
             {
                 var input =
@@ -82,13 +80,14 @@ namespace JsonSubTypes.Tests
 
                 var deserialized = JsonConvert.DeserializeObject<Hierachy>(input);
 
-                Assert.IsNotNull(deserialized);
+                Assert.NotNull(deserialized);
 
-                Assert.AreEqual(13, ((ElemNode)((FolderNode)((FolderNode)((FolderNode)deserialized.Root).Children[0]).Children[0]).Children[1]).Size);
+                Assert.Equal(13,
+                    ((ElemNode) ((FolderNode) ((FolderNode) ((FolderNode) deserialized.Root).Children[0]).Children[0])
+                        .Children[1]).Size);
             }
         }
 
-        [TestClass]
         public class HiearachyWithArrayTests
         {
             public class Hierachy
@@ -118,7 +117,7 @@ namespace JsonSubTypes.Tests
                 public long Size { get; set; }
             }
 
-            [TestMethod]
+            [Fact]
             public void SerializeHierachyTest()
             {
                 var root = new Hierachy
@@ -129,7 +128,7 @@ namespace JsonSubTypes.Tests
                         {
                             new FolderNode
                             {
-                                Children = new [] {new ElemNode {Size = 3}}
+                                Children = new[] {new ElemNode {Size = 3}}
                             }
                         }
                     }
@@ -137,10 +136,12 @@ namespace JsonSubTypes.Tests
 
                 var str = JsonConvert.SerializeObject(root);
 
-                Assert.AreEqual("{\"Root\":{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":2,\"Size\":3}]}]}}", str);
+                Assert.Equal(
+                    "{\"Root\":{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":2,\"Size\":3}]}]}}",
+                    str);
             }
 
-            [TestMethod]
+            [Fact]
             public void DeserializeHierachyTest()
             {
                 var input = "{\"Root\":{\"NodeType\":1,\"Children\":[{\"NodeType\":2,\"Size\":3}]}}";
@@ -148,22 +149,25 @@ namespace JsonSubTypes.Tests
                 var deserialized = JsonConvert.DeserializeObject<Hierachy>(input);
 
                 var elemNode = ((deserialized?.Root as FolderNode)?.Children.First() as ElemNode)?.Size;
-                Assert.AreEqual(3, elemNode);
+                Assert.Equal(3, elemNode);
             }
 
-            [TestMethod]
+            [Fact]
             public void DeserializeHierachyDeeperTest()
             {
-                var input = "{\"Root\":{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":2,\"Size\":3},{\"NodeType\":2,\"Size\":13}]}]}]}}";
+                var input =
+                    "{\"Root\":{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":2,\"Size\":3},{\"NodeType\":2,\"Size\":13}]}]}]}}";
 
                 var deserialized = JsonConvert.DeserializeObject<Hierachy>(input);
 
-                Assert.IsNotNull(deserialized);
+                Assert.NotNull(deserialized);
 
-                Assert.AreEqual(13, ((ElemNode)((FolderNode)((FolderNode)((FolderNode)deserialized.Root).Children[0]).Children[0]).Children[1]).Size);
+                Assert.Equal(13,
+                    ((ElemNode) ((FolderNode) ((FolderNode) ((FolderNode) deserialized.Root).Children[0]).Children[0])
+                        .Children[1]).Size);
             }
         }
-        [TestClass]
+
         public class HiearachyWithObservableCollectionTests
         {
             public class Hierachy
@@ -193,7 +197,7 @@ namespace JsonSubTypes.Tests
                 public long Size { get; set; }
             }
 
-            [TestMethod]
+            [Fact]
             public void SerializeHierachyTest()
             {
                 var root = new Hierachy
@@ -212,10 +216,12 @@ namespace JsonSubTypes.Tests
 
                 var str = JsonConvert.SerializeObject(root);
 
-                Assert.AreEqual("{\"Root\":{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":2,\"Size\":3}]}]}}", str);
+                Assert.Equal(
+                    "{\"Root\":{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":2,\"Size\":3}]}]}}",
+                    str);
             }
 
-            [TestMethod]
+            [Fact]
             public void DeserializeHierachyTest()
             {
                 var input = "{\"Root\":{\"NodeType\":1,\"Children\":[{\"NodeType\":2,\"Size\":3}]}}";
@@ -223,22 +229,25 @@ namespace JsonSubTypes.Tests
                 var deserialized = JsonConvert.DeserializeObject<Hierachy>(input);
 
                 var elemNode = ((deserialized?.Root as FolderNode)?.Children.First() as ElemNode)?.Size;
-                Assert.AreEqual(3, elemNode);
+                Assert.Equal(3, elemNode);
             }
 
-            [TestMethod]
+            [Fact]
             public void DeserializeHierachyDeeperTest()
             {
-                var input = "{\"Root\":{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":2,\"Size\":3},{\"NodeType\":2,\"Size\":13}]}]}]}}";
+                var input =
+                    "{\"Root\":{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":2,\"Size\":3},{\"NodeType\":2,\"Size\":13}]}]}]}}";
 
                 var deserialized = JsonConvert.DeserializeObject<Hierachy>(input);
 
-                Assert.IsNotNull(deserialized);
+                Assert.NotNull(deserialized);
 
-                Assert.AreEqual(13, ((ElemNode)((FolderNode)((FolderNode)((FolderNode)deserialized.Root).Children[0]).Children[0]).Children[1]).Size);
+                Assert.Equal(13,
+                    ((ElemNode) ((FolderNode) ((FolderNode) ((FolderNode) deserialized.Root).Children[0]).Children[0])
+                        .Children[1]).Size);
             }
         }
-        [TestClass]
+
         public class HiearachyWithIEnumerableCollectionTests
         {
             public class Hierachy
@@ -268,7 +277,7 @@ namespace JsonSubTypes.Tests
                 public long Size { get; set; }
             }
 
-            [TestMethod]
+            [Fact]
             public void SerializeHierachyTest()
             {
                 var root = new Hierachy
@@ -287,10 +296,12 @@ namespace JsonSubTypes.Tests
 
                 var str = JsonConvert.SerializeObject(root);
 
-                Assert.AreEqual("{\"Root\":{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":2,\"Size\":3}]}]}}", str);
+                Assert.Equal(
+                    "{\"Root\":{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":2,\"Size\":3}]}]}}",
+                    str);
             }
 
-            [TestMethod]
+            [Fact]
             public void DeserializeHierachyTest()
             {
                 var input = "{\"Root\":{\"NodeType\":1,\"Children\":[{\"NodeType\":2,\"Size\":3}]}}";
@@ -298,22 +309,25 @@ namespace JsonSubTypes.Tests
                 var deserialized = JsonConvert.DeserializeObject<Hierachy>(input);
 
                 var elemNode = ((deserialized?.Root as FolderNode)?.Children.First() as ElemNode)?.Size;
-                Assert.AreEqual(3, elemNode);
+                Assert.Equal(3, elemNode);
             }
 
-            [TestMethod]
+            [Fact]
             public void DeserializeHierachyDeeperTest()
             {
-                var input = "{\"Root\":{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":2,\"Size\":3},{\"NodeType\":2,\"Size\":13}]}]}]}}";
+                var input =
+                    "{\"Root\":{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":2,\"Size\":3},{\"NodeType\":2,\"Size\":13}]}]}]}}";
 
                 var deserialized = JsonConvert.DeserializeObject<Hierachy>(input);
 
-                Assert.IsNotNull(deserialized);
+                Assert.NotNull(deserialized);
 
-                Assert.AreEqual(13, ((ElemNode)((FolderNode)((FolderNode)((FolderNode)deserialized.Root).Children.First()).Children.First()).Children.Skip(1).First()).Size);
+                Assert.Equal(13,
+                    ((ElemNode) ((FolderNode) ((FolderNode) ((FolderNode) deserialized.Root).Children.First()).Children
+                        .First()).Children.Skip(1).First()).Size);
             }
 
-            [TestMethod]
+            [Fact]
             public void DeserializeHierachyDeeperTestWithComments()
             {
                 var input = "/* foo bar */{/* foo bar */\"Root\":" +
@@ -327,9 +341,11 @@ namespace JsonSubTypes.Tests
 
                 var deserialized = JsonConvert.DeserializeObject<Hierachy>(input);
 
-                Assert.IsNotNull(deserialized);
+                Assert.NotNull(deserialized);
 
-                Assert.AreEqual(13, ((ElemNode)((FolderNode)((FolderNode)((FolderNode)deserialized.Root).Children.First()).Children.First()).Children.Skip(1).First()).Size);
+                Assert.Equal(13,
+                    ((ElemNode) ((FolderNode) ((FolderNode) ((FolderNode) deserialized.Root).Children.First()).Children
+                        .First()).Children.Skip(1).First()).Size);
             }
         }
     }

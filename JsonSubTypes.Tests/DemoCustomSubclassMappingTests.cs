@@ -1,9 +1,9 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
+using Xunit;
 
 namespace JsonSubTypes.Tests
 {
-    [TestClass]
+
     public class DemoCustomSubclassMappingTests
     {
         [JsonConverter(typeof(JsonSubtypes), "Sound")]
@@ -27,11 +27,11 @@ namespace JsonSubTypes.Tests
             public bool Declawed { get; set; }
         }
 
-        [TestMethod]
+         [Fact]
         public void Demo()
         {
             var annimal = JsonConvert.DeserializeObject<Annimal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
-            Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
+            Assert.Equal("Jack Russell Terrier", (annimal as Dog)?.Breed);
         }
     }
 }
