@@ -1,4 +1,6 @@
 # __JsonSubTypes__ a discriminated Json sub-type Converter implementation for .NET
+[![Build status](https://ci.appveyor.com/api/projects/status/g11crbl037en6rkq/branch/master?svg=true)](https://ci.appveyor.com/project/manuc66/jsonsubtypes/branch/master)
+[![Code Coverage](https://codecov.io/gh/manuc66/JsonSubTypes/branch/master/graph/badge.svg)](https://codecov.io/gh/manuc66/JsonSubTypes)
 
 ## DeserializeObject with custom type property name
 

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
+using Xunit;
 
 namespace JsonSubTypes.Tests
 {
@@ -126,10 +126,9 @@ namespace JsonSubTypes.Tests
             }
         }
     }
-    [TestClass]
     public class JsonSubTypesTests
     {
-        [TestMethod]
+         [Fact]
         public void SerializeTest()
         {
 
@@ -144,10 +143,10 @@ namespace JsonSubTypes.Tests
 
             string str = JsonConvert.SerializeObject(root);
 
-            Assert.AreEqual("{\"Content\":{\"@type\":\"SubB\",\"Index\":1,\"4-you\":2},\"ContentList\":null}", str);
+            Assert.Equal("{\"Content\":{\"@type\":\"SubB\",\"Index\":1,\"4-you\":2},\"ContentList\":null}", str);
         }
 
-        [TestMethod]
+         [Fact]
         public void DeserializeSubType()
         {
             var expected = new Root
@@ -157,10 +156,10 @@ namespace JsonSubTypes.Tests
 
             var root = JsonConvert.DeserializeObject<Root>("{\"Content\":{\"Index\":1,\"@type\":\"SubB\"}}");
 
-            Assert.AreEqual(expected, root);
+            Assert.Equal(expected, root);
         }
 
-        [TestMethod]
+         [Fact]
         public void DeserializeSubTypeWithComments()
         {
             var expected = new Root
@@ -170,10 +169,10 @@ namespace JsonSubTypes.Tests
 
             var root = JsonConvert.DeserializeObject<Root>("{\"Content\":/* foo bar */{\"Index\":1,\"@type\":\"SubB\"}}");
 
-            Assert.AreEqual(expected, root);
+            Assert.Equal(expected, root);
         }
 
-        [TestMethod]
+         [Fact]
         public void DeserializeNull()
         {
             var expected = new Root
@@ -183,11 +182,11 @@ namespace JsonSubTypes.Tests
 
             var root = JsonConvert.DeserializeObject<Root>("{\"Content\":null}");
 
-            Assert.AreEqual(expected, root);
+            Assert.Equal(expected, root);
         }
 
 
-        [TestMethod]
+         [Fact]
         public void WhenDiscriminatorValueIsNullDeserializeToBaseType()
         {
             var expected = new Root
@@ -197,10 +196,10 @@ namespace JsonSubTypes.Tests
 
             var root = JsonConvert.DeserializeObject<Root>("{\"Content\":{\"Index\":1,\"@type\":null}}");
 
-            Assert.AreEqual(expected, root);
+            Assert.Equal(expected, root);
         }
 
-        [TestMethod]
+         [Fact]
         public void WhenDiscriminatorValueIsUnknownDeserializeToBaseType()
         {
             var expected = new Root
@@ -210,10 +209,10 @@ namespace JsonSubTypes.Tests
 
             var root = JsonConvert.DeserializeObject<Root>("{\"Content\":{\"Index\":1,\"@type\":8.5}}");
 
-            Assert.AreEqual(expected, root);
+            Assert.Equal(expected, root);
         }
 
-        [TestMethod]
+         [Fact]
         public void WorkWithSubList()
         {
             var expected = new Root
@@ -224,7 +223,7 @@ namespace JsonSubTypes.Tests
 
             var root = JsonConvert.DeserializeObject<Root>("{\"Content\":{\"Index\":1,\"@type\":8.5},\"ContentList\":[{\"Index\":1,\"@type\":\"SubB\"},{\"Name\":\"foo\",\"@type\":\"SubC\"}]}");
 
-            Assert.AreEqual(expected, root);
+            Assert.Equal(expected, root);
         }
 
      
