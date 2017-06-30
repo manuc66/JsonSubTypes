@@ -1,9 +1,17 @@
 image: Visual Studio 2017
 
-before_build:
-- nuget restore
+environment:
+  sonar_token:
+    secure: Hx6kPrBnPaSv4Six+n4YBvAFEjzYrmKaZy5APx+YMX6/Fal6Hh4KDQzW9dmEKKq0
+
+init:
 - choco install opencover.portable
 - choco install codecov
+- choco install "msbuild-sonarqube-runner" -y
+
+before_build:
+- nuget restore
+- ps: if (-Not $env:APPVEYOR_PULL_REQUEST_NUMBER)  { MSBuild.SonarQube.Runner.exe begin /k:"manuc66:JsonSubtypes:master" /d:"sonar.host.url=https://sonarqube.com" /d:"sonar.organization=manuc66-github" /d:"sonar.login=$env:sonar_token" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" }
 
 build:
   project: JsonSubTypes.sln
@@ -13,3 +21,6 @@ test_script:
 - dir JsonSubTypes.Tests\bin\Debug
 - OpenCover.Console.exe -register:user -target:"%xunit20%\xunit.console.x86.exe" -targetargs:".\JsonSubTypes.Tests\bin\Debug\JsonSubTypes.Tests.dll -noshadow" -filter:"+[JsonSubTypes*]* -[JsonSubTypes.Tests]*" -output:".\MyProject_coverage.xml"
 - codecov -f "MyProject_coverage.xml
+
+after_test:
+- ps: if (-Not $env:APPVEYOR_PULL_REQUEST_NUMBER)  { MSBuild.SonarQube.Runner.exe end /d:sonar.login=$env:sonar_token }
