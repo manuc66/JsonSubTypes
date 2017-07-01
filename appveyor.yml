@@ -3,6 +3,8 @@ image: Visual Studio 2017
 environment:
   sonar_token:
     secure: 4M8z89LHqy9Rho8Mi4i7V0Ajz/7kvDYolVFH2V0GjK5VO5dseuv2Dja/qmKbio1I
+  github_auth_token:
+    secure: XUib5rF8Uxwk7S2umtsFEQ9t5G0p/J3G3PNpWLZuNIyw/zNufLDCge8C6QJRTzQw
 
 init:
 - choco install opencover.portable
@@ -12,6 +14,7 @@ init:
 before_build:
 - nuget restore
 - ps: if (-Not $env:APPVEYOR_PULL_REQUEST_NUMBER)  { MSBuild.SonarQube.Runner.exe begin /k:"manuc66:JsonSubtypes:master" /d:"sonar.host.url=https://sonarqube.com" /d:"sonar.organization=manuc66-github" /d:"sonar.login=$env:sonar_token" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" }
+- ps: if ($env:APPVEYOR_PULL_REQUEST_NUMBER)       { MSBuild.SonarQube.Runner.exe begin /k:"manuc66:JsonSubtypes:master" /d:"sonar.host.url=https://sonarqube.com" /d:"sonar.organization=manuc66-github" /d:"sonar.login=$env:sonar_token" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" /d:"sonar.analysis.mode=preview" /d:"sonar.github.pullRequest=$env:APPVEYOR_PULL_REQUEST_NUMBER" /d:"sonar.github.repository=$env:APPVEYOR_REPO_NAME" /d:"sonar.github.oauth=$env:github_auth_token" }
 
 build:
   project: JsonSubTypes.sln
@@ -23,4 +26,4 @@ test_script:
 - codecov -f "MyProject_coverage.xml
 
 after_test:
-- ps: if (-Not $env:APPVEYOR_PULL_REQUEST_NUMBER)  { MSBuild.SonarQube.Runner.exe end /d:sonar.login=$env:sonar_token }
+- ps: MSBuild.SonarQube.Runner.exe end /d:"sonar.login=$env:sonar_token"
