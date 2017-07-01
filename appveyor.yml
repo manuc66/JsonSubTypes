@@ -2,7 +2,7 @@ image: Visual Studio 2017
 
 environment:
   sonar_token:
-    secure: Hx6kPrBnPaSv4Six+n4YBvAFEjzYrmKaZy5APx+YMX6/Fal6Hh4KDQzW9dmEKKq0
+    secure: 4M8z89LHqy9Rho8Mi4i7V0Ajz/7kvDYolVFH2V0GjK5VO5dseuv2Dja/qmKbio1I
 
 init:
 - choco install opencover.portable
