@@ -84,7 +84,7 @@ namespace JsonSubTypes
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-            throw new NotImplementedException();
+            writer.WriteValue(value);
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
@@ -101,7 +101,7 @@ namespace JsonSubTypes
                 case JsonToken.StartObject:
                     return ReadObject(reader, objectType, serializer);
                 default:
-                    throw new Exception("Array: Unrecognized token: " + reader.TokenType);
+                    throw new JsonReaderException(string.Format("Unrecognized token: {0} on path: {1}", reader.TokenType, reader.Path));
             }
         }
 
@@ -126,7 +126,7 @@ namespace JsonSubTypes
                     case JsonToken.EndArray:
                         break;
                     default:
-                        throw new Exception("Array: Unrecognized token: " + reader.TokenType);
+                        throw new JsonReaderException(string.Format("Unrecognized token: {0} on path: {1}", reader.TokenType, reader.Path));
                 }
             }
             if (targetType.IsArray)
