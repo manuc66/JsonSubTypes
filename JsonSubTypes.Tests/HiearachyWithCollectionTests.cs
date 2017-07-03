@@ -331,7 +331,7 @@ namespace JsonSubTypes.Tests
             public void DeserializeHierachyDeeperTestWithComments()
             {
                 var input = "/* foo bar */{/* foo bar */\"Root\":" +
-                            "/* foo bar */{/* foo bar */\"NodeType\":1,/* foo bar */\"Children\":" +
+                            "/* foo bar */ /* foo bar */ {/* foo bar */\"NodeType\":1,/* foo bar */\"Children\":" +
                             "/* foo bar */[/* foo bar */{\"NodeType\":1,/* foo bar */\"Children\":" +
                             "/* foo bar */[/* foo bar */{\"NodeType\":1,/* foo bar */\"Children\":" +
                             "/* foo bar */[" +
