@@ -80,7 +80,7 @@ namespace JsonSubTypes
 
         public override bool CanConvert(Type objectType)
         {
-            return _typeMappingPropertyName != null;
+            return false;
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)

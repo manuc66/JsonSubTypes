@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Xunit;
@@ -226,13 +227,29 @@ namespace JsonSubTypes.Tests
             var expected = new Root
             {
                 Content = new Base(),
-                ContentList = new List<Base> {new SubB {Index = 1}, new SubC {Name = "foo"}}
+                ContentList = new List<Base> { new SubB { Index = 1 }, new SubC { Name = "foo" } }
             };
 
             var root = JsonConvert.DeserializeObject<Root>(
                 "{\"Content\":{\"Index\":1,\"@type\":8.5},\"ContentList\":[{\"Index\":1,\"@type\":\"SubB\"},{\"Name\":\"foo\",\"@type\":\"SubC\"}]}");
 
             Assert.Equal(expected, root);
+        }
+
+        [Fact]
+        public void CouldNotBeUsedAsRegisteredConverter()
+        {
+            var converter = new JsonSubtypes();
+            Assert.False(converter.CanConvert(typeof(SubB)));
+            Assert.False(converter.CanConvert(typeof(Base)));
+        }
+
+        [Fact]
+        public void RefuseToWrite()
+        {
+            var converter = new JsonSubtypes();
+            Assert.False(converter.CanWrite);
+            Assert.Throws<NotImplementedException>(() => converter.WriteJson(null, null, null));
         }
     }
 }
