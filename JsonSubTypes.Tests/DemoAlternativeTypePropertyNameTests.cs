@@ -26,7 +26,6 @@ namespace JsonSubTypes.Tests
 
         public class DemoAlternativeTypePropertyWithFullNameTests
         {
-
             [Fact]
             public void Demo()
             {
@@ -37,6 +36,7 @@ namespace JsonSubTypes.Tests
             }
         }
     }
+
     namespace SimplyQualifiedName
     {
         [JsonConverter(typeof(JsonSubtypes), "ClassName")]
@@ -69,6 +69,7 @@ namespace JsonSubTypes.Tests
                         "{\"ClassName\":\"Dog\",\"Breed\":\"Jack Russell Terrier\"}");
                 Assert.Equal("Jack Russell Terrier", (annimal as Dog)?.Breed);
             }
+
             [Fact]
             public void DemoCaseInsensitive()
             {
@@ -82,7 +83,6 @@ namespace JsonSubTypes.Tests
 
     namespace SimplyQualifiedNameNestedType
     {
-
         public class DemoAlternativeTypePropertyNameTests
         {
             [JsonConverter(typeof(JsonSubtypes), "Kind")]
@@ -113,6 +113,14 @@ namespace JsonSubTypes.Tests
                     JsonConvert.DeserializeObject<IAnnimal>(
                         "{\"Kind\":\"dog\",\"Breed\":\"Jack Russell Terrier\"}");
                 Assert.Equal("Jack Russell Terrier", (annimal as Dog)?.Breed);
+            }
+
+            [Fact]
+            public void WhenNoMappingPossible()
+            {
+                Assert.Throws<JsonSerializationException>(() =>
+                    JsonConvert.DeserializeObject<IAnnimal>("{\"Kind\":8,\"Breed\":\"Jack Russell Terrier\"}")
+                );
             }
         }
     }

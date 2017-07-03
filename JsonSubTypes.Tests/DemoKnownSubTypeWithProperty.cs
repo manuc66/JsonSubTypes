@@ -38,5 +38,14 @@ namespace JsonSubTypes.Tests
             var persons = JsonConvert.DeserializeObject<IReadOnlyCollection<Person>>(json);
             Assert.Equal("Painter", (persons.Last() as Artist)?.Skill);
         }
+
+        [Fact]
+        public void FallBackToPArentWhenNotFound()
+        {
+            string json = "[{\"Skl.\":\"Painter\",\"FirstName\":\"FirstName1\",\"LastName\":\"LastName1\"}]";
+
+            var persons = JsonConvert.DeserializeObject<IReadOnlyCollection<Person>>(json);
+            Assert.Equal(typeof(Person), persons.First().GetType());
+        }
     }
 }

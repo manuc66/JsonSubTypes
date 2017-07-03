@@ -34,6 +34,7 @@ namespace JsonSubTypes
                 AssociatedValue = associatedValue;
             }
         }
+
         [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
         public class KnownSubTypeWithPropertyAttribute : Attribute
         {
@@ -87,22 +88,44 @@ namespace JsonSubTypes
             throw new NotImplementedException();
         }
 
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue,
+            JsonSerializer serializer)
         {
-            if (reader.TokenType == JsonToken.Comment)
+            return ReadJson(reader, objectType, serializer);
+        }
+
+        private object ReadJson(JsonReader reader, Type objectType, JsonSerializer serializer)
+        {
+            while (reader.TokenType == JsonToken.Comment)
                 reader.Read();
 
+            object value;
             switch (reader.TokenType)
             {
                 case JsonToken.Null:
-                    return null;
-                case JsonToken.StartArray:
-                    return ReadArray(reader, objectType, serializer);
+                    value = null;
+                    break;
                 case JsonToken.StartObject:
-                    return ReadObject(reader, objectType, serializer);
+                    value = ReadObject(reader, objectType, serializer);
+                    break;
+                case JsonToken.StartArray:
+                    value = ReadArray(reader, objectType, serializer);
+                    break;
                 default:
-                    throw new Exception("Array: Unrecognized token: " + reader.TokenType);
+                    var lineNumber = 0;
+                    var linePosition = 0;
+                    var lineInfo = reader as IJsonLineInfo;
+                    if (lineInfo != null && lineInfo.HasLineInfo())
+                    {
+                        lineNumber = lineInfo.LineNumber;
+                        linePosition = lineInfo.LinePosition;
+                    }
+
+                    return new JsonReaderException(string.Format("Unrecognized token: {0}",
+                        reader.TokenType), reader.Path, lineNumber, linePosition, null);
             }
+
+            return value;
         }
 
         private IList ReadArray(JsonReader reader, Type targetType, JsonSerializer serializer)
@@ -110,25 +133,11 @@ namespace JsonSubTypes
             var elementType = GetElementType(targetType);
 
             var list = CreateCompatibleList(targetType, elementType);
-
-            while (reader.TokenType != JsonToken.EndArray && reader.Read())
+            while (reader.Read() && reader.TokenType != JsonToken.EndArray)
             {
-                switch (reader.TokenType)
-                {
-                    case JsonToken.Null:
-                        list.Add(reader.Value);
-                        break;
-                    case JsonToken.Comment:
-                        break;
-                    case JsonToken.StartObject:
-                        list.Add(ReadObject(reader, elementType, serializer));
-                        break;
-                    case JsonToken.EndArray:
-                        break;
-                    default:
-                        throw new Exception("Array: Unrecognized token: " + reader.TokenType);
-                }
+                list.Add(ReadJson(reader, elementType, serializer));
             }
+
             if (targetType.IsArray)
             {
                 var array = Array.CreateInstance(targetType.GetElementType(), list.Count);
@@ -143,11 +152,11 @@ namespace JsonSubTypes
             IList list;
             if (targetContainerType.IsArray || targetContainerType.GetTypeInfo().IsAbstract)
             {
-                list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
+                list = (IList) Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
             }
             else
             {
-                list = (IList)Activator.CreateInstance(targetContainerType);
+                list = (IList) Activator.CreateInstance(targetContainerType);
             }
             return list;
         }
@@ -236,7 +245,8 @@ namespace JsonSubTypes
             var typeByName = insideAssembly.GetType(typeName);
             if (typeByName == null)
             {
-                var searchLocation = parentType.FullName.Substring(0, parentType.FullName.Length - parentType.Name.Length);
+                var searchLocation =
+                    parentType.FullName.Substring(0, parentType.FullName.Length - parentType.Name.Length);
                 typeByName = insideAssembly.GetType(searchLocation + typeName, false, true);
             }
             return typeByName;
@@ -253,7 +263,8 @@ namespace JsonSubTypes
 
         private static Dictionary<object, Type> GetSubTypeMapping(Type type)
         {
-            return type.GetTypeInfo().GetCustomAttributes<KnownSubTypeAttribute>().ToDictionary(x => x.AssociatedValue, x => x.SubType);
+            return type.GetTypeInfo().GetCustomAttributes<KnownSubTypeAttribute>()
+                .ToDictionary(x => x.AssociatedValue, x => x.SubType);
         }
 
         private static object ConvertJsonValueToType(object objectType, Type targetlookupValueType)
