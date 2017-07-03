@@ -26,7 +26,7 @@ namespace JsonSubTypes.Tests
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != GetType()) return false;
-            return Equals((Root)obj);
+            return Equals((Root) obj);
         }
 
         public override int GetHashCode()
@@ -34,11 +34,12 @@ namespace JsonSubTypes.Tests
             unchecked
             {
                 var hashCode = Content != null ? Content.GetHashCode() : 0;
-                hashCode = (hashCode * 397) ^ (ContentList != null ? ContentList.Aggregate(0, (x, y) => x.GetHashCode() ^ y.GetHashCode()) : 0);
+                hashCode = (hashCode * 397) ^ (ContentList != null
+                               ? ContentList.Aggregate(0, (x, y) => x.GetHashCode() ^ y.GetHashCode())
+                               : 0);
                 return hashCode;
             }
         }
-
     }
 
     [JsonConverter(typeof(JsonSubtypes), "@type")]
@@ -61,7 +62,7 @@ namespace JsonSubTypes.Tests
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
-            return GetType().IsInstanceOfType(obj) && Equals((Base)obj);
+            return GetType().IsInstanceOfType(obj) && Equals((Base) obj);
         }
 
         public override int GetHashCode()
@@ -89,7 +90,7 @@ namespace JsonSubTypes.Tests
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
-            return GetType().IsInstanceOfType(obj) && Equals((SubB)obj);
+            return GetType().IsInstanceOfType(obj) && Equals((SubB) obj);
         }
 
         public override int GetHashCode()
@@ -100,6 +101,7 @@ namespace JsonSubTypes.Tests
             }
         }
     }
+
     class SubC : Base
     {
         public override string Type { get; } = "SubC";
@@ -115,7 +117,7 @@ namespace JsonSubTypes.Tests
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
-            return GetType().IsInstanceOfType(obj) && Equals((SubC)obj);
+            return GetType().IsInstanceOfType(obj) && Equals((SubC) obj);
         }
 
         public override int GetHashCode()
@@ -126,12 +128,12 @@ namespace JsonSubTypes.Tests
             }
         }
     }
+
     public class JsonSubTypesTests
     {
-         [Fact]
+        [Fact]
         public void SerializeTest()
         {
-
             var root = new Root
             {
                 Content = new SubB
@@ -146,12 +148,12 @@ namespace JsonSubTypes.Tests
             Assert.Equal("{\"Content\":{\"@type\":\"SubB\",\"Index\":1,\"4-you\":2},\"ContentList\":null}", str);
         }
 
-         [Fact]
+        [Fact]
         public void DeserializeSubType()
         {
             var expected = new Root
             {
-                Content = new SubB { Index = 1 }
+                Content = new SubB {Index = 1}
             };
 
             var root = JsonConvert.DeserializeObject<Root>("{\"Content\":{\"Index\":1,\"@type\":\"SubB\"}}");
@@ -159,20 +161,21 @@ namespace JsonSubTypes.Tests
             Assert.Equal(expected, root);
         }
 
-         [Fact]
+        [Fact]
         public void DeserializeSubTypeWithComments()
         {
             var expected = new Root
             {
-                Content = new SubB { Index = 1 }
+                Content = new SubB {Index = 1}
             };
 
-            var root = JsonConvert.DeserializeObject<Root>("{\"Content\":/* foo bar */{\"Index\":1,\"@type\":\"SubB\"}}");
+            var root = JsonConvert.DeserializeObject<Root>(
+                "{\"Content\":/* foo bar */{\"Index\":1,\"@type\":\"SubB\"}}");
 
             Assert.Equal(expected, root);
         }
 
-         [Fact]
+        [Fact]
         public void DeserializeNull()
         {
             var expected = new Root
@@ -185,8 +188,13 @@ namespace JsonSubTypes.Tests
             Assert.Equal(expected, root);
         }
 
+        [Fact]
+        public void DeserializeBadDocument()
+        {
+            Assert.Throws<JsonSerializationException>(() => JsonConvert.DeserializeObject<Root>("{\"Content\":8}"));
+        }
 
-         [Fact]
+        [Fact]
         public void WhenDiscriminatorValueIsNullDeserializeToBaseType()
         {
             var expected = new Root
@@ -199,7 +207,7 @@ namespace JsonSubTypes.Tests
             Assert.Equal(expected, root);
         }
 
-         [Fact]
+        [Fact]
         public void WhenDiscriminatorValueIsUnknownDeserializeToBaseType()
         {
             var expected = new Root
@@ -212,20 +220,19 @@ namespace JsonSubTypes.Tests
             Assert.Equal(expected, root);
         }
 
-         [Fact]
+        [Fact]
         public void WorkWithSubList()
         {
             var expected = new Root
             {
                 Content = new Base(),
-                ContentList = new List<Base> { new SubB { Index = 1 }, new SubC { Name = "foo" } }
+                ContentList = new List<Base> {new SubB {Index = 1}, new SubC {Name = "foo"}}
             };
 
-            var root = JsonConvert.DeserializeObject<Root>("{\"Content\":{\"Index\":1,\"@type\":8.5},\"ContentList\":[{\"Index\":1,\"@type\":\"SubB\"},{\"Name\":\"foo\",\"@type\":\"SubC\"}]}");
+            var root = JsonConvert.DeserializeObject<Root>(
+                "{\"Content\":{\"Index\":1,\"@type\":8.5},\"ContentList\":[{\"Index\":1,\"@type\":\"SubB\"},{\"Name\":\"foo\",\"@type\":\"SubC\"}]}");
 
             Assert.Equal(expected, root);
         }
-
-     
     }
 }

@@ -112,8 +112,17 @@ namespace JsonSubTypes
                     value = ReadArray(reader, objectType, serializer);
                     break;
                 default:
-                    throw new JsonReaderException(string.Format("Unrecognized token: {0} on path: {1}",
-                        reader.TokenType, reader.Path));
+                    var lineNumber = 0;
+                    var linePosition = 0;
+                    var lineInfo = reader as IJsonLineInfo;
+                    if (lineInfo != null && lineInfo.HasLineInfo())
+                    {
+                        lineNumber = lineInfo.LineNumber;
+                        linePosition = lineInfo.LinePosition;
+                    }
+
+                    return new JsonReaderException(string.Format("Unrecognized token: {0}",
+                        reader.TokenType), reader.Path, lineNumber, linePosition, null);
             }
 
             return value;
