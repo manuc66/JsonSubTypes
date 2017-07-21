@@ -2,6 +2,7 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/g11crbl037en6rkq/branch/master?svg=true)](https://ci.appveyor.com/project/manuc66/jsonsubtypes/branch/master)
 [![Code Coverage](https://codecov.io/gh/manuc66/JsonSubTypes/branch/master/graph/badge.svg)](https://codecov.io/gh/manuc66/JsonSubTypes)
 [![Quality Gate](https://sonarqube.com/api/badges/gate?key=manuc66:JsonSubtypes:master)](https://sonarqube.com/dashboard/index/manuc66:JsonSubtypes:master)
+[![NuGet](https://img.shields.io/nuget/v/JsonSubTypes.svg)](https://www.nuget.org/packages/JsonSubTypes/)
 
 ## DeserializeObject with custom type property name
 

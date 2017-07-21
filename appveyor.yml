@@ -16,14 +16,30 @@ before_build:
 - ps: if (-Not $env:APPVEYOR_PULL_REQUEST_NUMBER)  { MSBuild.SonarQube.Runner.exe begin /k:"manuc66:JsonSubtypes:master" /d:"sonar.host.url=https://sonarqube.com" /d:"sonar.organization=manuc66-github" /d:"sonar.login=$env:sonar_token" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" }
 - ps: if ($env:APPVEYOR_PULL_REQUEST_NUMBER)       { MSBuild.SonarQube.Runner.exe begin /k:"manuc66:JsonSubtypes:master" /d:"sonar.host.url=https://sonarqube.com" /d:"sonar.organization=manuc66-github" /d:"sonar.login=$env:sonar_token" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" /d:"sonar.analysis.mode=preview" /d:"sonar.github.pullRequest=$env:APPVEYOR_PULL_REQUEST_NUMBER" /d:"sonar.github.repository=$env:APPVEYOR_REPO_NAME" /d:"sonar.github.oauth=$env:github_auth_token" }
 
-build:
+configuration: Release
+
+build: 
   project: JsonSubTypes.sln
   verbosity: minimal
 
 test_script:
-- dir JsonSubTypes.Tests\bin\Debug
-- OpenCover.Console.exe -register:user -target:"%xunit20%\xunit.console.x86.exe" -targetargs:".\JsonSubTypes.Tests\bin\Debug\JsonSubTypes.Tests.dll -noshadow" -filter:"+[JsonSubTypes*]* -[JsonSubTypes.Tests]*" -output:".\MyProject_coverage.xml"
+- dir JsonSubTypes.Tests\bin\Release
+- OpenCover.Console.exe -register:user -target:"%xunit20%\xunit.console.x86.exe" -targetargs:".\JsonSubTypes.Tests\bin\Release\JsonSubTypes.Tests.dll -noshadow" -filter:"+[JsonSubTypes*]* -[JsonSubTypes.Tests]*" -output:".\MyProject_coverage.xml"
 - codecov -f "MyProject_coverage.xml
 
 after_test:
 - ps: MSBuild.SonarQube.Runner.exe end /d:"sonar.login=$env:sonar_token"
+- cmd: dotnet pack "JsonSubTypes\JsonSubTypes.csproj"
+
+
+artifacts:
+  # pushing all *.nupkg files in build directory recursively
+- path: '**\*.nupkg'
+
+deploy:
+- provider: NuGet
+  name: NuGet
+  server: https://www.nuget.org/api/v2/package
+  api_key:
+    secure: yXILPWkFyTQg3lPY4Z+5LYGHPmQavuInrLHbs+cw7jJ0aXIqHXyTySLsbNzc8NTw
+  artifact: /JsonSubTypes.*\.nupkg/
