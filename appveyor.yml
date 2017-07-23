@@ -18,6 +18,9 @@ before_build:
 
 configuration: Release
 
+nuget:  
+  disable_publish_on_pr: true
+
 build: 
   project: JsonSubTypes.sln
   verbosity: minimal
@@ -43,3 +46,5 @@ deploy:
   api_key:
     secure: yXILPWkFyTQg3lPY4Z+5LYGHPmQavuInrLHbs+cw7jJ0aXIqHXyTySLsbNzc8NTw
   artifact: /JsonSubTypes.*\.nupkg/
+  on:
+    branch: master
