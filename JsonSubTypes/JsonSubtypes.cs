@@ -231,20 +231,17 @@ namespace JsonSubTypes
 
         private Type GetTypeFromDiscriminatorValue(JObject jObject, Type parentType)
         {
-            JToken jToken;
-            if (!jObject.TryGetValue(_typeMappingPropertyName, out jToken)) return null;
+            JToken discriminatorToken;
+            if (!jObject.TryGetValue(_typeMappingPropertyName, out discriminatorToken)) return null;
 
-            if (jToken == null) return null;
+            if (discriminatorToken.Type == JTokenType.Null) return null;
 
             var typeMapping = GetSubTypeMapping(parentType);
             if (typeMapping.Any())
             {
-                var serializedDiscriminator = jToken.Value<object>();
-                return GetTypeFromMapping(typeMapping, serializedDiscriminator);
+                return GetTypeFromMapping(typeMapping, discriminatorToken);
             }
-
-            var discriminatorTypeName = jToken.Value<string>();
-            return GetTypeByName(discriminatorTypeName, parentType);
+            return GetTypeByName(discriminatorToken.Value<string>(), parentType);
         }
 
         private static Type GetTypeByName(string typeName, Type parentType)
@@ -264,17 +261,19 @@ namespace JsonSubTypes
             return typeByName;
         }
 
-        private static Type GetTypeFromMapping(IReadOnlyDictionary<string, Type> typeMapping, object discriminatorValue)
+        private static Type GetTypeFromMapping(IReadOnlyDictionary<object, Type> typeMapping, JToken discriminatorToken)
         {
+            var targetlookupValueType = typeMapping.First().Key.GetType();
+            var lookupValue = discriminatorToken.ToObject(targetlookupValueType);
+
             Type targetType;
-            var tryGetValue = typeMapping.TryGetValue(JsonConvert.SerializeObject(discriminatorValue), out targetType);
-            return tryGetValue ? targetType : null;
+            return typeMapping.TryGetValue(lookupValue, out targetType) ? targetType : null;
         }
 
-        private static Dictionary<string, Type> GetSubTypeMapping(Type type)
+        private static Dictionary<object, Type> GetSubTypeMapping(Type type)
         {
             return type.GetTypeInfo().GetCustomAttributes<KnownSubTypeAttribute>()
-                .ToDictionary(x => JsonConvert.SerializeObject(x.AssociatedValue), x => x.SubType);
+                .ToDictionary(x => x.AssociatedValue, x => x.SubType);
         }
 
         protected object _ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
