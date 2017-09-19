@@ -1,5 +1,6 @@
 ﻿using System;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Xunit;
 
 namespace JsonSubTypes.Tests
@@ -38,10 +39,51 @@ namespace JsonSubTypes.Tests
                 WithZzzField
             }
 
-             [Fact]
+            [Fact]
             public void Deserialize()
             {
                 var obj = JsonConvert.DeserializeObject<MainClass>("{\"SubTypeData\":{\"ZzzField\":\"zzz\",\"SubTypeType\":1}}");
+                Assert.Equal("zzz", (obj.SubTypeData as SubTypeClass2)?.ZzzField);
+            }
+        }
+
+        public class DiscriminatorIsAnEnumStringValue
+        {
+            public class MainClass
+            {
+                public SubTypeClassBase SubTypeData { get; set; }
+            }
+
+            [JsonConverter(typeof(JsonSubtypes), "SubTypeType")]
+            [JsonSubtypes.KnownSubType(typeof(SubTypeClass1), SubType.WithAaaField)]
+            [JsonSubtypes.KnownSubType(typeof(SubTypeClass2), SubType.WithZzzField)]
+            public class SubTypeClassBase
+            {
+                public SubType SubTypeType { get; set; }
+            }
+
+            public class SubTypeClass1 : SubTypeClassBase
+            {
+                public string AaaField { get; set; }
+            }
+
+            public class SubTypeClass2 : SubTypeClassBase
+            {
+                public string ZzzField { get; set; }
+            }
+
+            [JsonConverter(typeof(StringEnumConverter))]
+            public enum SubType
+            {
+                WithAaaField,
+                [System.Runtime.Serialization.EnumMember(Value = "zzzField")]
+                WithZzzField
+            }
+
+            [Fact]
+            public void Deserialize()
+            {
+                var obj = JsonConvert.DeserializeObject<MainClass>("{\"SubTypeData\":{\"ZzzField\":\"zzz\",\"SubTypeType\":\"zzzField\"}}");
                 Assert.Equal("zzz", (obj.SubTypeData as SubTypeClass2)?.ZzzField);
             }
         }

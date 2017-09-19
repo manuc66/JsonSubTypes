@@ -27,7 +27,7 @@ namespace JsonSubTypes.Tests
             public bool Declawed { get; set; }
         }
 
-         [Fact]
+        [Fact]
         public void Demo()
         {
             var annimal = JsonConvert.DeserializeObject<Annimal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
