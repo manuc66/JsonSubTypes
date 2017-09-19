@@ -32,7 +32,7 @@ test_script:
 
 after_test:
 - ps: MSBuild.SonarQube.Runner.exe end /d:"sonar.login=$env:sonar_token"
-- cmd: dotnet pack "JsonSubTypes\JsonSubTypes.csproj"
+- cmd: dotnet pack "JsonSubTypes\JsonSubTypes.csproj" /p:Version="1.1.0"
 
 
 artifacts:
