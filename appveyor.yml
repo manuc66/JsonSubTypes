@@ -37,7 +37,7 @@ after_test:
 
 artifacts:
   # pushing all *.nupkg files in build directory recursively
-- path: '**\*.nupkg'
+- path: 'JsonSubTypes\**\*.nupkg'
 
 deploy:
 - provider: NuGet
