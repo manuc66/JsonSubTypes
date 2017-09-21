@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard1.3;netstandard1.4;netstandard1.5;netstandard1.6</TargetFrameworks>
+    <TargetFrameworks>netstandard1.3;netstandard1.4;netstandard1.5;netstandard1.6;net45;net46;net47</TargetFrameworks>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard1.3'">
@@ -29,6 +29,7 @@
   <ItemGroup>
     <Folder Include="Properties\" />
   </ItemGroup>
+  
   
   <ItemGroup>
 	<PackageReference Include="Newtonsoft.Json" Version="10.0.2" />
