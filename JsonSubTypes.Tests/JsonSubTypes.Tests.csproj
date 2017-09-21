@@ -68,9 +68,6 @@
     <Compile Include="DiscriminatorOfDifferentKindTests.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\JsonSubTypes\JsonSubTypes.csproj">
       <Project>{c133ebe9-0e84-44bc-920f-137bb0fec7fd}</Project>
       <Name>JsonSubTypes</Name>
