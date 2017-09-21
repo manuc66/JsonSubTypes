@@ -26,14 +26,13 @@ build:
   verbosity: minimal
 
 test_script:
+- dir JsonSubTypes\bin\Release
 - dir JsonSubTypes.Tests\bin\Release
 - OpenCover.Console.exe -register:user -target:"%xunit20%\xunit.console.x86.exe" -targetargs:".\JsonSubTypes.Tests\bin\Release\JsonSubTypes.Tests.dll -noshadow" -filter:"+[JsonSubTypes*]* -[JsonSubTypes.Tests]*" -output:".\MyProject_coverage.xml"
 - codecov -f "MyProject_coverage.xml
 
 after_test:
 - ps: MSBuild.SonarQube.Runner.exe end /d:"sonar.login=$env:sonar_token"
-- cmd: dotnet pack "JsonSubTypes\JsonSubTypes.csproj" /p:Version="1.1.1"
-
 
 artifacts:
   # pushing all *.nupkg files in build directory recursively
