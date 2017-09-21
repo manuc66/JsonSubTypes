@@ -4,11 +4,6 @@
     <TargetFrameworks>netstandard1.3;netstandard1.4;netstandard1.5;netstandard1.6;net45;net46;net47</TargetFrameworks>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard1.3'">
-    <TargetFrameworkIdentifier>.NETStandard</TargetFrameworkIdentifier>
-    <DefineConstants>RELEASE;NETSTANDARD1_3</DefineConstants>
-  </PropertyGroup>
-  
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
