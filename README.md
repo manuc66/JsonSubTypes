@@ -56,7 +56,7 @@ public class Cat : Annimal
 ```
 
 ```csharp
-var annimal =JsonConvert.DeserializeObject<IAnnimal>("{\"Kind\":\"Dog\",\"Breed\":\"Jack Russell Terrier\"}");
+var annimal =JsonConvert.DeserializeObject<IAnnimal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
 Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
 ```
 
