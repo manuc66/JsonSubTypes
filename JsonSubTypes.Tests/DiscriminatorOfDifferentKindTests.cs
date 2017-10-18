@@ -1,5 +1,4 @@
-﻿using System;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Xunit;
 
@@ -114,7 +113,7 @@ namespace JsonSubTypes.Tests
                 public override int ChildType { get; } = 2;
             }
 
-             [Fact]
+            [Fact]
             public void DiscriminatorValueCanBeANumber()
             {
                 var root1 = JsonConvert.DeserializeObject<Parent>("{\"child\":{\"ChildType\":1}}");

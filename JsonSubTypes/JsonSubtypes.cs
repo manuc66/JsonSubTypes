@@ -58,7 +58,7 @@ namespace JsonSubTypes
             }
         }
 
-        private readonly string _typeMappingPropertyName;
+        protected readonly string _typeMappingPropertyName;
 
         private bool _isInsideRead;
         private JsonReader _reader;
@@ -74,7 +74,7 @@ namespace JsonSubTypes
             }
         }
 
-        public sealed override bool CanWrite
+        public override bool CanWrite
         {
             get { return false; }
         }
@@ -162,11 +162,11 @@ namespace JsonSubTypes
             IList list;
             if (targetContainerType.IsArray || targetContainerType.GetTypeInfo().IsAbstract)
             {
-                list = (IList) Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
+                list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
             }
             else
             {
-                list = (IList) Activator.CreateInstance(targetContainerType);
+                list = (IList)Activator.CreateInstance(targetContainerType);
             }
             return list;
         }
@@ -191,7 +191,7 @@ namespace JsonSubTypes
 
             var targetType = GetType(jObject, objectType) ?? objectType;
 
-            return _ReadJson(CreateAnotherReader(jObject, reader), targetType, null, serializer);
+            return _ReadJson(CreateAnotherReader(jObject, reader), targetType, serializer);
         }
 
         private static JsonReader CreateAnotherReader(JObject jObject, JsonReader reader)
@@ -270,13 +270,13 @@ namespace JsonSubTypes
             return typeMapping.TryGetValue(lookupValue, out targetType) ? targetType : null;
         }
 
-        private static Dictionary<object, Type> GetSubTypeMapping(Type type)
+        protected virtual Dictionary<object, Type> GetSubTypeMapping(Type type)
         {
             return type.GetTypeInfo().GetCustomAttributes<KnownSubTypeAttribute>()
                 .ToDictionary(x => x.AssociatedValue, x => x.SubType);
         }
 
-        protected object _ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        private object _ReadJson(JsonReader reader, Type objectType, JsonSerializer serializer)
         {
             _reader = reader;
             _isInsideRead = true;
