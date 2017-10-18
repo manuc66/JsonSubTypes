@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System;
+using Newtonsoft.Json;
 using Xunit;
 
 namespace JsonSubTypes.Tests
@@ -33,8 +34,9 @@ namespace JsonSubTypes.Tests
         {
             JsonConvert.DefaultSettings = () => new JsonSerializerSettings { };
             var settings = JsonConvert.DefaultSettings();
-            settings.Converters.Add(JsonSubtypesWithoutExplicitTypePropertyConverterBuilder
+            settings.Converters.Add(JsonSubtypesConverterBuilder
                 .Of(typeof(Animal), "type")
+                .SerializeDiscriminatorProperty()
                 .RegisterSubtype(typeof(Cat), AnimalType.Cat)
                 .RegisterSubtype(typeof(Dog), AnimalType.Dog)
                 .Build());
@@ -54,8 +56,9 @@ namespace JsonSubTypes.Tests
         {
             JsonConvert.DefaultSettings = () => new JsonSerializerSettings { };
             var settings = JsonConvert.DefaultSettings();
-            settings.Converters.Add(JsonSubtypesWithoutExplicitTypePropertyConverterBuilder
+            settings.Converters.Add(JsonSubtypesConverterBuilder
                 .Of(typeof(Animal), "type")
+                .SerializeDiscriminatorProperty()
                 .RegisterSubtype(typeof(Cat), AnimalType.Cat)
                 .RegisterSubtype(typeof(Dog), AnimalType.Dog)
                 .Build());
@@ -65,6 +68,66 @@ namespace JsonSubTypes.Tests
             var result = JsonConvert.SerializeObject(new Cat() { Age = 11, Lives = 6 }, settings);
 
             Assert.Equal(json, result);
+        }
+
+        public interface IExpression
+        {
+
+            string Type { get; }
+        }
+
+        public class BinaryExpression : IExpression
+        {
+            public IExpression SubExpressionA { get; set; }
+            public IExpression SubExpressionB { get; set; }
+            public string Type { get { return "Binary"; } }
+        }
+
+        public class ConstantExpression : IExpression
+        {
+            public string Value { get; set; }
+            public string Type { get { return "Constant"; } }
+        }
+
+        [Fact]
+        public void TestIfNestedObjectIsDeserialized()
+        {
+            JsonConvert.DefaultSettings = () => new JsonSerializerSettings { };
+            var settings = JsonConvert.DefaultSettings();
+            settings.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(IExpression), "Type")
+                .RegisterSubtype(typeof(ConstantExpression), "Constant")
+                .RegisterSubtype(typeof(BinaryExpression), "Binary")
+                .Build());
+
+            var binary = JsonConvert.DeserializeObject<IExpression>("{\"Type\":\"Binary\"," +
+                                                                    "\"SubExpressionA\":{\"Type\":\"Constant\",\"Value\":\"A\"}," +
+                                                                    "\"SubExpressionB\":{\"Type\":\"Constant\",\"Value\":\"B\"}" +
+                                                                    "}", settings);
+            Assert.Equal(typeof(ConstantExpression), (binary as BinaryExpression)?.SubExpressionA.GetType());
+        }
+
+        [Fact]
+        public void TestIfNestedObjectIsSerialized()
+        {
+            JsonConvert.DefaultSettings = () => new JsonSerializerSettings { };
+            var settings = JsonConvert.DefaultSettings();
+            settings.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(IExpression), "Type")
+                .RegisterSubtype(typeof(ConstantExpression), "Constant")
+                .RegisterSubtype(typeof(BinaryExpression), "Binary")
+                .Build());
+
+            var json = JsonConvert.SerializeObject(new BinaryExpression()
+            {
+                SubExpressionA = new ConstantExpression() { Value = "A" },
+                SubExpressionB = new ConstantExpression() { Value = "B" }
+            }, settings);
+
+            Assert.Equal("{" +
+                "\"SubExpressionA\":{\"Value\":\"A\",\"Type\":\"Constant\"}," +
+                "\"SubExpressionB\":{\"Value\":\"B\",\"Type\":\"Constant\"}" +
+                ",\"Type\":\"Binary\"}", json);
         }
     }
 }

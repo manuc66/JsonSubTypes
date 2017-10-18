@@ -4,15 +4,16 @@ using Newtonsoft.Json;
 
 namespace JsonSubTypes
 {
-    public class JsonSubtypesWithoutExplicitTypePropertyConverterBuilder
+    public class JsonSubtypesConverterBuilder
     {
         private Type _baseType;
         private string _discriminatorProperty;
         private readonly Dictionary<object, Type> _subTypeMapping = new Dictionary<object, Type>();
+        private bool _serializeDiscriminatorProperty;
 
-        public static JsonSubtypesWithoutExplicitTypePropertyConverterBuilder Of(Type baseType, string discriminatorProperty)
+        public static JsonSubtypesConverterBuilder Of(Type baseType, string discriminatorProperty)
         {
-            var customConverterBuilder = new JsonSubtypesWithoutExplicitTypePropertyConverterBuilder
+            var customConverterBuilder = new JsonSubtypesConverterBuilder
             {
                 _baseType = baseType,
                 _discriminatorProperty = discriminatorProperty
@@ -20,7 +21,13 @@ namespace JsonSubTypes
             return customConverterBuilder;
         }
 
-        public JsonSubtypesWithoutExplicitTypePropertyConverterBuilder RegisterSubtype(Type subtype, object value)
+        public JsonSubtypesConverterBuilder SerializeDiscriminatorProperty()
+        {
+            _serializeDiscriminatorProperty = true;
+            return this;
+        }
+
+        public JsonSubtypesConverterBuilder RegisterSubtype(Type subtype, object value)
         {
             _subTypeMapping.Add(value, subtype);
             return this;
@@ -28,7 +35,7 @@ namespace JsonSubTypes
 
         public JsonConverter Build()
         {
-            return new JsonSubtypesWithoutExplicitTypePropertyConverter(_baseType, _discriminatorProperty, _subTypeMapping);
+            return new JsonSubtypesConverter(_baseType, _discriminatorProperty, _subTypeMapping, _serializeDiscriminatorProperty);
         }
     }
 }

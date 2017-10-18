@@ -5,16 +5,18 @@ using Newtonsoft.Json.Linq;
 
 namespace JsonSubTypes
 {
-    internal class JsonSubtypesWithoutExplicitTypePropertyConverter : JsonSubtypes
+    internal class JsonSubtypesConverter : JsonSubtypes
     {
+        private readonly bool _serializeDiscriminatorProperty;
         private readonly Dictionary<Type, object> _supportedTypes;
         private JsonWriter _writer;
         private bool _isInsideWrite;
         private Type BaseType { get; }
         private Dictionary<object, Type> SubTypeMapping { get; }
 
-        internal JsonSubtypesWithoutExplicitTypePropertyConverter(Type baseType, string discriminatorProperty, Dictionary<object, Type> subTypeMapping) : base(discriminatorProperty)
+        internal JsonSubtypesConverter(Type baseType, string discriminatorProperty, Dictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty) : base(discriminatorProperty)
         {
+            _serializeDiscriminatorProperty = serializeDiscriminatorProperty;
             BaseType = baseType;
             SubTypeMapping = subTypeMapping;
             _supportedTypes = new Dictionary<Type, object>();
@@ -36,7 +38,12 @@ namespace JsonSubTypes
 
         public override bool CanWrite
         {
-            get { return !_isInsideWrite; }
+            get
+            {
+                if (_serializeDiscriminatorProperty && !_isInsideWrite)
+                    return true;
+                return false;
+            }
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
