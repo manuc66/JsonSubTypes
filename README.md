@@ -64,7 +64,7 @@ N.B.: Also works with other kind of value than string, i.e.: enums, int, ...
 
 ## SerializeObject and DeserializeObject with custom type property only present in JSON
 
-This mode of operation only works when JsonSubTypes is explicitely registered in JSON.NET's serializer settings, and not through the ``[JsonConverter]`` attribute. The registration and functionality is very similar (interoperable) to [``RuntimeTypeAdapaterFactory``](https://github.com/google/gson/blob/master/gson/src/test/java/com/google/gson/functional/RuntimeTypeAdapterFactoryFunctionalTest.java) of Google's GSON (Java).
+This mode of operation only works when JsonSubTypes is explicitely registered in JSON.NET's serializer settings, and not through the ``[JsonConverter]`` attribute. 
 
 ```csharp
 public abstract class Animal
@@ -92,10 +92,11 @@ public enum AnimalType
 ### Registration:
 ```csharp
 var settings = new JsonSerializerSettings();
-settings.Converters.Add(JsonSubtypesWithoutExplicitTypePropertyConverterBuilder
+settings.Converters.Add(JsonSubtypesConverterBuilder
     .Of(typeof(Animal), "Type") // type property is only defined here
     .RegisterSubtype(typeof(Cat), AnimalType.Cat)
     .RegisterSubtype(typeof(Dog), AnimalType.Dog)
+    .SerializeDiscriminatorProperty() // ask to serialize the type property
     .Build());
 ```
 
