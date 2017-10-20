@@ -60,8 +60,11 @@ namespace JsonSubTypes
 
         private readonly string _typeMappingPropertyName;
 
-        private bool _isInsideRead;
-        private JsonReader _reader;
+        [ThreadStatic]
+        private static bool _isInsideRead;
+
+        [ThreadStatic]
+        private static JsonReader _reader;
 
         public override bool CanRead
         {
@@ -162,11 +165,11 @@ namespace JsonSubTypes
             IList list;
             if (targetContainerType.IsArray || targetContainerType.GetTypeInfo().IsAbstract)
             {
-                list = (IList) Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
+                list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
             }
             else
             {
-                list = (IList) Activator.CreateInstance(targetContainerType);
+                list = (IList)Activator.CreateInstance(targetContainerType);
             }
             return list;
         }
