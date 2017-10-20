@@ -197,9 +197,9 @@ namespace JsonSubTypes
             return ThreadStaticReadObject(reader, serializer, jObject, targetType);
         }
 
-        private static JsonReader CreateAnotherReader(JToken jObject, JsonReader reader)
+        private static JsonReader CreateAnotherReader(JToken jToken, JsonReader reader)
         {
-            var jObjectReader = jObject.CreateReader();
+            var jObjectReader = jToken.CreateReader();
             jObjectReader.Culture = reader.Culture;
             jObjectReader.CloseInput = reader.CloseInput;
             jObjectReader.SupportMultipleContent = reader.SupportMultipleContent;
@@ -279,10 +279,9 @@ namespace JsonSubTypes
                 .ToDictionary(x => x.AssociatedValue, x => x.SubType);
         }
 
-
-        private static object ThreadStaticReadObject(JsonReader reader, JsonSerializer serializer, JToken jObject, Type targetType)
+        private static object ThreadStaticReadObject(JsonReader reader, JsonSerializer serializer, JToken jToken, Type targetType)
         {
-            _reader = CreateAnotherReader(jObject, reader);
+            _reader = CreateAnotherReader(jToken, reader);
             _isInsideRead = true;
             try
             {
