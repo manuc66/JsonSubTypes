@@ -194,7 +194,7 @@ namespace JsonSubTypes
 
             var targetType = GetType(jObject, objectType) ?? objectType;
 
-            return _ReadJson(CreateAnotherReader(jObject, reader), targetType, null, serializer);
+            return ThreadStaticReadObject(reader, serializer, jObject, targetType);
         }
 
         private static JsonReader CreateAnotherReader(JObject jObject, JsonReader reader)
@@ -279,13 +279,13 @@ namespace JsonSubTypes
                 .ToDictionary(x => x.AssociatedValue, x => x.SubType);
         }
 
-        protected object _ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        private static Object ThreadStaticReadObject(JsonReader reader, JsonSerializer serializer, JObject jObject, Type targetType)
         {
-            _reader = reader;
+            _reader = CreateAnotherReader(jObject, reader);
             _isInsideRead = true;
             try
             {
-                return serializer.Deserialize(reader, objectType);
+                return serializer.Deserialize(_reader, targetType);
             }
             finally
             {
