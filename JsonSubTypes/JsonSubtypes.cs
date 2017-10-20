@@ -219,20 +219,15 @@ namespace JsonSubTypes
             return GetTypeFromDiscriminatorValue(jObject, parentType);
         }
 
-        private static Type GetTypeByPropertyPresence(JObject jObject, Type parentType)
+        private static Type GetTypeByPropertyPresence(IDictionary<string, JToken> jObject, Type parentType)
         {
-            foreach (var type in parentType.GetTypeInfo().GetCustomAttributes<KnownSubTypeWithPropertyAttribute>())
-            {
-                JToken ignore;
-                if (jObject.TryGetValue(type.PropertyName, out ignore))
-                {
-                    return type.SubType;
-                }
-            }
-            return null;
+            return parentType.GetTypeInfo()
+                .GetCustomAttributes<KnownSubTypeWithPropertyAttribute>()
+                .Where(type => jObject.ContainsKey(type.PropertyName))
+                .Select(type => type.SubType).FirstOrDefault();
         }
 
-        private Type GetTypeFromDiscriminatorValue(JObject jObject, Type parentType)
+        private Type GetTypeFromDiscriminatorValue(IDictionary<string, JToken> jObject, Type parentType)
         {
             JToken discriminatorToken;
             if (!jObject.TryGetValue(_typeMappingPropertyName, out discriminatorToken)) return null;
