@@ -1,4 +1,6 @@
-﻿using Newtonsoft.Json;
+﻿using System;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
 using Xunit;
 
 namespace JsonSubTypes.Tests
@@ -33,6 +35,18 @@ namespace JsonSubTypes.Tests
         }
 
         [Fact]
+        public void ConcurrentThreadTest()
+        {
+            Action test = () =>
+            {
+                var annimal = JsonConvert.DeserializeObject<IAnnimal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
+                Assert.Equal("Jack Russell Terrier", (annimal as Dog)?.Breed); ;
+            };
+
+            Parallel.For(0, 100, index => test());
+        }
+
+        [Fact]
         public void UnknownMappingFails()
         {
             try
@@ -42,7 +56,7 @@ namespace JsonSubTypes.Tests
             }
             catch (JsonSerializationException)
             {
-                
+
             }
         }
     }

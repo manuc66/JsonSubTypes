@@ -60,8 +60,11 @@ namespace JsonSubTypes
 
         protected readonly string _typeMappingPropertyName;
 
-        private bool _isInsideRead;
-        private JsonReader _reader;
+        [ThreadStatic]
+        private static bool _isInsideRead;
+
+        [ThreadStatic]
+        private static JsonReader _reader;
 
         public override bool CanRead
         {
@@ -191,10 +194,10 @@ namespace JsonSubTypes
 
             var targetType = GetType(jObject, objectType) ?? objectType;
 
-            return _ReadJson(CreateAnotherReader(jObject, reader), targetType, serializer);
+            return ThreadStaticReadObject(reader, serializer, jObject, targetType);
         }
 
-        private static JsonReader CreateAnotherReader(JObject jObject, JsonReader reader)
+        private static JsonReader CreateAnotherReader(JToken jObject, JsonReader reader)
         {
             var jObjectReader = jObject.CreateReader();
             jObjectReader.Culture = reader.Culture;
@@ -276,13 +279,14 @@ namespace JsonSubTypes
                 .ToDictionary(x => x.AssociatedValue, x => x.SubType);
         }
 
-        private object _ReadJson(JsonReader reader, Type objectType, JsonSerializer serializer)
+
+        private static object ThreadStaticReadObject(JsonReader reader, JsonSerializer serializer, JToken jObject, Type targetType)
         {
-            _reader = reader;
+            _reader = CreateAnotherReader(jObject, reader);
             _isInsideRead = true;
             try
             {
-                return serializer.Deserialize(reader, objectType);
+                return serializer.Deserialize(_reader, targetType);
             }
             finally
             {

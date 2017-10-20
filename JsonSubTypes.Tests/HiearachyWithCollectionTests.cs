@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Xunit;
 
@@ -72,6 +74,8 @@ namespace JsonSubTypes.Tests
                 Assert.Equal(3, elemNode);
             }
 
+
+
             [Fact]
             public void DeserializeHierachyDeeperTest()
             {
@@ -85,6 +89,26 @@ namespace JsonSubTypes.Tests
                 Assert.Equal(13,
                     ((ElemNode) ((FolderNode) ((FolderNode) ((FolderNode) deserialized.Root).Children[0]).Children[0])
                         .Children[1]).Size);
+            }
+
+            [Fact]
+            public void ConcurrentThreadDeserializeHierachyDeeperTest()
+            {
+                Action test = () =>
+                {
+                    var input =
+                        "{\"Root\":{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":1,\"Children\":[{\"NodeType\":2,\"Size\":3},{\"NodeType\":2,\"Size\":13}, null]}]}]}}";
+
+                    var deserialized = JsonConvert.DeserializeObject<Hierachy>(input);
+
+                    Assert.NotNull(deserialized);
+
+                    Assert.Equal(13,
+                        ((ElemNode)((FolderNode)((FolderNode)((FolderNode)deserialized.Root).Children[0]).Children[0])
+                            .Children[1]).Size);
+                };
+
+                Parallel.For(0, 100, index => test());
             }
         }
 
