@@ -60,11 +60,9 @@ namespace JsonSubTypes
 
         private readonly string _typeMappingPropertyName;
 
-        [ThreadStatic]
-        private static bool _isInsideRead;
+        [ThreadStatic] private static bool _isInsideRead;
 
-        [ThreadStatic]
-        private static JsonReader _reader;
+        [ThreadStatic] private static JsonReader _reader;
 
         public override bool CanRead
         {
@@ -163,13 +161,17 @@ namespace JsonSubTypes
         private static IList CreateCompatibleList(Type targetContainerType, Type elementType)
         {
             IList list;
+#if NET40
+            if (targetContainerType.IsArray || targetContainerType.IsAbstract)
+#else
             if (targetContainerType.IsArray || targetContainerType.GetTypeInfo().IsAbstract)
+#endif
             {
-                list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
+                list = (IList) Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
             }
             else
             {
-                list = (IList)Activator.CreateInstance(targetContainerType);
+                list = (IList) Activator.CreateInstance(targetContainerType);
             }
             return list;
         }
@@ -183,7 +185,11 @@ namespace JsonSubTypes
             }
             else
             {
+#if NET40
+                elementType = arrayOrGenericContainer.GetGenericArguments().FirstOrDefault();
+#else
                 elementType = arrayOrGenericContainer.GenericTypeArguments[0];
+#endif
             }
             return elementType;
         }
@@ -221,7 +227,11 @@ namespace JsonSubTypes
 
         private static Type GetTypeByPropertyPresence(JObject jObject, Type parentType)
         {
+#if NET40
+            foreach (var type in parentType.GetCustomAttributes(false).OfType<KnownSubTypeWithPropertyAttribute>())
+#else
             foreach (var type in parentType.GetTypeInfo().GetCustomAttributes<KnownSubTypeWithPropertyAttribute>())
+#endif
             {
                 JToken ignore;
                 if (jObject.TryGetValue(type.PropertyName, out ignore))
@@ -252,7 +262,11 @@ namespace JsonSubTypes
             if (typeName == null)
                 return null;
 
+#if NET40
+            var insideAssembly = parentType.Assembly;
+#else
             var insideAssembly = parentType.GetTypeInfo().Assembly;
+#endif
 
             var typeByName = insideAssembly.GetType(typeName);
             if (typeByName == null)
@@ -264,7 +278,11 @@ namespace JsonSubTypes
             return typeByName;
         }
 
+#if NET40
+        private static Type GetTypeFromMapping(Dictionary<object, Type> typeMapping, JToken discriminatorToken)
+#else
         private static Type GetTypeFromMapping(IReadOnlyDictionary<object, Type> typeMapping, JToken discriminatorToken)
+#endif
         {
             var targetlookupValueType = typeMapping.First().Key.GetType();
             var lookupValue = discriminatorToken.ToObject(targetlookupValueType);
@@ -275,7 +293,11 @@ namespace JsonSubTypes
 
         private static Dictionary<object, Type> GetSubTypeMapping(Type type)
         {
+#if NET40
+            return type.GetCustomAttributes(false).OfType<KnownSubTypeAttribute>()
+#else
             return type.GetTypeInfo().GetCustomAttributes<KnownSubTypeAttribute>()
+#endif
                 .ToDictionary(x => x.AssociatedValue, x => x.SubType);
         }
 
