@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
-using Xunit;
+using NUnit.Framework;
 
 namespace JsonSubTypes.Tests
 {
@@ -27,7 +27,7 @@ namespace JsonSubTypes.Tests
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != GetType()) return false;
-            return Equals((Root) obj);
+            return Equals((Root)obj);
         }
 
         public override int GetHashCode()
@@ -63,7 +63,7 @@ namespace JsonSubTypes.Tests
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
-            return GetType().IsInstanceOfType(obj) && Equals((Base) obj);
+            return obj is Base && Equals((Base)obj);
         }
 
         public override int GetHashCode()
@@ -91,7 +91,7 @@ namespace JsonSubTypes.Tests
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
-            return GetType().IsInstanceOfType(obj) && Equals((SubB) obj);
+            return obj is SubB && Equals((SubB)obj);
         }
 
         public override int GetHashCode()
@@ -118,7 +118,7 @@ namespace JsonSubTypes.Tests
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
-            return GetType().IsInstanceOfType(obj) && Equals((SubC) obj);
+            return obj is SubC && Equals((SubC)obj);
         }
 
         public override int GetHashCode()
@@ -132,7 +132,7 @@ namespace JsonSubTypes.Tests
 
     public class JsonSubTypesTests
     {
-        [Fact]
+        [Test]
         public void SerializeTest()
         {
             var root = new Root
@@ -146,37 +146,37 @@ namespace JsonSubTypes.Tests
 
             string str = JsonConvert.SerializeObject(root);
 
-            Assert.Equal("{\"Content\":{\"@type\":\"SubB\",\"Index\":1,\"4-you\":2},\"ContentList\":null}", str);
+            Assert.AreEqual("{\"Content\":{\"@type\":\"SubB\",\"Index\":1,\"4-you\":2},\"ContentList\":null}", str);
         }
 
-        [Fact]
+        [Test]
         public void DeserializeSubType()
         {
             var expected = new Root
             {
-                Content = new SubB {Index = 1}
+                Content = new SubB { Index = 1 }
             };
 
             var root = JsonConvert.DeserializeObject<Root>("{\"Content\":{\"Index\":1,\"@type\":\"SubB\"}}");
 
-            Assert.Equal(expected, root);
+            Assert.AreEqual(expected, root);
         }
 
-        [Fact]
+        [Test]
         public void DeserializeSubTypeWithComments()
         {
             var expected = new Root
             {
-                Content = new SubB {Index = 1}
+                Content = new SubB { Index = 1 }
             };
 
             var root = JsonConvert.DeserializeObject<Root>(
                 "{\"Content\":/* foo bar */{\"Index\":1,\"@type\":\"SubB\"}}");
 
-            Assert.Equal(expected, root);
+            Assert.AreEqual(expected, root);
         }
 
-        [Fact]
+        [Test]
         public void DeserializeNull()
         {
             var expected = new Root
@@ -186,16 +186,16 @@ namespace JsonSubTypes.Tests
 
             var root = JsonConvert.DeserializeObject<Root>("{\"Content\":null}");
 
-            Assert.Equal(expected, root);
+            Assert.AreEqual(expected, root);
         }
 
-        [Fact]
+        [Test]
         public void DeserializeBadDocument()
         {
             Assert.Throws<JsonSerializationException>(() => JsonConvert.DeserializeObject<Root>("{\"Content\":8}"));
         }
 
-        [Fact]
+        [Test]
         public void WhenDiscriminatorValueIsNullDeserializeToBaseType()
         {
             var expected = new Root
@@ -205,10 +205,10 @@ namespace JsonSubTypes.Tests
 
             var root = JsonConvert.DeserializeObject<Root>("{\"Content\":{\"Index\":1,\"@type\":null}}");
 
-            Assert.Equal(expected, root);
+            Assert.AreEqual(expected, root);
         }
 
-        [Fact]
+        [Test]
         public void WhenDiscriminatorValueIsUnknownDeserializeToBaseType()
         {
             var expected = new Root
@@ -218,10 +218,10 @@ namespace JsonSubTypes.Tests
 
             var root = JsonConvert.DeserializeObject<Root>("{\"Content\":{\"Index\":1,\"@type\":8.5}}");
 
-            Assert.Equal(expected, root);
+            Assert.AreEqual(expected, root);
         }
 
-        [Fact]
+        [Test]
         public void WorkWithSubList()
         {
             var expected = new Root
@@ -233,10 +233,10 @@ namespace JsonSubTypes.Tests
             var root = JsonConvert.DeserializeObject<Root>(
                 "{\"Content\":{\"Index\":1,\"@type\":8.5},\"ContentList\":[{\"Index\":1,\"@type\":\"SubB\"},{\"Name\":\"foo\",\"@type\":\"SubC\"}]}");
 
-            Assert.Equal(expected, root);
+            Assert.AreEqual(expected, root);
         }
 
-        [Fact]
+        [Test]
         public void CouldNotBeUsedAsRegisteredConverter()
         {
             var converter = new JsonSubtypes();
@@ -244,7 +244,7 @@ namespace JsonSubTypes.Tests
             Assert.False(converter.CanConvert(typeof(Base)));
         }
 
-        [Fact]
+        [Test]
         public void RefuseToWrite()
         {
             var converter = new JsonSubtypes();

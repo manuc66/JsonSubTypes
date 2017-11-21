@@ -1,5 +1,5 @@
 ﻿using Newtonsoft.Json;
-using Xunit;
+using NUnit.Framework;
 
 namespace JsonSubTypes.Tests
 {
@@ -27,11 +27,11 @@ namespace JsonSubTypes.Tests
             public bool Declawed { get; set; }
         }
 
-        [Fact]
+        [Test]
         public void Demo()
         {
             var annimal = JsonConvert.DeserializeObject<Annimal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
-            Assert.Equal("Jack Russell Terrier", (annimal as Dog)?.Breed);
+            Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
         }
     }
 }

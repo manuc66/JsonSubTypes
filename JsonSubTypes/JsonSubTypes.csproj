@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard1.3;netstandard1.4;netstandard1.5;netstandard1.6;net40;net45;net46;net47</TargetFrameworks>
+    <TargetFrameworks>netstandard1.3;netstandard1.4;netstandard1.5;netstandard1.6;net35;net40;net45;net46;net47</TargetFrameworks>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
@@ -27,7 +27,7 @@
   
   
   <ItemGroup>
-	<PackageReference Include="Newtonsoft.Json" Version="10.0.2" />
+	<PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
   </ItemGroup>
 
 </Project>

@@ -161,7 +161,7 @@ namespace JsonSubTypes
         private static IList CreateCompatibleList(Type targetContainerType, Type elementType)
         {
             IList list;
-#if NET40
+#if (NET35 || NET40)
             if (targetContainerType.IsArray || targetContainerType.IsAbstract)
 #else
             if (targetContainerType.IsArray || targetContainerType.GetTypeInfo().IsAbstract)
@@ -185,7 +185,7 @@ namespace JsonSubTypes
             }
             else
             {
-#if NET40
+#if (NET35 || NET40)
                 elementType = arrayOrGenericContainer.GetGenericArguments().FirstOrDefault();
 #else
                 elementType = arrayOrGenericContainer.GenericTypeArguments[0];
@@ -227,7 +227,7 @@ namespace JsonSubTypes
 
         private static Type GetTypeByPropertyPresence(JObject jObject, Type parentType)
         {
-#if NET40
+#if (NET35 || NET40)
             foreach (var type in parentType.GetCustomAttributes(false).OfType<KnownSubTypeWithPropertyAttribute>())
 #else
             foreach (var type in parentType.GetTypeInfo().GetCustomAttributes<KnownSubTypeWithPropertyAttribute>())
@@ -262,7 +262,7 @@ namespace JsonSubTypes
             if (typeName == null)
                 return null;
 
-#if NET40
+#if (NET35 || NET40)
             var insideAssembly = parentType.Assembly;
 #else
             var insideAssembly = parentType.GetTypeInfo().Assembly;
@@ -278,7 +278,7 @@ namespace JsonSubTypes
             return typeByName;
         }
 
-#if NET40
+#if (NET35 || NET40)
         private static Type GetTypeFromMapping(Dictionary<object, Type> typeMapping, JToken discriminatorToken)
 #else
         private static Type GetTypeFromMapping(IReadOnlyDictionary<object, Type> typeMapping, JToken discriminatorToken)
@@ -293,7 +293,7 @@ namespace JsonSubTypes
 
         private static Dictionary<object, Type> GetSubTypeMapping(Type type)
         {
-#if NET40
+#if (NET35 || NET40)
             return type.GetCustomAttributes(false).OfType<KnownSubTypeAttribute>()
 #else
             return type.GetTypeInfo().GetCustomAttributes<KnownSubTypeAttribute>()
