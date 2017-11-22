@@ -24,6 +24,7 @@ namespace JsonSubTypes.Tests
             public bool Declawed { get; set; }
         }
 
+        [TestFixture]
         public class DemoAlternativeTypePropertyWithFullNameTests
         {
             [Test]
@@ -58,7 +59,7 @@ namespace JsonSubTypes.Tests
             public bool Declawed { get; set; }
         }
 
-
+        [TestFixture]
         public class DemoAlternativeTypePropertyNameTests
         {
             [Test]
@@ -83,6 +84,7 @@ namespace JsonSubTypes.Tests
 
     namespace SimplyQualifiedNameNestedType
     {
+        [TestFixture]
         public class DemoAlternativeTypePropertyNameTests
         {
             [JsonConverter(typeof(JsonSubtypes), "Kind")]

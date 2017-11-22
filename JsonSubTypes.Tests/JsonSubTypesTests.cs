@@ -129,7 +129,7 @@ namespace JsonSubTypes.Tests
             }
         }
     }
-
+    [TestFixture]
     public class JsonSubTypesTests
     {
         [Test]

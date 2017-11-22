@@ -4,9 +4,10 @@ using NUnit.Framework;
 
 namespace JsonSubTypes.Tests
 {
-
+    [TestFixture]
     public class DiscriminatorOfDifferentKindTests
     {
+        [TestFixture]
         public class DiscriminatorIsAnEnum
         {
             public class MainClass
@@ -45,7 +46,7 @@ namespace JsonSubTypes.Tests
                 Assert.AreEqual("zzz", (obj.SubTypeData as SubTypeClass2)?.ZzzField);
             }
         }
-
+        [TestFixture]
         public class DiscriminatorIsAnEnumStringValue
         {
             public class MainClass
@@ -87,7 +88,7 @@ namespace JsonSubTypes.Tests
             }
         }
 
-
+        [TestFixture]
         public class DiscriminatorIsAnInt
         {
             class Parent

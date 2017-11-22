@@ -13,6 +13,7 @@ namespace JsonSubTypes.Tests
 {
     public class HiearachyWithCollectionTests
     {
+        [TestFixture]
         public class HiearachyWithListsTests
         {
             public class Hierachy
@@ -115,7 +116,7 @@ namespace JsonSubTypes.Tests
 
             }
         }
-
+        [TestFixture]
         public class HiearachyWithArrayTests
         {
             public class Hierachy
@@ -196,6 +197,7 @@ namespace JsonSubTypes.Tests
             }
         }
 
+        [TestFixture]
         public class HiearachyWithObservableCollectionTests
         {
             public class Hierachy
@@ -292,7 +294,7 @@ namespace JsonSubTypes.Tests
                         .Children[1]).Size);
             }
         }
-
+        [TestFixture]
         public class HiearachyWithIEnumerableCollectionTests
         {
             public class Hierachy

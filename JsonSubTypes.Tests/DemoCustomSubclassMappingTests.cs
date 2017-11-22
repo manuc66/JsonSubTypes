@@ -3,7 +3,7 @@ using NUnit.Framework;
 
 namespace JsonSubTypes.Tests
 {
-
+    [TestFixture]
     public class DemoCustomSubclassMappingTests
     {
         [JsonConverter(typeof(JsonSubtypes), "Sound")]

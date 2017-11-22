@@ -5,6 +5,7 @@ using NUnit.Framework;
 
 namespace JsonSubTypes.Tests
 {
+    [TestFixture]
     public class BaseIsAnInterfaceTests
     {
         [JsonConverter(typeof(JsonSubtypes), "Sound")]
