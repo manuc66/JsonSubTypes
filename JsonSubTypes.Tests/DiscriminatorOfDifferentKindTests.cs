@@ -1,13 +1,13 @@
-﻿using System;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Xunit;
+using NUnit.Framework;
 
 namespace JsonSubTypes.Tests
 {
-
+    [TestFixture]
     public class DiscriminatorOfDifferentKindTests
     {
+        [TestFixture]
         public class DiscriminatorIsAnEnum
         {
             public class MainClass
@@ -39,14 +39,14 @@ namespace JsonSubTypes.Tests
                 WithZzzField
             }
 
-            [Fact]
+            [Test]
             public void Deserialize()
             {
                 var obj = JsonConvert.DeserializeObject<MainClass>("{\"SubTypeData\":{\"ZzzField\":\"zzz\",\"SubTypeType\":1}}");
-                Assert.Equal("zzz", (obj.SubTypeData as SubTypeClass2)?.ZzzField);
+                Assert.AreEqual("zzz", (obj.SubTypeData as SubTypeClass2)?.ZzzField);
             }
         }
-
+        [TestFixture]
         public class DiscriminatorIsAnEnumStringValue
         {
             public class MainClass
@@ -80,15 +80,15 @@ namespace JsonSubTypes.Tests
                 WithZzzField
             }
 
-            [Fact]
+            [Test]
             public void Deserialize()
             {
                 var obj = JsonConvert.DeserializeObject<MainClass>("{\"SubTypeData\":{\"ZzzField\":\"zzz\",\"SubTypeType\":\"zzzField\"}}");
-                Assert.Equal("zzz", (obj.SubTypeData as SubTypeClass2)?.ZzzField);
+                Assert.AreEqual("zzz", (obj.SubTypeData as SubTypeClass2)?.ZzzField);
             }
         }
 
-
+        [TestFixture]
         public class DiscriminatorIsAnInt
         {
             class Parent
@@ -114,7 +114,7 @@ namespace JsonSubTypes.Tests
                 public override int ChildType { get; } = 2;
             }
 
-             [Fact]
+             [Test]
             public void DiscriminatorValueCanBeANumber()
             {
                 var root1 = JsonConvert.DeserializeObject<Parent>("{\"child\":{\"ChildType\":1}}");
@@ -125,9 +125,9 @@ namespace JsonSubTypes.Tests
 
                 Assert.NotNull(root1.child as Child1);
                 Assert.NotNull(root2.child as Child2);
-                Assert.Equal(typeof(Child), root3.child.GetType());
-                Assert.Equal(typeof(Child), root4.child.GetType());
-                Assert.Equal(typeof(Child), root5.child.GetType());
+                Assert.AreEqual(typeof(Child), root3.child.GetType());
+                Assert.AreEqual(typeof(Child), root4.child.GetType());
+                Assert.AreEqual(typeof(Child), root5.child.GetType());
             }
         }
     }

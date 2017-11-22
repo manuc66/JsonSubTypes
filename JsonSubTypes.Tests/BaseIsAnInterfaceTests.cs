@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using Xunit;
+using NUnit.Framework;
 
 namespace JsonSubTypes.Tests
 {
+    [TestFixture]
     public class BaseIsAnInterfaceTests
     {
         [JsonConverter(typeof(JsonSubtypes), "Sound")]
@@ -27,26 +28,26 @@ namespace JsonSubTypes.Tests
             public bool Declawed { get; set; }
         }
 
-        [Fact]
+        [Test]
         public void Test()
         {
             var annimal = JsonConvert.DeserializeObject<IAnnimal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
-            Assert.Equal("Jack Russell Terrier", (annimal as Dog)?.Breed);
+            Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
         }
 
-        [Fact]
+        [Test]
         public void ConcurrentThreadTest()
         {
             Action test = () =>
             {
                 var annimal = JsonConvert.DeserializeObject<IAnnimal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
-                Assert.Equal("Jack Russell Terrier", (annimal as Dog)?.Breed); ;
+                Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed); ;
             };
 
             Parallel.For(0, 100, index => test());
         }
 
-        [Fact]
+        [Test]
         public void UnknownMappingFails()
         {
             try

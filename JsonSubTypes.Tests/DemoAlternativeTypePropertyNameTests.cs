@@ -1,5 +1,5 @@
 ﻿using Newtonsoft.Json;
-using Xunit;
+using NUnit.Framework;
 
 namespace JsonSubTypes.Tests
 {
@@ -24,15 +24,16 @@ namespace JsonSubTypes.Tests
             public bool Declawed { get; set; }
         }
 
+        [TestFixture]
         public class DemoAlternativeTypePropertyWithFullNameTests
         {
-            [Fact]
+            [Test]
             public void Demo()
             {
                 var annimal =
                     JsonConvert.DeserializeObject<Annimal>(
                         "{\"ClassName\":\"JsonSubTypes.Tests.FullyQualifiedName.Dog\",\"Breed\":\"Jack Russell Terrier\"}");
-                Assert.Equal("Jack Russell Terrier", (annimal as Dog)?.Breed);
+                Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
             }
         }
     }
@@ -58,31 +59,32 @@ namespace JsonSubTypes.Tests
             public bool Declawed { get; set; }
         }
 
-
+        [TestFixture]
         public class DemoAlternativeTypePropertyNameTests
         {
-            [Fact]
+            [Test]
             public void Demo()
             {
                 var annimal =
                     JsonConvert.DeserializeObject<Annimal>(
                         "{\"ClassName\":\"Dog\",\"Breed\":\"Jack Russell Terrier\"}");
-                Assert.Equal("Jack Russell Terrier", (annimal as Dog)?.Breed);
+                Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
             }
 
-            [Fact]
+            [Test]
             public void DemoCaseInsensitive()
             {
                 var annimal =
                     JsonConvert.DeserializeObject<Annimal>(
                         "{\"ClassName\":\"dog\",\"Breed\":\"Jack Russell Terrier\"}");
-                Assert.Equal("Jack Russell Terrier", (annimal as Dog)?.Breed);
+                Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
             }
         }
     }
 
     namespace SimplyQualifiedNameNestedType
     {
+        [TestFixture]
         public class DemoAlternativeTypePropertyNameTests
         {
             [JsonConverter(typeof(JsonSubtypes), "Kind")]
@@ -97,25 +99,25 @@ namespace JsonSubTypes.Tests
                 public string Breed { get; set; }
             }
 
-            [Fact]
+            [Test]
             public void Demo()
             {
                 var annimal =
                     JsonConvert.DeserializeObject<IAnnimal>(
                         "{\"Kind\":\"Dog\",\"Breed\":\"Jack Russell Terrier\"}");
-                Assert.Equal("Jack Russell Terrier", (annimal as Dog)?.Breed);
+                Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
             }
 
-            [Fact]
+            [Test]
             public void DemoCaseInsensitive()
             {
                 var annimal =
                     JsonConvert.DeserializeObject<IAnnimal>(
                         "{\"Kind\":\"dog\",\"Breed\":\"Jack Russell Terrier\"}");
-                Assert.Equal("Jack Russell Terrier", (annimal as Dog)?.Breed);
+                Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
             }
 
-            [Fact]
+            [Test]
             public void WhenNoMappingPossible()
             {
                 Assert.Throws<JsonSerializationException>(() =>
