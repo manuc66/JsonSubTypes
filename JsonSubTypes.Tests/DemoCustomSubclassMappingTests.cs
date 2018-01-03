@@ -9,19 +9,19 @@ namespace JsonSubTypes.Tests
         [JsonConverter(typeof(JsonSubtypes), "Sound")]
         [JsonSubtypes.KnownSubType(typeof(Dog), "Bark")]
         [JsonSubtypes.KnownSubType(typeof(Cat), "Meow")]
-        public class Annimal
+        public class Animal
         {
             public virtual string Sound { get; }
             public string Color { get; set; }
         }
 
-        public class Dog : Annimal
+        public class Dog : Animal
         {
             public override string Sound { get; } = "Bark";
             public string Breed { get; set; }
         }
 
-        public class Cat : Annimal
+        public class Cat : Animal
         {
             public override string Sound { get; } = "Meow";
             public bool Declawed { get; set; }
@@ -30,8 +30,8 @@ namespace JsonSubTypes.Tests
         [Test]
         public void Demo()
         {
-            var annimal = JsonConvert.DeserializeObject<Annimal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
-            Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
+            var animal = JsonConvert.DeserializeObject<Animal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
+            Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed);
         }
     }
 }

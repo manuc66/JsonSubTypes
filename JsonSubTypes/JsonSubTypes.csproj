@@ -1,13 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFrameworks>netstandard1.3;netstandard1.4;netstandard1.5;netstandard1.6;net35;net40;net45;net46;net47</TargetFrameworks>
   </PropertyGroup>
-
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
-  
   <PropertyGroup>
     <Company>manuc66</Company>
     <Copyright>manuc66</Copyright>
@@ -20,14 +17,15 @@
     <PackageTags>json converter subtype inheritance deserializeobject polymorphism</PackageTags>
     <AssemblyVersion>1.2.0.0</AssemblyVersion>
   </PropertyGroup>
-
   <ItemGroup>
     <Folder Include="Properties\" />
   </ItemGroup>
-  
-  
   <ItemGroup>
-	<PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
   </ItemGroup>
-
+  <ItemGroup>
+    <Content Include="..\README.md">
+      <Link>README.md</Link>
+    </Content>
+  </ItemGroup>
 </Project>

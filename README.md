@@ -8,25 +8,25 @@
 
 ```csharp
 [JsonConverter(typeof(JsonSubtypes), "Kind")]
-public interface IAnnimal
+public interface IAnimal
 {
     string Kind { get; }
 }
 
-public class Dog : IAnnimal
+public class Dog : IAnimal
 {
     public string Kind { get; } = "Dog";
     public string Breed { get; set; }
 }
 
-class Cat : Annimal {
+class Cat : Animal {
     bool declawed { get; set;}
 }
 ```
 
 ```csharp
-var annimal =JsonConvert.DeserializeObject<IAnnimal>("{\"Kind\":\"Dog\",\"Breed\":\"Jack Russell Terrier\"}");
-Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
+var animal =JsonConvert.DeserializeObject<IAnimal>("{\"Kind\":\"Dog\",\"Breed\":\"Jack Russell Terrier\"}");
+Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed);
 ```
 N.B.: Also works with fully qualified type name
 
@@ -36,19 +36,19 @@ N.B.: Also works with fully qualified type name
 [JsonConverter(typeof(JsonSubtypes), "Sound")]
 [JsonSubtypes.KnownSubType(typeof(Dog), "Bark")]
 [JsonSubtypes.KnownSubType(typeof(Cat), "Meow")]
-public class Annimal
+public class Animal
 {
     public virtual string Sound { get; }
     public string Color { get; set; }
 }
 
-public class Dog : Annimal
+public class Dog : Animal
 {
     public override string Sound { get; } = "Bark";
     public string Breed { get; set; }
 }
 
-public class Cat : Annimal
+public class Cat : Animal
 {
     public override string Sound { get; } = "Meow";
     public bool Declawed { get; set; }
@@ -56,8 +56,8 @@ public class Cat : Annimal
 ```
 
 ```csharp
-var annimal =JsonConvert.DeserializeObject<IAnnimal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
-Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
+var animal =JsonConvert.DeserializeObject<IAnimal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
+Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed);
 ```
 
 N.B.: Also works with other kind of value than string, i.e.: enums, int, ...

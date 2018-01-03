@@ -6,19 +6,19 @@ namespace JsonSubTypes.Tests
     namespace FullyQualifiedName
     {
         [JsonConverter(typeof(JsonSubtypes), "ClassName")]
-        public class Annimal
+        public class Animal
         {
             public virtual string ClassName { get; }
             public string Color { get; set; }
         }
 
-        public class Dog : Annimal
+        public class Dog : Animal
         {
             public override string ClassName { get; } = typeof(Dog).FullName;
             public string Breed { get; set; }
         }
 
-        public class Cat : Annimal
+        public class Cat : Animal
         {
             public override string ClassName { get; } = typeof(Cat).FullName;
             public bool Declawed { get; set; }
@@ -30,10 +30,10 @@ namespace JsonSubTypes.Tests
             [Test]
             public void Demo()
             {
-                var annimal =
-                    JsonConvert.DeserializeObject<Annimal>(
+                var animal =
+                    JsonConvert.DeserializeObject<Animal>(
                         "{\"ClassName\":\"JsonSubTypes.Tests.FullyQualifiedName.Dog\",\"Breed\":\"Jack Russell Terrier\"}");
-                Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
+                Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed);
             }
         }
     }
@@ -41,19 +41,19 @@ namespace JsonSubTypes.Tests
     namespace SimplyQualifiedName
     {
         [JsonConverter(typeof(JsonSubtypes), "ClassName")]
-        public class Annimal
+        public class Animal
         {
             public virtual string ClassName { get; }
             public string Color { get; set; }
         }
 
-        public class Dog : Annimal
+        public class Dog : Animal
         {
             public override string ClassName { get; } = typeof(Dog).Name;
             public string Breed { get; set; }
         }
 
-        public class Cat : Annimal
+        public class Cat : Animal
         {
             public override string ClassName { get; } = typeof(Cat).Name;
             public bool Declawed { get; set; }
@@ -65,19 +65,19 @@ namespace JsonSubTypes.Tests
             [Test]
             public void Demo()
             {
-                var annimal =
-                    JsonConvert.DeserializeObject<Annimal>(
+                var animal =
+                    JsonConvert.DeserializeObject<Animal>(
                         "{\"ClassName\":\"Dog\",\"Breed\":\"Jack Russell Terrier\"}");
-                Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
+                Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed);
             }
 
             [Test]
             public void DemoCaseInsensitive()
             {
-                var annimal =
-                    JsonConvert.DeserializeObject<Annimal>(
+                var animal =
+                    JsonConvert.DeserializeObject<Animal>(
                         "{\"ClassName\":\"dog\",\"Breed\":\"Jack Russell Terrier\"}");
-                Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
+                Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed);
             }
         }
     }
@@ -88,12 +88,12 @@ namespace JsonSubTypes.Tests
         public class DemoAlternativeTypePropertyNameTests
         {
             [JsonConverter(typeof(JsonSubtypes), "Kind")]
-            public interface IAnnimal
+            public interface IAnimal
             {
                 string Kind { get; }
             }
 
-            public class Dog : IAnnimal
+            public class Dog : IAnimal
             {
                 public string Kind { get; } = "Dog";
                 public string Breed { get; set; }
@@ -102,26 +102,26 @@ namespace JsonSubTypes.Tests
             [Test]
             public void Demo()
             {
-                var annimal =
-                    JsonConvert.DeserializeObject<IAnnimal>(
+                var animal =
+                    JsonConvert.DeserializeObject<IAnimal>(
                         "{\"Kind\":\"Dog\",\"Breed\":\"Jack Russell Terrier\"}");
-                Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
+                Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed);
             }
 
             [Test]
             public void DemoCaseInsensitive()
             {
-                var annimal =
-                    JsonConvert.DeserializeObject<IAnnimal>(
+                var animal =
+                    JsonConvert.DeserializeObject<IAnimal>(
                         "{\"Kind\":\"dog\",\"Breed\":\"Jack Russell Terrier\"}");
-                Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
+                Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed);
             }
 
             [Test]
             public void WhenNoMappingPossible()
             {
                 Assert.Throws<JsonSerializationException>(() =>
-                    JsonConvert.DeserializeObject<IAnnimal>("{\"Kind\":8,\"Breed\":\"Jack Russell Terrier\"}")
+                    JsonConvert.DeserializeObject<IAnimal>("{\"Kind\":8,\"Breed\":\"Jack Russell Terrier\"}")
                 );
             }
         }
