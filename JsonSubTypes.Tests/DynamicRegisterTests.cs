@@ -1,6 +1,6 @@
 ﻿using System;
 using Newtonsoft.Json;
-using Xunit;
+using NUnit.Framework;
 
 namespace JsonSubTypes.Tests
 {
@@ -49,7 +49,7 @@ namespace JsonSubTypes.Tests
             HammerheadShark = 4
         }
 
-        [Fact]
+        [Test]
         public void DeserializeTest()
         {
             JsonConvert.DefaultSettings = () => new JsonSerializerSettings { };
@@ -66,12 +66,12 @@ namespace JsonSubTypes.Tests
             var result = JsonConvert.DeserializeObject<Animal>(json, settings);
 
 
-            Assert.Equal(typeof(Cat), result.GetType());
-            Assert.Equal(11, result.Age);
-            Assert.Equal(6, (result as Cat)?.Lives);
+            Assert.AreEqual(typeof(Cat), result.GetType());
+            Assert.AreEqual(11, result.Age);
+            Assert.AreEqual(6, (result as Cat)?.Lives);
         }
 
-        [Fact]
+        [Test]
         public void DeserializeIncompleteTest()
         {
             JsonConvert.DefaultSettings = () => new JsonSerializerSettings { };
@@ -87,12 +87,12 @@ namespace JsonSubTypes.Tests
             var result = JsonConvert.DeserializeObject<Animal>(json, settings);
 
 
-            Assert.Equal(typeof(Cat), result.GetType());
-            Assert.Equal(0, result.Age);
-            Assert.Equal(7, (result as Cat)?.Lives);
+            Assert.AreEqual(typeof(Cat), result.GetType());
+            Assert.AreEqual(0, result.Age);
+            Assert.AreEqual(7, (result as Cat)?.Lives);
         }
 
-        [Fact]
+        [Test]
         public void SerializeTest()
         {
             JsonConvert.DefaultSettings = () => new JsonSerializerSettings { };
@@ -108,10 +108,10 @@ namespace JsonSubTypes.Tests
 
             var result = JsonConvert.SerializeObject(new Cat() { Age = 11, Lives = 6 }, settings);
 
-            Assert.Equal(json, result);
+            Assert.AreEqual(json, result);
         }
 
-        [Fact]
+        [Test]
         public void UnregisteredTypeSerializeTest()
         {
             JsonConvert.DefaultSettings = () => new JsonSerializerSettings { };
@@ -127,14 +127,17 @@ namespace JsonSubTypes.Tests
 
             var result = JsonConvert.SerializeObject(new HammerheadShark
             {
-                Age = 11, FinCount = 4, HammerSize = 42.1f, TeethRows = 4
+                Age = 11,
+                FinCount = 4,
+                HammerSize = 42.1f,
+                TeethRows = 4
             }, settings);
 
-            Assert.Equal(json, result);
+            Assert.AreEqual(json, result);
         }
 
 
-        [Fact]
+        [Test]
         public void UnregisteredTypeSerializeTest2()
         {
             JsonConvert.DefaultSettings = () => new JsonSerializerSettings { };
@@ -156,10 +159,10 @@ namespace JsonSubTypes.Tests
                 TeethRows = 4
             }, settings);
 
-            Assert.Equal(json, result);
+            Assert.AreEqual(json, result);
         }
 
-        [Fact]
+        [Test]
         public void UnregisteredTypeDeserializeTest()
         {
             JsonConvert.DefaultSettings = () => new JsonSerializerSettings { };
@@ -174,13 +177,13 @@ namespace JsonSubTypes.Tests
 
             var json = "{\"age\":11,\"fins\":4,\"teethRows\":4,\"hammerSize\":42.1,\"type\":4}";
 
-            var exception =  Assert.Throws<JsonSerializationException>(
+            var exception = Assert.Throws<JsonSerializationException>(
                 () => JsonConvert.DeserializeObject<Animal>(json, settings));
 
-            Assert.Contains("Type is an interface or abstract class and cannot be instantiated.", exception.Message);
+            Assert.IsTrue(exception.Message.Contains("Type is an interface or abstract class and cannot be instantiated."));
         }
 
-        [Fact]
+        [Test]
         public void NestedTypeDeserializeTest()
         {
             JsonConvert.DefaultSettings = () => new JsonSerializerSettings { };
@@ -198,11 +201,11 @@ namespace JsonSubTypes.Tests
             var result = JsonConvert.DeserializeObject<Animal>(json, settings);
 
 
-            Assert.Equal(typeof(HammerheadShark), result.GetType());
-            Assert.Equal(11, result.Age);
-            Assert.Equal(3u, (result as Fish)?.FinCount);
-            Assert.Equal(4u, (result as Shark)?.TeethRows);
-            Assert.Equal(42.1f, (result as HammerheadShark)?.HammerSize);
+            Assert.AreEqual(typeof(HammerheadShark), result.GetType());
+            Assert.AreEqual(11, result.Age);
+            Assert.AreEqual(3u, (result as Fish)?.FinCount);
+            Assert.AreEqual(4u, (result as Shark)?.TeethRows);
+            Assert.AreEqual(42.1f, (result as HammerheadShark)?.HammerSize);
         }
 
         public interface IExpression
@@ -224,7 +227,7 @@ namespace JsonSubTypes.Tests
             public string Type { get { return "Constant"; } }
         }
 
-        [Fact]
+        [Test]
         public void TestIfNestedObjectIsDeserialized()
         {
             JsonConvert.DefaultSettings = () => new JsonSerializerSettings { };
@@ -239,10 +242,10 @@ namespace JsonSubTypes.Tests
                                                                     "\"SubExpressionA\":{\"Type\":\"Constant\",\"Value\":\"A\"}," +
                                                                     "\"SubExpressionB\":{\"Type\":\"Constant\",\"Value\":\"B\"}" +
                                                                     "}", settings);
-            Assert.Equal(typeof(ConstantExpression), (binary as BinaryExpression)?.SubExpressionA.GetType());
+            Assert.AreEqual(typeof(ConstantExpression), (binary as BinaryExpression)?.SubExpressionA.GetType());
         }
 
-        [Fact]
+        [Test]
         public void TestIfNestedObjectIsSerialized()
         {
             JsonConvert.DefaultSettings = () => new JsonSerializerSettings { };
@@ -259,7 +262,7 @@ namespace JsonSubTypes.Tests
                 SubExpressionB = new ConstantExpression() { Value = "B" }
             }, settings);
 
-            Assert.Equal("{" +
+            Assert.AreEqual("{" +
                 "\"SubExpressionA\":{\"Value\":\"A\",\"Type\":\"Constant\"}," +
                 "\"SubExpressionB\":{\"Value\":\"B\",\"Type\":\"Constant\"}" +
                 ",\"Type\":\"Binary\"}", json);
