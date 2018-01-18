@@ -1,10 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
-using Xunit;
+using NUnit.Framework;
 
 namespace JsonSubTypes.Tests
 {
+    [TestFixture]
     public class DemoKnownSubTypeWithProperty
     {
         [JsonConverter(typeof(JsonSubtypes))]
@@ -27,7 +28,7 @@ namespace JsonSubTypes.Tests
             public string Skill { get; set; }
         }
 
-        [Fact]
+        [Test]
         public void Demo()
         {
             string json = "[{\"Department\":\"Department1\",\"JobTitle\":\"JobTitle1\",\"FirstName\":\"FirstName1\",\"LastName\":\"LastName1\"}," +
@@ -35,17 +36,17 @@ namespace JsonSubTypes.Tests
                           "{\"Skill\":\"Painter\",\"FirstName\":\"FirstName1\",\"LastName\":\"LastName1\"}]";
 
 
-            var persons = JsonConvert.DeserializeObject<IReadOnlyCollection<Person>>(json);
-            Assert.Equal("Painter", (persons.Last() as Artist)?.Skill);
+            var persons = JsonConvert.DeserializeObject<ICollection<Person>>(json);
+            Assert.AreEqual("Painter", (persons.Last() as Artist)?.Skill);
         }
 
-        [Fact]
+        [Test]
         public void FallBackToPArentWhenNotFound()
         {
             string json = "[{\"Skl.\":\"Painter\",\"FirstName\":\"FirstName1\",\"LastName\":\"LastName1\"}]";
 
-            var persons = JsonConvert.DeserializeObject<IReadOnlyCollection<Person>>(json);
-            Assert.Equal(typeof(Person), persons.First().GetType());
+            var persons = JsonConvert.DeserializeObject<ICollection<Person>>(json);
+            Assert.AreEqual(typeof(Person), persons.First().GetType());
         }
     }
 }
