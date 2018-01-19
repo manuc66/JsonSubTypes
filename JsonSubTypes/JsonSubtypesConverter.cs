@@ -31,6 +31,7 @@ namespace JsonSubTypes
     {
         private readonly bool _serializeDiscriminatorProperty;
         private readonly Dictionary<Type, object> _supportedTypes;
+        private JsonWriter _writer;
         private bool _isInsideWrite;
         private Type BaseType { get; }
         private Dictionary<object, Type> SubTypeMapping { get; }
@@ -69,6 +70,7 @@ namespace JsonSubTypes
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
+            _writer = writer;
             _isInsideWrite = true;
             try
             {
