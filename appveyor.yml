@@ -13,8 +13,8 @@ init:
 
 before_build:
 - nuget restore
-- ps: if (-Not $env:APPVEYOR_PULL_REQUEST_NUMBER)  { MSBuild.SonarQube.Runner.exe begin /k:"manuc66:JsonSubtypes:master" /d:"sonar.host.url=https://sonarqube.com" /d:"sonar.organization=manuc66-github" /d:"sonar.login=$env:sonar_token" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" }
-- ps: if ($env:APPVEYOR_PULL_REQUEST_NUMBER)       { MSBuild.SonarQube.Runner.exe begin /k:"manuc66:JsonSubtypes:master" /d:"sonar.host.url=https://sonarqube.com" /d:"sonar.organization=manuc66-github" /d:"sonar.login=$env:sonar_token" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" /d:"sonar.analysis.mode=preview" /d:"sonar.github.pullRequest=$env:APPVEYOR_PULL_REQUEST_NUMBER" /d:"sonar.github.repository=$env:APPVEYOR_REPO_NAME" /d:"sonar.github.oauth=$env:github_auth_token" }
+- ps: if (-Not $env:APPVEYOR_PULL_REQUEST_NUMBER)  { MSBuild.SonarQube.Runner.exe begin /k:"manuc66:JsonSubtypes" /d:"sonar.host.url=https://sonarqube.com" /d:"sonar.organization=manuc66-github" /d:"sonar.login=$env:sonar_token" /d:"sonar.branch=$env:APPVEYOR_REPO_BRANCH"  /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" }
+- ps: if ($env:APPVEYOR_PULL_REQUEST_NUMBER)       { MSBuild.SonarQube.Runner.exe begin /k:"manuc66:JsonSubtypes" /d:"sonar.host.url=https://sonarqube.com" /d:"sonar.organization=manuc66-github" /d:"sonar.login=$env:sonar_token" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" /d:"sonar.analysis.mode=preview" /d:"sonar.github.pullRequest=$env:APPVEYOR_PULL_REQUEST_NUMBER" /d:"sonar.github.repository=$env:APPVEYOR_REPO_NAME" /d:"sonar.github.oauth=$env:github_auth_token" }
 
 configuration: Release
 
