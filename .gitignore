@@ -5,3 +5,4 @@ obj
 *.user
 /TestResults
 *.ide
+/.idea

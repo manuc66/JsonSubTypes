@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System.Runtime.Serialization;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using NUnit.Framework;
 
@@ -76,7 +77,7 @@ namespace JsonSubTypes.Tests
             public enum SubType
             {
                 WithAaaField,
-                [System.Runtime.Serialization.EnumMember(Value = "zzzField")]
+                [EnumMember(Value = "zzzField")]
                 WithZzzField
             }
 
@@ -114,7 +115,7 @@ namespace JsonSubTypes.Tests
                 public override int ChildType { get; } = 2;
             }
 
-             [Test]
+            [Test]
             public void DiscriminatorValueCanBeANumber()
             {
                 var root1 = JsonConvert.DeserializeObject<Parent>("{\"child\":{\"ChildType\":1}}");

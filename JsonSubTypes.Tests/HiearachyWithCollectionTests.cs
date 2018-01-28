@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-#if NET35
-#else   
-using System.Collections.ObjectModel;
-#endif
 using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using NUnit.Framework;
+#if NET35
+#else   
+using System.Collections.ObjectModel;
+#endif
 
 namespace JsonSubTypes.Tests
 {
