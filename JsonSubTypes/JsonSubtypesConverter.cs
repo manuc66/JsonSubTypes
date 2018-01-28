@@ -35,9 +35,10 @@ namespace JsonSubTypes
         private readonly Dictionary<object, Type> _subTypeMapping;
 
         [ThreadStatic] private static bool _isInsideWrite;
-        [ThreadStatic] private static bool  _allowNextWrite;
+        [ThreadStatic] private static bool _allowNextWrite;
 
-        internal JsonSubtypesConverter(Type baseType, string discriminatorProperty, Dictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty) : base(discriminatorProperty)
+        internal JsonSubtypesConverter(Type baseType, string discriminatorProperty,
+            Dictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty) : base(discriminatorProperty)
         {
             _serializeDiscriminatorProperty = serializeDiscriminatorProperty;
             _baseType = baseType;
@@ -68,7 +69,6 @@ namespace JsonSubTypes
                 if (!_isInsideWrite)
                     return true;
 
-
                 if (_allowNextWrite)
                 {
                     _allowNextWrite = false;
@@ -82,7 +82,6 @@ namespace JsonSubTypes
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-
             JObject jsonObj;
             _isInsideWrite = true;
             _allowNextWrite = false;
