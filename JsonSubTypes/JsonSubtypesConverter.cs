@@ -30,19 +30,19 @@ namespace JsonSubTypes
     internal class JsonSubtypesConverter : JsonSubtypes
     {
         private readonly bool _serializeDiscriminatorProperty;
-        private readonly Dictionary<Type, object> _supportedTypes;
-        private JsonWriter _writer;
-        private bool _isInsideWrite;
-        private Type BaseType { get; }
-        private Dictionary<object, Type> SubTypeMapping { get; }
+        private readonly Dictionary<Type, object> _supportedTypes = new Dictionary<Type, object>();
+        private readonly Type _baseType;
+        private readonly Dictionary<object, Type> _subTypeMapping;
+
+        [ThreadStatic] private bool _isInsideWrite;
+        [ThreadStatic] private bool _allowNextWrite;
 
         internal JsonSubtypesConverter(Type baseType, string discriminatorProperty, Dictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty) : base(discriminatorProperty)
         {
             _serializeDiscriminatorProperty = serializeDiscriminatorProperty;
-            BaseType = baseType;
-            SubTypeMapping = subTypeMapping;
-            _supportedTypes = new Dictionary<Type, object>();
-            foreach (var type in SubTypeMapping)
+            _baseType = baseType;
+            _subTypeMapping = subTypeMapping;
+            foreach (var type in _subTypeMapping)
             {
                 _supportedTypes.Add(type.Value, type.Key);
             }
@@ -50,40 +50,56 @@ namespace JsonSubTypes
 
         protected override Dictionary<object, Type> GetSubTypeMapping(Type type)
         {
-            return SubTypeMapping;
+            return _subTypeMapping;
         }
 
         public override bool CanConvert(Type objectType)
         {
-            return objectType == BaseType || _supportedTypes.ContainsKey(objectType);
+            return objectType == _baseType || _supportedTypes.ContainsKey(objectType);
         }
 
         public override bool CanWrite
         {
             get
             {
-                if (_serializeDiscriminatorProperty && !_isInsideWrite)
+                if (!_serializeDiscriminatorProperty)
+                    return false;
+
+                if (!_isInsideWrite)
                     return true;
+
+
+                if (_allowNextWrite)
+                {
+                    _allowNextWrite = false;
+                    return true;
+                }
+
+                _allowNextWrite = true;
                 return false;
             }
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-            _writer = writer;
+
+            JObject jsonObj;
             _isInsideWrite = true;
+            _allowNextWrite = false;
             try
             {
-                var jo = JObject.FromObject(value, serializer);
-                var supportedType = _supportedTypes[value.GetType()];
-                var fromObject = JToken.FromObject(supportedType, serializer);
-                jo.Add(_typeMappingPropertyName, fromObject);
-                jo.WriteTo(writer);
+                jsonObj = JObject.FromObject(value, serializer);
             }
             finally
             {
                 _isInsideWrite = false;
             }
+
+            var supportedType = _supportedTypes[value.GetType()];
+            var typeMappingPropertyValue = JToken.FromObject(supportedType, serializer);
+            jsonObj.Add(_typeMappingPropertyName, typeMappingPropertyValue);
+
+            jsonObj.WriteTo(writer);
         }
     }
 }

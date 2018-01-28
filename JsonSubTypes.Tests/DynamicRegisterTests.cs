@@ -1,4 +1,9 @@
-﻿using Newtonsoft.Json;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace JsonSubTypes.Tests
@@ -229,7 +234,7 @@ namespace JsonSubTypes.Tests
         [Test]
         public void TestIfNestedObjectIsDeserialized()
         {
-            JsonConvert.DefaultSettings = () => new JsonSerializerSettings { };
+            JsonConvert.DefaultSettings = () => new JsonSerializerSettings();
             var settings = JsonConvert.DefaultSettings();
             settings.Converters.Add(JsonSubtypesConverterBuilder
                 .Of(typeof(IExpression), "Type")
@@ -247,7 +252,7 @@ namespace JsonSubTypes.Tests
         [Test]
         public void TestIfNestedObjectIsSerialized()
         {
-            JsonConvert.DefaultSettings = () => new JsonSerializerSettings { };
+            JsonConvert.DefaultSettings = () => new JsonSerializerSettings();
             var settings = JsonConvert.DefaultSettings();
             settings.Converters.Add(JsonSubtypesConverterBuilder
                 .Of(typeof(IExpression), "Type")
@@ -255,10 +260,10 @@ namespace JsonSubTypes.Tests
                 .RegisterSubtype(typeof(BinaryExpression), "Binary")
                 .Build());
 
-            var json = JsonConvert.SerializeObject(new BinaryExpression()
+            var json = JsonConvert.SerializeObject(new BinaryExpression
             {
-                SubExpressionA = new ConstantExpression() { Value = "A" },
-                SubExpressionB = new ConstantExpression() { Value = "B" }
+                SubExpressionA = new ConstantExpression { Value = "A" },
+                SubExpressionB = new ConstantExpression { Value = "B" }
             }, settings);
 
             Assert.AreEqual("{" +
@@ -276,6 +281,11 @@ namespace JsonSubTypes.Tests
         {
             public IExpression2 SubExpressionA { get; set; }
             public IExpression2 SubExpressionB { get; set; }
+        }
+
+        public class ManyOrExpression2 : IExpression2
+        {
+            public List<IExpression2> OrExpr { get; set; }
         }
 
         public class ConstantExpression2 : IExpression2
@@ -321,9 +331,33 @@ namespace JsonSubTypes.Tests
             }, settings);
 
             Assert.AreEqual("{" +
-                "\"SubExpressionA\":{\"Value\":\"A\",\"Type\":\"Constant\"}," +
-                "\"SubExpressionB\":{\"Value\":\"B\",\"Type\":\"Constant\"}" +
-                ",\"Type\":\"Binary\"}", json);
+                            "\"SubExpressionA\":{\"Value\":\"A\",\"Type\":\"Constant\"}," +
+                            "\"SubExpressionB\":{\"Value\":\"B\",\"Type\":\"Constant\"}" +
+                            ",\"Type\":\"Binary\"}", json);
+        }
+
+        [Test]
+        public void TestIfNestedObjectIsSerialized3()
+        {
+            JsonConvert.DefaultSettings = () => new JsonSerializerSettings();
+            var settings = JsonConvert.DefaultSettings();
+            settings.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(IExpression2), "Type")
+                .SerializeDiscriminatorProperty()
+                .RegisterSubtype(typeof(ConstantExpression2), "Constant")
+                .RegisterSubtype(typeof(BinaryExpression2), "Binary")
+                .Build());
+
+            var json = JsonConvert.SerializeObject(new BinaryExpression2
+            {
+                SubExpressionA = new ManyOrExpression2 { OrExpr = new List<IExpression2> { new ConstantExpression2 { Value = "A" }, new ConstantExpression2 { Value = "B" } } },
+                SubExpressionB = new ManyOrExpression2 { OrExpr = new List<IExpression2> { new ConstantExpression2 { Value = "A" }, new ManyOrExpression2 { OrExpr = new List<IExpression2> { new ConstantExpression2 { Value = "A" }, new ConstantExpression2 { Value = "B" } } } } }
+            }, settings);
+
+            Assert.AreEqual("{" +
+                            "\"SubExpressionA\":{\"OrExpr\":[{\"Value\":\"A\",\"Type\":\"Constant\"},{\"Value\":\"B\",\"Type\":\"Constant\"}]}," +
+                            "\"SubExpressionB\":{\"OrExpr\":[{\"Value\":\"A\",\"Type\":\"Constant\"},{\"OrExpr\":[{\"Value\":\"A\",\"Type\":\"Constant\"},{\"Value\":\"B\",\"Type\":\"Constant\"}]}]}" +
+                            ",\"Type\":\"Binary\"}", json);
         }
     }
 }
