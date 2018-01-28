@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using NUnit.Framework;
@@ -56,8 +54,9 @@ namespace JsonSubTypes.Tests
         [Test]
         public void DeserializeTest()
         {
-            JsonConvert.DefaultSettings = () => new JsonSerializerSettings();
-            var settings = JsonConvert.DefaultSettings();
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
             settings.Converters.Add(JsonSubtypesConverterBuilder
                 .Of(typeof(Animal), "type")
                 .SerializeDiscriminatorProperty()
@@ -67,7 +66,7 @@ namespace JsonSubTypes.Tests
 
             var json = "{\"catLives\":6,\"type\":2,\"age\":11}";
 
-            var result = JsonConvert.DeserializeObject<Animal>(json, settings);
+            var result = JsonConvert.DeserializeObject<Animal>(json);
 
 
             Assert.AreEqual(typeof(Cat), result.GetType());
@@ -78,8 +77,9 @@ namespace JsonSubTypes.Tests
         [Test]
         public void DeserializeIncompleteTest()
         {
-            JsonConvert.DefaultSettings = () => new JsonSerializerSettings();
-            var settings = JsonConvert.DefaultSettings();
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
             settings.Converters.Add(JsonSubtypesConverterBuilder
                 .Of(typeof(Animal), "type")
                 .RegisterSubtype(typeof(Cat), AnimalType.Cat)
@@ -88,7 +88,7 @@ namespace JsonSubTypes.Tests
 
             var json = "{\"type\":2}";
 
-            var result = JsonConvert.DeserializeObject<Animal>(json, settings);
+            var result = JsonConvert.DeserializeObject<Animal>(json);
 
 
             Assert.AreEqual(typeof(Cat), result.GetType());
@@ -99,8 +99,9 @@ namespace JsonSubTypes.Tests
         [Test]
         public void SerializeTest()
         {
-            JsonConvert.DefaultSettings = () => new JsonSerializerSettings();
-            var settings = JsonConvert.DefaultSettings();
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
             settings.Converters.Add(JsonSubtypesConverterBuilder
                 .Of(typeof(Animal), "type")
                 .SerializeDiscriminatorProperty()
@@ -110,7 +111,7 @@ namespace JsonSubTypes.Tests
 
             var json = "{\"catLives\":6,\"age\":11,\"type\":2}";
 
-            var result = JsonConvert.SerializeObject(new Cat { Age = 11, Lives = 6 }, settings);
+            var result = JsonConvert.SerializeObject(new Cat { Age = 11, Lives = 6 });
 
             Assert.AreEqual(json, result);
         }
@@ -118,8 +119,9 @@ namespace JsonSubTypes.Tests
         [Test]
         public void UnregisteredTypeSerializeTest()
         {
-            JsonConvert.DefaultSettings = () => new JsonSerializerSettings();
-            var settings = JsonConvert.DefaultSettings();
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
             settings.Converters.Add(JsonSubtypesConverterBuilder
                 .Of(typeof(Animal), "type")
                 .RegisterSubtype(typeof(Cat), AnimalType.Cat)
@@ -135,7 +137,7 @@ namespace JsonSubTypes.Tests
                 FinCount = 4,
                 HammerSize = 42.1f,
                 TeethRows = 4
-            }, settings);
+            });
 
             Assert.AreEqual(json, result);
         }
@@ -144,8 +146,9 @@ namespace JsonSubTypes.Tests
         [Test]
         public void UnregisteredTypeSerializeTest2()
         {
-            JsonConvert.DefaultSettings = () => new JsonSerializerSettings();
-            var settings = JsonConvert.DefaultSettings();
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
             settings.Converters.Add(JsonSubtypesConverterBuilder
                 .Of(typeof(Animal), "type")
                 .RegisterSubtype(typeof(Cat), AnimalType.Cat)
@@ -161,7 +164,7 @@ namespace JsonSubTypes.Tests
                 Age = 11,
                 FinCount = 4,
                 TeethRows = 4
-            }, settings);
+            });
 
             Assert.AreEqual(json, result);
         }
@@ -169,8 +172,9 @@ namespace JsonSubTypes.Tests
         [Test]
         public void UnregisteredTypeDeserializeTest()
         {
-            JsonConvert.DefaultSettings = () => new JsonSerializerSettings();
-            var settings = JsonConvert.DefaultSettings();
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
             settings.Converters.Add(JsonSubtypesConverterBuilder
                 .Of(typeof(Animal), "type")
                 .RegisterSubtype(typeof(Cat), AnimalType.Cat)
@@ -182,7 +186,7 @@ namespace JsonSubTypes.Tests
             var json = "{\"age\":11,\"fins\":4,\"teethRows\":4,\"hammerSize\":42.1,\"type\":4}";
 
             var exception = Assert.Throws<JsonSerializationException>(
-                () => JsonConvert.DeserializeObject<Animal>(json, settings));
+                () => JsonConvert.DeserializeObject<Animal>(json));
 
             Assert.IsTrue(exception.Message.Contains("Type is an interface or abstract class and cannot be instantiated."));
         }
@@ -190,8 +194,9 @@ namespace JsonSubTypes.Tests
         [Test]
         public void NestedTypeDeserializeTest()
         {
-            JsonConvert.DefaultSettings = () => new JsonSerializerSettings();
-            var settings = JsonConvert.DefaultSettings();
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
             settings.Converters.Add(JsonSubtypesConverterBuilder
                 .Of(typeof(Animal), "type")
                 .RegisterSubtype(typeof(Cat), AnimalType.Cat)
@@ -202,7 +207,7 @@ namespace JsonSubTypes.Tests
 
             var json = "{\"age\":11,\"fins\":3,\"teethRows\":4,\"hammerSize\":42.1,\"type\":4}";
 
-            var result = JsonConvert.DeserializeObject<Animal>(json, settings);
+            var result = JsonConvert.DeserializeObject<Animal>(json);
 
 
             Assert.AreEqual(typeof(HammerheadShark), result.GetType());
@@ -234,8 +239,9 @@ namespace JsonSubTypes.Tests
         [Test]
         public void TestIfNestedObjectIsDeserialized()
         {
-            JsonConvert.DefaultSettings = () => new JsonSerializerSettings();
-            var settings = JsonConvert.DefaultSettings();
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
             settings.Converters.Add(JsonSubtypesConverterBuilder
                 .Of(typeof(IExpression), "Type")
                 .RegisterSubtype(typeof(ConstantExpression), "Constant")
@@ -245,15 +251,17 @@ namespace JsonSubTypes.Tests
             var binary = JsonConvert.DeserializeObject<IExpression>("{\"Type\":\"Binary\"," +
                                                                     "\"SubExpressionA\":{\"Type\":\"Constant\",\"Value\":\"A\"}," +
                                                                     "\"SubExpressionB\":{\"Type\":\"Constant\",\"Value\":\"B\"}" +
-                                                                    "}", settings);
+                                                                    "}");
+
             Assert.AreEqual(typeof(ConstantExpression), (binary as BinaryExpression)?.SubExpressionA.GetType());
         }
 
         [Test]
         public void TestIfNestedObjectIsSerialized()
         {
-            JsonConvert.DefaultSettings = () => new JsonSerializerSettings();
-            var settings = JsonConvert.DefaultSettings();
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
             settings.Converters.Add(JsonSubtypesConverterBuilder
                 .Of(typeof(IExpression), "Type")
                 .RegisterSubtype(typeof(ConstantExpression), "Constant")
@@ -264,7 +272,7 @@ namespace JsonSubTypes.Tests
             {
                 SubExpressionA = new ConstantExpression { Value = "A" },
                 SubExpressionB = new ConstantExpression { Value = "B" }
-            }, settings);
+            });
 
             Assert.AreEqual("{" +
                 "\"SubExpressionA\":{\"Value\":\"A\",\"Type\":\"Constant\"}," +
@@ -296,8 +304,9 @@ namespace JsonSubTypes.Tests
         [Test]
         public void TestIfNestedObjectIsDeserialized2()
         {
-            JsonConvert.DefaultSettings = () => new JsonSerializerSettings();
-            var settings = JsonConvert.DefaultSettings();
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
             settings.Converters.Add(JsonSubtypesConverterBuilder
                 .Of(typeof(IExpression2), "Type")
                 .SerializeDiscriminatorProperty()
@@ -315,8 +324,9 @@ namespace JsonSubTypes.Tests
         [Test]
         public void TestIfNestedObjectIsSerialized2()
         {
-            JsonConvert.DefaultSettings = () => new JsonSerializerSettings();
-            var settings = JsonConvert.DefaultSettings();
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
             settings.Converters.Add(JsonSubtypesConverterBuilder
                 .Of(typeof(IExpression2), "Type")
                 .SerializeDiscriminatorProperty()
@@ -324,40 +334,82 @@ namespace JsonSubTypes.Tests
                 .RegisterSubtype(typeof(BinaryExpression2), "Binary")
                 .Build());
 
-            var json = JsonConvert.SerializeObject(new BinaryExpression2
+            var target = JsonConvert.SerializeObject(new BinaryExpression2
             {
                 SubExpressionA = new ConstantExpression2 { Value = "A" },
                 SubExpressionB = new ConstantExpression2 { Value = "B" }
-            }, settings);
+            });
 
             Assert.AreEqual("{" +
                             "\"SubExpressionA\":{\"Value\":\"A\",\"Type\":\"Constant\"}," +
                             "\"SubExpressionB\":{\"Value\":\"B\",\"Type\":\"Constant\"}" +
-                            ",\"Type\":\"Binary\"}", json);
+                            ",\"Type\":\"Binary\"}", target);
         }
 
         [Test]
-        public void TestIfNestedObjectIsSerialized3()
+        public void TestNestedObjectInBothWay()
         {
-            JsonConvert.DefaultSettings = () => new JsonSerializerSettings();
-            var settings = JsonConvert.DefaultSettings();
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
             settings.Converters.Add(JsonSubtypesConverterBuilder
                 .Of(typeof(IExpression2), "Type")
                 .SerializeDiscriminatorProperty()
                 .RegisterSubtype(typeof(ConstantExpression2), "Constant")
                 .RegisterSubtype(typeof(BinaryExpression2), "Binary")
+                .RegisterSubtype(typeof(ManyOrExpression2), "ManyOr")
                 .Build());
 
-            var json = JsonConvert.SerializeObject(new BinaryExpression2
+            var target = JsonConvert.SerializeObject(new BinaryExpression2
             {
                 SubExpressionA = new ManyOrExpression2 { OrExpr = new List<IExpression2> { new ConstantExpression2 { Value = "A" }, new ConstantExpression2 { Value = "B" } } },
                 SubExpressionB = new ManyOrExpression2 { OrExpr = new List<IExpression2> { new ConstantExpression2 { Value = "A" }, new ManyOrExpression2 { OrExpr = new List<IExpression2> { new ConstantExpression2 { Value = "A" }, new ConstantExpression2 { Value = "B" } } } } }
-            }, settings);
+            });
 
-            Assert.AreEqual("{" +
-                            "\"SubExpressionA\":{\"OrExpr\":[{\"Value\":\"A\",\"Type\":\"Constant\"},{\"Value\":\"B\",\"Type\":\"Constant\"}]}," +
-                            "\"SubExpressionB\":{\"OrExpr\":[{\"Value\":\"A\",\"Type\":\"Constant\"},{\"OrExpr\":[{\"Value\":\"A\",\"Type\":\"Constant\"},{\"Value\":\"B\",\"Type\":\"Constant\"}]}]}" +
-                            ",\"Type\":\"Binary\"}", json);
+            var json = "{" +
+                           "\"SubExpressionA\":{\"OrExpr\":[{\"Value\":\"A\",\"Type\":\"Constant\"},{\"Value\":\"B\",\"Type\":\"Constant\"}],\"Type\":\"ManyOr\"}," +
+                           "\"SubExpressionB\":{\"OrExpr\":[{\"Value\":\"A\",\"Type\":\"Constant\"},{\"OrExpr\":[{\"Value\":\"A\",\"Type\":\"Constant\"},{\"Value\":\"B\",\"Type\":\"Constant\"}],\"Type\":\"ManyOr\"}],\"Type\":\"ManyOr\"}" +
+                           ",\"Type\":\"Binary\"}";
+            Assert.AreEqual(json, target);
+
+
+            Assert.AreEqual(json, JsonConvert.SerializeObject(JsonConvert.DeserializeObject<IExpression2>(json)));
+        }
+
+
+        [Test]
+        public void TestNestedObjectInBothWayParallel()
+        {
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
+            settings.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(IExpression2), "Type")
+                .SerializeDiscriminatorProperty()
+                .RegisterSubtype(typeof(ConstantExpression2), "Constant")
+                .RegisterSubtype(typeof(BinaryExpression2), "Binary")
+                .RegisterSubtype(typeof(ManyOrExpression2), "ManyOr")
+                .Build());
+
+
+            Action test = () => { 
+                var target = JsonConvert.SerializeObject(new BinaryExpression2
+                {
+                    SubExpressionA = new ManyOrExpression2 { OrExpr = new List<IExpression2> { new ConstantExpression2 { Value = "A" }, new ConstantExpression2 { Value = "B" } } },
+                    SubExpressionB = new ManyOrExpression2 { OrExpr = new List<IExpression2> { new ConstantExpression2 { Value = "A" }, new ManyOrExpression2 { OrExpr = new List<IExpression2> { new ConstantExpression2 { Value = "A" }, new ConstantExpression2 { Value = "B" } } } } }
+                });
+
+                var json = "{" +
+                           "\"SubExpressionA\":{\"OrExpr\":[{\"Value\":\"A\",\"Type\":\"Constant\"},{\"Value\":\"B\",\"Type\":\"Constant\"}],\"Type\":\"ManyOr\"}," +
+                           "\"SubExpressionB\":{\"OrExpr\":[{\"Value\":\"A\",\"Type\":\"Constant\"},{\"OrExpr\":[{\"Value\":\"A\",\"Type\":\"Constant\"},{\"Value\":\"B\",\"Type\":\"Constant\"}],\"Type\":\"ManyOr\"}],\"Type\":\"ManyOr\"}" +
+                           ",\"Type\":\"Binary\"}";
+                Assert.AreEqual(json, target);
+
+
+                Assert.AreEqual(json, JsonConvert.SerializeObject(JsonConvert.DeserializeObject<IExpression2>(json)));
+            };
+
+            Parallel.For(0, 100, index => test());
         }
     }
 }

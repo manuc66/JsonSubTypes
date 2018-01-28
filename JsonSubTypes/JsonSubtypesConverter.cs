@@ -34,8 +34,8 @@ namespace JsonSubTypes
         private readonly Type _baseType;
         private readonly Dictionary<object, Type> _subTypeMapping;
 
-        [ThreadStatic] private bool _isInsideWrite;
-        [ThreadStatic] private bool _allowNextWrite;
+        [ThreadStatic] private static bool _isInsideWrite;
+        [ThreadStatic] private static bool  _allowNextWrite;
 
         internal JsonSubtypesConverter(Type baseType, string discriminatorProperty, Dictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty) : base(discriminatorProperty)
         {
