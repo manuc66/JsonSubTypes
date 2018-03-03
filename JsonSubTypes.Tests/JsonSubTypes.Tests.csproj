@@ -52,6 +52,7 @@
     <Compile Include="DemoAlternativeTypePropertyNameTests.cs" />
     <Compile Include="DemoCustomSubclassMappingTests.cs" />
     <Compile Include="DemoKnownSubTypeWithProperty.cs" />
+    <Compile Include="DynamicRegisterTests.cs" />
     <Compile Include="HiearachyWithCollectionTests.cs" />
     <Compile Include="JsonSubTypesTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

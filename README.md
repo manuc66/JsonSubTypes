@@ -3,6 +3,7 @@
 [![Code Coverage](https://codecov.io/gh/manuc66/JsonSubTypes/branch/master/graph/badge.svg)](https://codecov.io/gh/manuc66/JsonSubTypes)
 [![Quality Gate](https://sonarcloud.io/api/badges/gate?key=manuc66:JsonSubtypes:master)](https://sonarcloud.io/dashboard?id=manuc66:JsonSubtypes:master)
 [![NuGet](https://img.shields.io/nuget/v/JsonSubTypes.svg)](https://www.nuget.org/packages/JsonSubTypes/)
+[![NuGet](https://img.shields.io/nuget/dt/JsonSubTypes.svg)]()
 
 ## DeserializeObject with custom type property name
 
@@ -19,14 +20,14 @@ public class Dog : IAnimal
     public string Breed { get; set; }
 }
 
-class Cat : Animal {
-    bool declawed { get; set;}
+public class Cat : IAnimal {
+    public bool Declawed { get; set;}
 }
 ```
 
 ```csharp
-var animal =JsonConvert.DeserializeObject<IAnimal>("{\"Kind\":\"Dog\",\"Breed\":\"Jack Russell Terrier\"}");
-Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed);
+var animal = JsonConvert.DeserializeObject<IAnimal>("{\"Kind\":\"Dog\",\"Breed\":\"Jack Russell Terrier\"}");
+Assert.AreEqual("Jack Russell Terrier", (Animal as Dog)?.Breed);
 ```
 N.B.: Also works with fully qualified type name
 
@@ -56,11 +57,64 @@ public class Cat : Animal
 ```
 
 ```csharp
-var animal =JsonConvert.DeserializeObject<IAnimal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
-Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed);
+var animal = JsonConvert.DeserializeObject<IAnimal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
+Assert.AreEqual("Jack Russell Terrier", (Animal as Dog)?.Breed);
 ```
 
 N.B.: Also works with other kind of value than string, i.e.: enums, int, ...
+
+## SerializeObject and DeserializeObject with custom type property only present in JSON
+
+This mode of operation only works when JsonSubTypes is explicitely registered in JSON.NET's serializer settings, and not through the ``[JsonConverter]`` attribute. 
+
+```csharp
+public abstract class Animal
+{
+    public int Age { get; set; }
+}
+
+public class Dog : Animal
+{
+    public bool CanBark { get; set; } = true;
+}
+
+public class Cat : Animal
+{
+    public int Lives { get; set; } = 7;
+}
+
+public enum AnimalType
+{
+    Dog = 1,
+    Cat = 2
+}
+```
+
+### Registration:
+```csharp
+var settings = new JsonSerializerSettings();
+settings.Converters.Add(JsonSubtypesConverterBuilder
+    .Of(typeof(Animal), "Type") // type property is only defined here
+    .RegisterSubtype(typeof(Cat), AnimalType.Cat)
+    .RegisterSubtype(typeof(Dog), AnimalType.Dog)
+    .SerializeDiscriminatorProperty() // ask to serialize the type property
+    .Build());
+```
+
+### De-/Serialization:
+```csharp
+var cat = new Cat { Age = 11, Lives = 6 }
+
+var json = JsonConvert.SerializeObject(cat, settings);
+
+Assert.Equal("{\"Lives\":6,\"Age\":11,\"Type\":2}", json);
+
+var result = JsonConvert.DeserializeObject<Animal>(json, settings);
+
+Assert.Equal(typeof(Cat), result.GetType());
+Assert.Equal(11, result.Age);
+Assert.Equal(6, (result as Cat)?.Lives);
+```
 
 ## DeserializeObject mapping by property presence
 

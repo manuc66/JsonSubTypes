@@ -13,8 +13,8 @@ init:
 
 before_build:
 - nuget restore
-- ps: if (-Not $env:APPVEYOR_PULL_REQUEST_NUMBER)  { MSBuild.SonarQube.Runner.exe begin /k:"manuc66:JsonSubtypes:master" /d:"sonar.host.url=https://sonarqube.com" /d:"sonar.organization=manuc66-github" /d:"sonar.login=$env:sonar_token" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" }
-- ps: if ($env:APPVEYOR_PULL_REQUEST_NUMBER)       { MSBuild.SonarQube.Runner.exe begin /k:"manuc66:JsonSubtypes:master" /d:"sonar.host.url=https://sonarqube.com" /d:"sonar.organization=manuc66-github" /d:"sonar.login=$env:sonar_token" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" /d:"sonar.analysis.mode=preview" /d:"sonar.github.pullRequest=$env:APPVEYOR_PULL_REQUEST_NUMBER" /d:"sonar.github.repository=$env:APPVEYOR_REPO_NAME" /d:"sonar.github.oauth=$env:github_auth_token" }
+- ps: if (-Not $env:APPVEYOR_PULL_REQUEST_NUMBER)  { MSBuild.SonarQube.Runner.exe begin /k:"manuc66:JsonSubtypes" /d:"sonar.host.url=https://sonarqube.com" /d:"sonar.organization=manuc66-github" /d:"sonar.login=$env:sonar_token" /d:"sonar.branch=$env:APPVEYOR_REPO_BRANCH" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" /d:sonar.cs.nunit.reportsPaths="nunitTestResult.xml" /d:"sonar.cpd.exclusions=**/*Tests.cs"  /d:"sonar.language=cs" }
+- ps: if ($env:APPVEYOR_PULL_REQUEST_NUMBER)       { MSBuild.SonarQube.Runner.exe begin /k:"manuc66:JsonSubtypes" /d:"sonar.host.url=https://sonarqube.com" /d:"sonar.organization=manuc66-github" /d:"sonar.login=$env:sonar_token" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" /d:sonar.cs.nunit.reportsPaths="nunitTestResult.xml" /d:"sonar.cpd.exclusions=**/*Tests.cs" /d:"sonar.language=cs" /d:"sonar.analysis.mode=preview" /d:"sonar.github.pullRequest=$env:APPVEYOR_PULL_REQUEST_NUMBER" /d:"sonar.github.repository=$env:APPVEYOR_REPO_NAME" /d:"sonar.github.oauth=$env:github_auth_token" }
 
 configuration: Release
 
@@ -28,7 +28,7 @@ build:
 test_script:
 - dir JsonSubTypes\bin\Release
 - dir JsonSubTypes.Tests\bin\Release
-- OpenCover.Console.exe -register:user -target:"nunit3-console.exe" -targetargs:".\JsonSubTypes.Tests\bin\Release\JsonSubTypes.Tests.dll" -filter:"+[JsonSubTypes*]* -[JsonSubTypes.Tests]*" -output:".\MyProject_coverage.xml"
+- OpenCover.Console.exe -register:user -target:"nunit3-console.exe" -targetargs:".\JsonSubTypes.Tests\bin\Release\JsonSubTypes.Tests.dll --result:nunitTestResult.xml" -filter:"+[JsonSubTypes*]* -[JsonSubTypes.Tests]*" -output:".\MyProject_coverage.xml"
 - codecov -f "MyProject_coverage.xml"
 
 after_test:

@@ -58,7 +58,7 @@ namespace JsonSubTypes
             }
         }
 
-        private readonly string _typeMappingPropertyName;
+        protected readonly string _typeMappingPropertyName;
 
         [ThreadStatic] private static bool _isInsideRead;
 
@@ -75,7 +75,7 @@ namespace JsonSubTypes
             }
         }
 
-        public sealed override bool CanWrite
+        public override bool CanWrite
         {
             get { return false; }
         }
@@ -225,7 +225,7 @@ namespace JsonSubTypes
             return GetTypeFromDiscriminatorValue(jObject, parentType);
         }
 
-        private static Type GetTypeByPropertyPresence(JObject jObject, Type parentType)
+        private static Type GetTypeByPropertyPresence(IDictionary<string, JToken> jObject, Type parentType)
         {
 #if (NET35 || NET40)
             foreach (var type in parentType.GetCustomAttributes(false).OfType<KnownSubTypeWithPropertyAttribute>())
@@ -242,7 +242,7 @@ namespace JsonSubTypes
             return null;
         }
 
-        private Type GetTypeFromDiscriminatorValue(JObject jObject, Type parentType)
+        private Type GetTypeFromDiscriminatorValue(IDictionary<string, JToken> jObject, Type parentType)
         {
             JToken discriminatorToken;
             if (!jObject.TryGetValue(_typeMappingPropertyName, out discriminatorToken)) return null;
@@ -291,7 +291,7 @@ namespace JsonSubTypes
             return typeMapping.TryGetValue(lookupValue, out targetType) ? targetType : null;
         }
 
-        private static Dictionary<object, Type> GetSubTypeMapping(Type type)
+        protected virtual Dictionary<object, Type> GetSubTypeMapping(Type type)
         {
 #if (NET35 || NET40)
             return type.GetCustomAttributes(false).OfType<KnownSubTypeAttribute>()

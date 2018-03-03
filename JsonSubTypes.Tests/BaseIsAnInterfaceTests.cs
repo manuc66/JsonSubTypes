@@ -41,7 +41,7 @@ namespace JsonSubTypes.Tests
             Action test = () =>
             {
                 var animal = JsonConvert.DeserializeObject<IAnimal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
-                Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed); ;
+                Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed);
             };
 
             Parallel.For(0, 100, index => test());
