@@ -11,18 +11,18 @@ namespace JsonSubTypes.Tests
         [JsonConverter(typeof(JsonSubtypes), "Sound")]
         [JsonSubtypes.KnownSubType(typeof(Dog), "Bark")]
         [JsonSubtypes.KnownSubType(typeof(Cat), "Meow")]
-        public interface IAnnimal
+        public interface IAnimal
         {
             string Sound { get; }
         }
 
-        public class Dog : IAnnimal
+        public class Dog : IAnimal
         {
             public string Sound { get; } = "Bark";
             public string Breed { get; set; }
         }
 
-        public class Cat : IAnnimal
+        public class Cat : IAnimal
         {
             public string Sound { get; } = "Meow";
             public bool Declawed { get; set; }
@@ -31,8 +31,8 @@ namespace JsonSubTypes.Tests
         [Test]
         public void Test()
         {
-            var annimal = JsonConvert.DeserializeObject<IAnnimal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
-            Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
+            var animal = JsonConvert.DeserializeObject<IAnimal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
+            Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed);
         }
 
         [Test]
@@ -40,8 +40,8 @@ namespace JsonSubTypes.Tests
         {
             Action test = () =>
             {
-                var annimal = JsonConvert.DeserializeObject<IAnnimal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
-                Assert.AreEqual("Jack Russell Terrier", (annimal as Dog)?.Breed);
+                var animal = JsonConvert.DeserializeObject<IAnimal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
+                Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed);
             };
 
             Parallel.For(0, 100, index => test());
@@ -52,7 +52,7 @@ namespace JsonSubTypes.Tests
         {
             try
             {
-                JsonConvert.DeserializeObject<IAnnimal>("{\"Sound\":\"Scream\"}");
+                JsonConvert.DeserializeObject<IAnimal>("{\"Sound\":\"Scream\"}");
                 Assert.True(false);
             }
             catch (JsonSerializationException)
