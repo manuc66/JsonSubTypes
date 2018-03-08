@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using NUnit.Framework;
+#if (!NET35)
+using StubAssemblyForTests;
+#endif
 
 namespace JsonSubTypes.Tests
 {
@@ -24,7 +27,7 @@ namespace JsonSubTypes.Tests
             [JsonProperty("catLives", Order = 0)]
             public int Lives { get; set; } = 7;
         }
-
+        
         public abstract class Fish : Animal
         {
             [JsonProperty("fins", Order = 2)]
@@ -43,6 +46,22 @@ namespace JsonSubTypes.Tests
             public float HammerSize { get; set; }
         }
 
+#if (!NET35)
+        public class CatFromOutside : IExtenalAnimal
+        {
+            [JsonProperty("catLives", Order = 0)]
+            public int Lives { get; set; } = 7;
+
+            public int Age { get; set; }
+        }
+
+        public class DogFromOutside : IExtenalAnimal
+        {
+            public bool CanBark { get; set; } = true;
+
+            public int Age { get; set; }
+        }
+#endif
         public enum AnimalType
         {
             Dog = 1,
@@ -73,6 +92,33 @@ namespace JsonSubTypes.Tests
             Assert.AreEqual(11, result.Age);
             Assert.AreEqual(6, (result as Cat)?.Lives);
         }
+
+#if (!NET35)
+ 
+        [Test]
+        public void DeserializeWithExternalContractTest()
+        {
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
+            settings.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(IExtenalAnimal), "type")
+                .SerializeDiscriminatorProperty()
+                .RegisterSubtype(typeof(CatFromOutside), AnimalType.Cat)
+                .RegisterSubtype(typeof(DogFromOutside), AnimalType.Dog)
+                .Build());
+
+            var json = "{\"catLives\":6,\"type\":2,\"age\":11}";
+
+            var result = JsonConvert.DeserializeObject<IExtenalAnimal>(json);
+
+
+            Assert.AreEqual(typeof(CatFromOutside), result.GetType());
+            Assert.AreEqual(11, result.Age);
+            Assert.AreEqual(6, (result as CatFromOutside)?.Lives);
+        }
+#endif
+
 
         [Test]
         public void DeserializeIncompleteTest()
