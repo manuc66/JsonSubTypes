@@ -192,7 +192,7 @@ namespace JsonSubTypes.Tests
         [Test]
         public void DeserializeBadDocument()
         {
-            Assert.Throws<JsonSerializationException>(() => JsonConvert.DeserializeObject<Root>("{\"Content\":8}"));
+            Assert.Throws<JsonReaderException>(() => JsonConvert.DeserializeObject<Root>("{\"Content\":8}"), "Unrecognized token: Integer");
         }
 
         [Test]
