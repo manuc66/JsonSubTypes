@@ -2,9 +2,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+#if (NET35 || NET40)
+using TypeInfo = System.Type;
+#else
+using System.Reflection;
+#endif
 
 namespace JsonSubTypes
 {
@@ -58,7 +62,7 @@ namespace JsonSubTypes
             }
         }
 
-        protected readonly string _typeMappingPropertyName;
+        protected readonly string TypeMappingPropertyName;
 
         [ThreadStatic] private static bool _isInsideRead;
 
@@ -86,7 +90,7 @@ namespace JsonSubTypes
 
         public JsonSubtypes(string typeMappingPropertyName)
         {
-            _typeMappingPropertyName = typeMappingPropertyName;
+            TypeMappingPropertyName = typeMappingPropertyName;
         }
 
         public override bool CanConvert(Type objectType)
@@ -132,8 +136,7 @@ namespace JsonSubTypes
                         linePosition = lineInfo.LinePosition;
                     }
 
-                    throw new JsonReaderException(string.Format("Unrecognized token: {0}",
-                        reader.TokenType), reader.Path, lineNumber, linePosition, null);
+                    throw new JsonReaderException(string.Format("Unrecognized token: {0}", reader.TokenType), reader.Path, lineNumber, linePosition, null);
             }
 
             return value;
@@ -149,49 +152,34 @@ namespace JsonSubTypes
                 list.Add(ReadJson(reader, elementType, serializer));
             }
 
-            if (targetType.IsArray)
-            {
-                var array = Array.CreateInstance(targetType.GetElementType(), list.Count);
-                list.CopyTo(array, 0);
-                list = array;
-            }
-            return list;
+            if (!targetType.IsArray)
+                return list;
+
+            var array = Array.CreateInstance(targetType.GetElementType(), list.Count);
+            list.CopyTo(array, 0);
+            return array;
         }
 
         private static IList CreateCompatibleList(Type targetContainerType, Type elementType)
         {
-            IList list;
-#if (NET35 || NET40)
-            if (targetContainerType.IsArray || targetContainerType.IsAbstract)
-#else
-            if (targetContainerType.IsArray || targetContainerType.GetTypeInfo().IsAbstract)
-#endif
+            var typeInfo = GetTypeInfo(targetContainerType);
+            if (typeInfo.IsArray || typeInfo.IsAbstract)
             {
-                list = (IList) Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
+                return (IList) Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
             }
-            else
-            {
-                list = (IList) Activator.CreateInstance(targetContainerType);
-            }
-            return list;
+
+            return (IList) Activator.CreateInstance(targetContainerType);
         }
 
         private static Type GetElementType(Type arrayOrGenericContainer)
         {
-            Type elementType;
             if (arrayOrGenericContainer.IsArray)
             {
-                elementType = arrayOrGenericContainer.GetElementType();
+                return arrayOrGenericContainer.GetElementType();
             }
-            else
-            {
-#if (NET35 || NET40)
-                elementType = arrayOrGenericContainer.GetGenericArguments().FirstOrDefault();
-#else
-                elementType = arrayOrGenericContainer.GenericTypeArguments[0];
-#endif
-            }
-            return elementType;
+
+            var genericTypeArguments = GetGenericTypeArguments(arrayOrGenericContainer);
+            return genericTypeArguments.FirstOrDefault();
         }
 
         private object ReadObject(JsonReader reader, Type objectType, JsonSerializer serializer)
@@ -216,44 +204,47 @@ namespace JsonSubTypes
             return jObjectReader;
         }
 
-        public Type GetType(JObject jObject, Type parentType)
+        private Type GetType(JObject jObject, Type parentType)
         {
-            if (_typeMappingPropertyName == null)
+            if (TypeMappingPropertyName == null)
             {
                 return GetTypeByPropertyPresence(jObject, parentType);
             }
+
             return GetTypeFromDiscriminatorValue(jObject, parentType);
         }
 
         private static Type GetTypeByPropertyPresence(IDictionary<string, JToken> jObject, Type parentType)
         {
-#if (NET35 || NET40)
-            foreach (var type in parentType.GetCustomAttributes(false).OfType<KnownSubTypeWithPropertyAttribute>())
-#else
-            foreach (var type in parentType.GetTypeInfo().GetCustomAttributes<KnownSubTypeWithPropertyAttribute>())
-#endif
-            {
-                JToken ignore;
-                if (jObject.TryGetValue(type.PropertyName, out ignore))
+            var knownSubTypeAttributes = GetAttributes<KnownSubTypeWithPropertyAttribute>(parentType);
+
+            return knownSubTypeAttributes
+                .Select(knownType =>
                 {
-                    return type.SubType;
-                }
-            }
-            return null;
+                    JToken ignore;
+                    if (jObject.TryGetValue(knownType.PropertyName, out ignore))
+                        return knownType.SubType;
+
+                    return null;
+                })
+                .FirstOrDefault(type => type != null);
         }
 
         private Type GetTypeFromDiscriminatorValue(IDictionary<string, JToken> jObject, Type parentType)
         {
             JToken discriminatorToken;
-            if (!jObject.TryGetValue(_typeMappingPropertyName, out discriminatorToken)) return null;
+            if (!jObject.TryGetValue(TypeMappingPropertyName, out discriminatorToken))
+                return null;
 
-            if (discriminatorToken.Type == JTokenType.Null) return null;
+            if (discriminatorToken.Type == JTokenType.Null)
+                return null;
 
             var typeMapping = GetSubTypeMapping(parentType);
             if (typeMapping.Any())
             {
                 return GetTypeFromMapping(typeMapping, discriminatorToken);
             }
+
             return GetTypeByName(discriminatorToken.Value<string>(), parentType);
         }
 
@@ -262,42 +253,31 @@ namespace JsonSubTypes
             if (typeName == null)
                 return null;
 
-#if (NET35 || NET40)
-            var insideAssembly = parentType.Assembly;
-#else
-            var insideAssembly = parentType.GetTypeInfo().Assembly;
-#endif
+            var insideAssembly = GetTypeInfo(parentType).Assembly;
 
             var typeByName = insideAssembly.GetType(typeName);
-            if (typeByName == null)
-            {
-                var searchLocation =
-                    parentType.FullName.Substring(0, parentType.FullName.Length - parentType.Name.Length);
-                typeByName = insideAssembly.GetType(searchLocation + typeName, false, true);
-            }
-            return typeByName;
+            if (typeByName != null)
+                return typeByName;
+
+            var searchLocation = parentType.FullName.Substring(0, parentType.FullName.Length - parentType.Name.Length);
+            return insideAssembly.GetType(searchLocation + typeName, false, true);
         }
 
-#if (NET35 || NET40)
         private static Type GetTypeFromMapping(Dictionary<object, Type> typeMapping, JToken discriminatorToken)
-#else
-        private static Type GetTypeFromMapping(IReadOnlyDictionary<object, Type> typeMapping, JToken discriminatorToken)
-#endif
         {
             var targetlookupValueType = typeMapping.First().Key.GetType();
             var lookupValue = discriminatorToken.ToObject(targetlookupValueType);
 
             Type targetType;
-            return typeMapping.TryGetValue(lookupValue, out targetType) ? targetType : null;
+            if (typeMapping.TryGetValue(lookupValue, out targetType))
+                return targetType;
+
+            return null;
         }
 
-        protected virtual Dictionary<object, Type> GetSubTypeMapping(Type type)
+        protected  virtual Dictionary<object, Type> GetSubTypeMapping(Type type)
         {
-#if (NET35 || NET40)
-            return type.GetCustomAttributes(false).OfType<KnownSubTypeAttribute>()
-#else
-            return type.GetTypeInfo().GetCustomAttributes<KnownSubTypeAttribute>()
-#endif
+            return GetAttributes<KnownSubTypeAttribute>(type)
                 .ToDictionary(x => x.AssociatedValue, x => x.SubType);
         }
 
@@ -313,6 +293,32 @@ namespace JsonSubTypes
             {
                 _isInsideRead = false;
             }
+        }
+
+        private static IEnumerable<T> GetAttributes<T>(Type type) where T : Attribute
+        {
+            return GetTypeInfo(type)
+                .GetCustomAttributes(false)
+                .OfType<T>();
+        }
+
+        private static IEnumerable<Type> GetGenericTypeArguments(Type type)
+        {
+#if (NET35 || NET40)
+            var genericTypeArguments = type.GetGenericArguments();
+#else
+            var genericTypeArguments = type.GenericTypeArguments;
+#endif
+            return genericTypeArguments;
+        }
+
+        private static TypeInfo GetTypeInfo(Type type)
+        {
+#if (NET35 || NET40)
+            return type;
+#else
+            return type.GetTypeInfo();
+#endif
         }
     }
 }
