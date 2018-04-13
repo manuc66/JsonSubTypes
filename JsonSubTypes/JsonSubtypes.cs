@@ -233,9 +233,11 @@ namespace JsonSubTypes
         private Type GetTypeFromDiscriminatorValue(IDictionary<string, JToken> jObject, Type parentType)
         {
             JToken discriminatorToken;
-            if (!jObject.TryGetValue(TypeMappingPropertyName, out discriminatorToken)) return null;
+            if (!jObject.TryGetValue(TypeMappingPropertyName, out discriminatorToken))
+                return null;
 
-            if (discriminatorToken.Type == JTokenType.Null) return null;
+            if (discriminatorToken.Type == JTokenType.Null)
+                return null;
 
             var typeMapping = GetSubTypeMapping(parentType);
             if (typeMapping.Any())
