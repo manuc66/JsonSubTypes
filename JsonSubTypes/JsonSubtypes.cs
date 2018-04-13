@@ -137,7 +137,7 @@ namespace JsonSubTypes
 
             return value;
         }
-         
+
         private IList ReadArray(JsonReader reader, Type targetType, JsonSerializer serializer)
         {
             var elementType = GetElementType(targetType);
@@ -211,7 +211,7 @@ namespace JsonSubTypes
 
         private static Type GetTypeByPropertyPresence(IDictionary<string, JToken> jObject, Type parentType)
         {
-            var knownSubTypeAttributes = GetKnownSubTypeAttributes(parentType);
+            var knownSubTypeAttributes = GetAttributes<KnownSubTypeWithPropertyAttribute>(parentType);
 
             return knownSubTypeAttributes.Select(knownType =>
                 {
@@ -269,12 +269,7 @@ namespace JsonSubTypes
 
         protected virtual Dictionary<object, Type> GetSubTypeMapping(Type type)
         {
-#if (NET35 || NET40)
-            return type.GetCustomAttributes(false).OfType<KnownSubTypeAttribute>()
-#else
-            return type.GetTypeInfo().GetCustomAttributes<KnownSubTypeAttribute>()
-#endif
-                .ToDictionary(x => x.AssociatedValue, x => x.SubType);
+            return GetAttributes<KnownSubTypeAttribute>(type).ToDictionary(x => x.AssociatedValue, x => x.SubType);
         }
 
         private static object ThreadStaticReadObject(JsonReader reader, JsonSerializer serializer, JToken jToken, Type targetType)
@@ -291,12 +286,12 @@ namespace JsonSubTypes
             }
         }
 
-        private static bool IsAbstract(Type targetContainerType)
+        private static bool IsAbstract(Type type)
         {
 #if (NET35 || NET40)
-            var isAbstract = targetContainerType.IsAbstract;
+            var isAbstract = type.IsAbstract;
 #else
-            var isAbstract = targetContainerType.GetTypeInfo().IsAbstract;
+            var isAbstract = type.GetTypeInfo().IsAbstract;
 #endif
             return isAbstract;
         }
@@ -311,22 +306,22 @@ namespace JsonSubTypes
             return genericTypeArguments;
         }
 
-        private static Assembly GetAssembly(Type parentType)
+        private static Assembly GetAssembly(Type type)
         {
 #if (NET35 || NET40)
-            var insideAssembly = parentType.Assembly;
+            var insideAssembly = type.Assembly;
 #else
-            var insideAssembly = parentType.GetTypeInfo().Assembly;
+            var insideAssembly = type.GetTypeInfo().Assembly;
 #endif
             return insideAssembly;
         }
 
-        private static IEnumerable<KnownSubTypeWithPropertyAttribute> GetKnownSubTypeAttributes(Type parentType)
+        private static IEnumerable<T> GetAttributes<T>(Type type)
         {
 #if (NET35 || NET40)
-            var knownSubTypeAttributes = parentType.GetCustomAttributes(false).OfType<KnownSubTypeWithPropertyAttribute>();
+            var knownSubTypeAttributes = type.GetCustomAttributes(false).OfType<T>();
 #else
-            var knownSubTypeAttributes = parentType.GetTypeInfo().GetCustomAttributes<KnownSubTypeWithPropertyAttribute>();
+            var knownSubTypeAttributes = type.GetTypeInfo().GetCustomAttributes<T>();
 #endif
             return knownSubTypeAttributes;
         }
