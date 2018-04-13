@@ -6,3 +6,4 @@ obj
 /TestResults
 *.ide
 /.idea
+/.vs
