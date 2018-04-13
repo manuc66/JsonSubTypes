@@ -2,9 +2,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+#if (NET35 || NET40)
+using TypeInfo = System.Type;
+#else
+using System.Reflection;
+#endif
 
 namespace JsonSubTypes
 {
@@ -158,7 +162,8 @@ namespace JsonSubTypes
 
         private static IList CreateCompatibleList(Type targetContainerType, Type elementType)
         {
-            if (targetContainerType.IsArray || IsAbstract(targetContainerType))
+            var typeInfo = GetTypeInfo(targetContainerType);
+            if (typeInfo.IsArray || typeInfo.IsAbstract)
             {
                 return (IList) Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
             }
@@ -213,7 +218,8 @@ namespace JsonSubTypes
         {
             var knownSubTypeAttributes = GetAttributes<KnownSubTypeWithPropertyAttribute>(parentType);
 
-            return knownSubTypeAttributes.Select(knownType =>
+            return knownSubTypeAttributes
+                .Select(knownType =>
                 {
                     JToken ignore;
                     if (jObject.TryGetValue(knownType.PropertyName, out ignore))
@@ -245,7 +251,7 @@ namespace JsonSubTypes
             if (typeName == null)
                 return null;
 
-            var insideAssembly = GetAssembly(parentType);
+            var insideAssembly = GetTypeInfo(parentType).Assembly;
 
             var typeByName = insideAssembly.GetType(typeName);
             if (typeByName != null)
@@ -286,44 +292,29 @@ namespace JsonSubTypes
             }
         }
 
-        private static bool IsAbstract(Type type)
+        private static IEnumerable<T> GetAttributes<T>(Type type) where T : Attribute
         {
-#if (NET35 || NET40)
-            var isAbstract = type.IsAbstract;
-#else
-            var isAbstract = type.GetTypeInfo().IsAbstract;
-#endif
-            return isAbstract;
+            return GetTypeInfo(type)
+                .GetCustomAttributes(false)
+                .OfType<T>();
         }
-
-        private static IEnumerable<Type> GetGenericTypeArguments(Type arrayOrGenericContainer)
+        private static IEnumerable<Type> GetGenericTypeArguments(Type type)
         {
 #if (NET35 || NET40)
-            var genericTypeArguments = arrayOrGenericContainer.GetGenericArguments();
+            var genericTypeArguments = type.GetGenericArguments();
 #else
-            var genericTypeArguments = arrayOrGenericContainer.GenericTypeArguments;
+            var genericTypeArguments = type.GenericTypeArguments;
 #endif
             return genericTypeArguments;
         }
 
-        private static Assembly GetAssembly(Type type)
+        private static TypeInfo GetTypeInfo(Type type)
         {
 #if (NET35 || NET40)
-            var insideAssembly = type.Assembly;
+            return type;
 #else
-            var insideAssembly = type.GetTypeInfo().Assembly;
+            return type.GetTypeInfo();
 #endif
-            return insideAssembly;
-        }
-
-        private static IEnumerable<T> GetAttributes<T>(Type type)
-        {
-#if (NET35 || NET40)
-            var knownSubTypeAttributes = type.GetCustomAttributes(false).OfType<T>();
-#else
-            var knownSubTypeAttributes = type.GetTypeInfo().GetCustomAttributes<T>();
-#endif
-            return knownSubTypeAttributes;
         }
     }
 }
