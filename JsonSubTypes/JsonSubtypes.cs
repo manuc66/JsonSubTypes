@@ -62,7 +62,7 @@ namespace JsonSubTypes
             }
         }
 
-        protected readonly string _typeMappingPropertyName;
+        protected readonly string TypeMappingPropertyName;
 
         [ThreadStatic] private static bool _isInsideRead;
 
@@ -90,7 +90,7 @@ namespace JsonSubTypes
 
         public JsonSubtypes(string typeMappingPropertyName)
         {
-            _typeMappingPropertyName = typeMappingPropertyName;
+            TypeMappingPropertyName = typeMappingPropertyName;
         }
 
         public override bool CanConvert(Type objectType)
@@ -204,9 +204,9 @@ namespace JsonSubTypes
             return jObjectReader;
         }
 
-        public Type GetType(JObject jObject, Type parentType)
+        private Type GetType(JObject jObject, Type parentType)
         {
-            if (_typeMappingPropertyName == null)
+            if (TypeMappingPropertyName == null)
             {
                 return GetTypeByPropertyPresence(jObject, parentType);
             }
@@ -233,7 +233,7 @@ namespace JsonSubTypes
         private Type GetTypeFromDiscriminatorValue(IDictionary<string, JToken> jObject, Type parentType)
         {
             JToken discriminatorToken;
-            if (!jObject.TryGetValue(_typeMappingPropertyName, out discriminatorToken)) return null;
+            if (!jObject.TryGetValue(TypeMappingPropertyName, out discriminatorToken)) return null;
 
             if (discriminatorToken.Type == JTokenType.Null) return null;
 
@@ -273,9 +273,10 @@ namespace JsonSubTypes
             return null;
         }
 
-        protected virtual Dictionary<object, Type> GetSubTypeMapping(Type type)
+        protected  virtual Dictionary<object, Type> GetSubTypeMapping(Type type)
         {
-            return GetAttributes<KnownSubTypeAttribute>(type).ToDictionary(x => x.AssociatedValue, x => x.SubType);
+            return GetAttributes<KnownSubTypeAttribute>(type)
+                .ToDictionary(x => x.AssociatedValue, x => x.SubType);
         }
 
         private static object ThreadStaticReadObject(JsonReader reader, JsonSerializer serializer, JToken jToken, Type targetType)
@@ -298,6 +299,7 @@ namespace JsonSubTypes
                 .GetCustomAttributes(false)
                 .OfType<T>();
         }
+
         private static IEnumerable<Type> GetGenericTypeArguments(Type type)
         {
 #if (NET35 || NET40)

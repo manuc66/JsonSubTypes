@@ -96,7 +96,7 @@ namespace JsonSubTypes
 
             var supportedType = _supportedTypes[value.GetType()];
             var typeMappingPropertyValue = JToken.FromObject(supportedType, serializer);
-            jsonObj.Add(_typeMappingPropertyName, typeMappingPropertyValue);
+            jsonObj.Add(TypeMappingPropertyName, typeMappingPropertyValue);
 
             jsonObj.WriteTo(writer);
         }
