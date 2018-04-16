@@ -222,7 +222,7 @@ namespace JsonSubTypes
                 .Select(knownType =>
                 {
                     JToken ignore;
-                    if (jObject.TryGetValue(knownType.PropertyName, out ignore))
+                    if (TryGetValueInJson(jObject, knownType.PropertyName, out ignore))
                         return knownType.SubType;
 
                     return null;
@@ -233,7 +233,7 @@ namespace JsonSubTypes
         private Type GetTypeFromDiscriminatorValue(IDictionary<string, JToken> jObject, Type parentType)
         {
             JToken discriminatorToken;
-            if (!jObject.TryGetValue(TypeMappingPropertyName, out discriminatorToken))
+            if (!TryGetValueInJson(jObject, TypeMappingPropertyName, out discriminatorToken))
                 return null;
 
             if (discriminatorToken.Type == JTokenType.Null)
@@ -246,6 +246,26 @@ namespace JsonSubTypes
             }
 
             return GetTypeByName(discriminatorToken.Value<string>(), parentType);
+        }
+        
+        private static bool TryGetValueInJson(IDictionary<string, JToken> jObject, string propertyName, out JToken value)
+        {
+            if (jObject.TryGetValue(propertyName, out value))
+            {
+                return true;
+            }
+
+            var matchingProperty = jObject
+                .Keys
+                .FirstOrDefault(jsonProperty => string.Equals(jsonProperty, propertyName, StringComparison.OrdinalIgnoreCase));
+
+            if (matchingProperty == null)
+            {
+                return false;
+            }
+
+            value = jObject[matchingProperty];
+            return true;
         }
 
         private static Type GetTypeByName(string typeName, Type parentType)
