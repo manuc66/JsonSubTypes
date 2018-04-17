@@ -25,10 +25,13 @@ public class Cat : IAnimal {
 }
 ```
 
+The second parameter of the `JsonConverter` attribute is the JSON property name that will be use to retreive the type information from JSON.
+
 ```csharp
 var animal = JsonConvert.DeserializeObject<IAnimal>("{\"Kind\":\"Dog\",\"Breed\":\"Jack Russell Terrier\"}");
 Assert.AreEqual("Jack Russell Terrier", (Animal as Dog)?.Breed);
 ```
+
 N.B.: Also works with fully qualified type name
 
 ## DeserializeObject with custom type mapping
