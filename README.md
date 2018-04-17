@@ -150,3 +150,9 @@ string json = "[{\"Department\":\"Department1\",\"JobTitle\":\"JobTitle1\",\"Fir
 var persons = JsonConvert.DeserializeObject<IReadOnlyCollection<Person>>(json);
 Assert.AreEqual("Painter", (persons.Last() as Artist)?.Skill);
 ```
+
+## 💖 Support this project
+If this project helped you save money or time or simply makes your life also easier, you can give me a cup of coffee =)
+
+- [![Support via PayPal](https://cdn.rawgit.com/twolfson/paypal-github-button/1.0.0/dist/button.svg)](https://www.paypal.me/manuc66)
+- Bitcoin — You can send me bitcoins at this address: `33gxVjey6g4Beha26fSQZLFfWWndT1oY3F`
