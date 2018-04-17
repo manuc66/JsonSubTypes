@@ -50,15 +50,7 @@ namespace JsonSubTypes.Tests
         [Test]
         public void UnknownMappingFails()
         {
-            try
-            {
-                JsonConvert.DeserializeObject<IAnimal>("{\"Sound\":\"Scream\"}");
-                Assert.True(false);
-            }
-            catch (JsonSerializationException)
-            {
-
-            }
+            Assert.Throws<JsonSerializationException>(() => JsonConvert.DeserializeObject<IAnimal>("{\"Sound\":\"Scream\"}"));
         }
     }
 }
