@@ -59,6 +59,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="BaseIsAnInterfaceTests.cs" />
     <Compile Include="DiscriminatorOfDifferentKindTests.cs" />
+    <Compile Include="TypePropertyCase.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JsonSubTypes\JsonSubTypes.csproj">

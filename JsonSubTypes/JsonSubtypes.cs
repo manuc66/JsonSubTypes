@@ -62,7 +62,7 @@ namespace JsonSubTypes
             }
         }
 
-        protected readonly string TypeMappingPropertyName;
+        protected readonly string JsonDiscriminatorPropertyName;
 
         [ThreadStatic] private static bool _isInsideRead;
 
@@ -88,9 +88,9 @@ namespace JsonSubTypes
         {
         }
 
-        public JsonSubtypes(string typeMappingPropertyName)
+        public JsonSubtypes(string jsonDiscriminatorPropertyName)
         {
-            TypeMappingPropertyName = typeMappingPropertyName;
+            JsonDiscriminatorPropertyName = jsonDiscriminatorPropertyName;
         }
 
         public override bool CanConvert(Type objectType)
@@ -206,7 +206,7 @@ namespace JsonSubTypes
 
         private Type GetType(JObject jObject, Type parentType)
         {
-            if (TypeMappingPropertyName == null)
+            if (JsonDiscriminatorPropertyName == null)
             {
                 return GetTypeByPropertyPresence(jObject, parentType);
             }
@@ -222,7 +222,7 @@ namespace JsonSubTypes
                 .Select(knownType =>
                 {
                     JToken ignore;
-                    if (jObject.TryGetValue(knownType.PropertyName, out ignore))
+                    if (TryGetValueInJson(jObject, knownType.PropertyName, out ignore))
                         return knownType.SubType;
 
                     return null;
@@ -232,20 +232,40 @@ namespace JsonSubTypes
 
         private Type GetTypeFromDiscriminatorValue(IDictionary<string, JToken> jObject, Type parentType)
         {
-            JToken discriminatorToken;
-            if (!jObject.TryGetValue(TypeMappingPropertyName, out discriminatorToken))
+            JToken discriminatorValue;
+            if (!TryGetValueInJson(jObject, JsonDiscriminatorPropertyName, out discriminatorValue))
                 return null;
 
-            if (discriminatorToken.Type == JTokenType.Null)
+            if (discriminatorValue.Type == JTokenType.Null)
                 return null;
 
             var typeMapping = GetSubTypeMapping(parentType);
             if (typeMapping.Any())
             {
-                return GetTypeFromMapping(typeMapping, discriminatorToken);
+                return GetTypeFromMapping(typeMapping, discriminatorValue);
             }
 
-            return GetTypeByName(discriminatorToken.Value<string>(), parentType);
+            return GetTypeByName(discriminatorValue.Value<string>(), parentType);
+        }
+        
+        private static bool TryGetValueInJson(IDictionary<string, JToken> jObject, string propertyName, out JToken value)
+        {
+            if (jObject.TryGetValue(propertyName, out value))
+            {
+                return true;
+            }
+
+            var matchingProperty = jObject
+                .Keys
+                .FirstOrDefault(jsonProperty => string.Equals(jsonProperty, propertyName, StringComparison.OrdinalIgnoreCase));
+
+            if (matchingProperty == null)
+            {
+                return false;
+            }
+
+            value = jObject[matchingProperty];
+            return true;
         }
 
         private static Type GetTypeByName(string typeName, Type parentType)
