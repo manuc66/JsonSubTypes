@@ -136,7 +136,7 @@ namespace JsonSubTypes
                         linePosition = lineInfo.LinePosition;
                     }
 
-                    throw new JsonReaderException(string.Format("Unrecognized token: {0}", reader.TokenType), reader.Path, lineNumber, linePosition, null);
+                    throw new JsonReaderException(string.Format("Unrecognized token: {0}; path: {1}; lineNumber: {2}; linePosition: {3}", reader.TokenType, reader.Path, lineNumber, linePosition));
             }
 
             return value;
