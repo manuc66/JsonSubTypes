@@ -10,6 +10,7 @@ namespace JsonSubTypes
         private string _discriminatorProperty;
         private readonly Dictionary<object, Type> _subTypeMapping = new Dictionary<object, Type>();
         private bool _serializeDiscriminatorProperty;
+        private bool _addDiscriminatorFirst;
 
         public static JsonSubtypesConverterBuilder Of(Type baseType, string discriminatorProperty)
         {
@@ -21,9 +22,10 @@ namespace JsonSubTypes
             return customConverterBuilder;
         }
 
-        public JsonSubtypesConverterBuilder SerializeDiscriminatorProperty()
+        public JsonSubtypesConverterBuilder SerializeDiscriminatorProperty(bool addDiscriminatorFirst = false)
         {
             _serializeDiscriminatorProperty = true;
+            _addDiscriminatorFirst = addDiscriminatorFirst;
             return this;
         }
 
@@ -35,7 +37,7 @@ namespace JsonSubTypes
 
         public JsonConverter Build()
         {
-            return new JsonSubtypesConverter(_baseType, _discriminatorProperty, _subTypeMapping, _serializeDiscriminatorProperty);
+            return new JsonSubtypesConverter(_baseType, _discriminatorProperty, _subTypeMapping, _serializeDiscriminatorProperty, _addDiscriminatorFirst);
         }
     }
 }
