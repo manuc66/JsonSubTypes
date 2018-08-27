@@ -36,13 +36,15 @@ namespace JsonSubTypes
 
         [ThreadStatic] private static bool _isInsideWrite;
         [ThreadStatic] private static bool _allowNextWrite;
+        private bool _addDiscriminatorFirst;
 
         internal JsonSubtypesConverter(Type baseType, string discriminatorProperty,
-            Dictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty) : base(discriminatorProperty)
+            Dictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty, bool addDiscriminatorFirst) : base(discriminatorProperty)
         {
             _serializeDiscriminatorProperty = serializeDiscriminatorProperty;
             _baseType = baseType;
             _subTypeMapping = subTypeMapping;
+            _addDiscriminatorFirst = addDiscriminatorFirst;
             foreach (var type in _subTypeMapping)
             {
                 _supportedTypes.Add(type.Value, type.Key);
@@ -96,8 +98,14 @@ namespace JsonSubTypes
 
             var supportedType = _supportedTypes[value.GetType()];
             var typeMappingPropertyValue = JToken.FromObject(supportedType, serializer);
-            jsonObj.Add(JsonDiscriminatorPropertyName, typeMappingPropertyValue);
-
+            if (_addDiscriminatorFirst)
+            {
+                jsonObj.AddFirst(new JProperty(JsonDiscriminatorPropertyName, typeMappingPropertyValue));
+            }
+            else
+            {
+                jsonObj.Add(JsonDiscriminatorPropertyName, typeMappingPropertyValue);
+            }
             jsonObj.WriteTo(writer);
         }
     }
