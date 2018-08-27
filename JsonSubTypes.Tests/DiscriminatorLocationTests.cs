@@ -50,7 +50,55 @@ namespace JsonSubTypes.Tests
         }
 
         [Test]
-        public void checkDeserializeFirst()
+        public void CheckDefaultLast()
+        {
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
+            settings.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(SimpleBase), "type")
+                .SerializeDiscriminatorProperty()
+                .RegisterSubtype(typeof(SimpleChildA), "TypeA")
+                .RegisterSubtype(typeof(SimpleChildB), "TypeB")
+                .Build());
+
+
+            SimpleBase test_object = new SimpleChildA() { Name = "bob", Age = 12 };
+
+
+            var json_first = "{\"Age\":12,\"Name\":\"bob\",\"type\":\"TypeA\"}";
+
+            var result = JsonConvert.SerializeObject(test_object);
+
+            Assert.AreEqual(json_first, result);
+        }
+
+        [Test]
+        public void CheckExplicitLast()
+        {
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
+            settings.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(SimpleBase), "type")
+                .SerializeDiscriminatorProperty(false)
+                .RegisterSubtype(typeof(SimpleChildA), "TypeA")
+                .RegisterSubtype(typeof(SimpleChildB), "TypeB")
+                .Build());
+
+
+            SimpleBase test_object = new SimpleChildA() { Name = "bob", Age = 12 };
+
+
+            var json_first = "{\"Age\":12,\"Name\":\"bob\",\"type\":\"TypeA\"}";
+
+            var result = JsonConvert.SerializeObject(test_object);
+
+            Assert.AreEqual(json_first, result);
+        }
+
+        [Test]
+        public void CheckDeserializeFirst()
         {
             var settings = new JsonSerializerSettings();
             JsonConvert.DefaultSettings = () => settings;
