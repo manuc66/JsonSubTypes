@@ -60,6 +60,7 @@
     <Compile Include="BaseIsAnInterfaceTests.cs" />
     <Compile Include="DiscriminatorOfDifferentKindTests.cs" />
     <Compile Include="TypePropertyCase.cs" />
+    <Compile Include="DiscriminatorLocationTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JsonSubTypes\JsonSubTypes.csproj">
