@@ -39,7 +39,7 @@ namespace JsonSubTypes
         private bool _addDiscriminatorFirst;
 
         internal JsonSubtypesConverter(Type baseType, string discriminatorProperty,
-            Dictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty, bool addDiscriminatorFirst = false) : base(discriminatorProperty)
+            Dictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty, bool addDiscriminatorFirst) : base(discriminatorProperty)
         {
             _serializeDiscriminatorProperty = serializeDiscriminatorProperty;
             _baseType = baseType;
