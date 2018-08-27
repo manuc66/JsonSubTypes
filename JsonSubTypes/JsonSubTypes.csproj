@@ -3,6 +3,7 @@
     <TargetFrameworks>netstandard1.3;netstandard1.4;netstandard1.5;netstandard1.6;netstandard2.0;net35;net40;net45;net46;net47</TargetFrameworks>
     <DebugType>full</DebugType>
     <DebugSymbols>true</DebugSymbols>
+	<PublishRepositoryUrl>true</PublishRepositoryUrl>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -13,6 +14,7 @@
     <Description>Discriminated Json Subtypes Converter implementation for .NET</Description>
     <RepositoryUrl>https://github.com/manuc66/JsonSubTypes</RepositoryUrl>
     <PackageProjectUrl>https://github.com/manuc66/JsonSubTypes</PackageProjectUrl>
+	<RepositoryType>git</RepositoryType>
     <Authors>Emmanuel Counasse</Authors>
     <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
     <Version>1.5.2</Version>
@@ -21,6 +23,9 @@
     <RepositoryType>git</RepositoryType>
     <PackageReleaseNotes>See in https://github.com/manuc66/JsonSubTypes/releases</PackageReleaseNotes>
   </PropertyGroup>
+  <ItemGroup> 
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0-beta-62925-02" PrivateAssets="All" />
+  </ItemGroup> 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
   </ItemGroup>
