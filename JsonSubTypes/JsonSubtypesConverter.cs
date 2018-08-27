@@ -100,8 +100,7 @@ namespace JsonSubTypes
             var typeMappingPropertyValue = JToken.FromObject(supportedType, serializer);
             if (_addDiscriminatorFirst)
             {
-                JProperty p = new JProperty(JsonDiscriminatorPropertyName, typeMappingPropertyValue);
-                jsonObj.AddFirst(p);
+                jsonObj.AddFirst(new JProperty(JsonDiscriminatorPropertyName, typeMappingPropertyValue));
             }
             else
             {

@@ -22,7 +22,12 @@ namespace JsonSubTypes
             return customConverterBuilder;
         }
 
-        public JsonSubtypesConverterBuilder SerializeDiscriminatorProperty(bool addDiscriminatorFirst = false)
+        public JsonSubtypesConverterBuilder SerializeDiscriminatorProperty()
+        {
+            return SerializeDiscriminatorProperty(false);
+        }
+
+        public JsonSubtypesConverterBuilder SerializeDiscriminatorProperty(bool addDiscriminatorFirst)
         {
             _serializeDiscriminatorProperty = true;
             _addDiscriminatorFirst = addDiscriminatorFirst;
