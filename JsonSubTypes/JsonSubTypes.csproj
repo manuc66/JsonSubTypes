@@ -20,6 +20,6 @@
     <AssemblyVersion>1.5.1.0</AssemblyVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
   </ItemGroup>
 </Project>
