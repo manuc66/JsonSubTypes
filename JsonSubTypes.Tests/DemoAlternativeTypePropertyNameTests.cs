@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace JsonSubTypes.Tests
@@ -78,6 +79,30 @@ namespace JsonSubTypes.Tests
                     JsonConvert.DeserializeObject<Animal>(
                         "{\"ClassName\":\"dog\",\"Breed\":\"Jack Russell Terrier\"}");
                 Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed);
+            }
+
+            [Test]
+            public void ArbitraryConstructorShouldNotBeCalled()
+            {
+                Animal deserializeObject = null;
+                try
+                {
+                    deserializeObject = JsonConvert.DeserializeObject<Animal>(@"{""ClassName"": ""Faulty""}");
+                }
+                catch { }
+
+                Assert.IsFalse(Faulty.ctorCalled);
+                Assert.IsNull(deserializeObject);
+            }
+
+        }
+
+        public class Faulty
+        {
+            public static bool ctorCalled = false;
+            public Faulty()
+            {
+                ctorCalled = true;
             }
         }
     }

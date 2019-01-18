@@ -165,10 +165,10 @@ namespace JsonSubTypes
             var typeInfo = GetTypeInfo(targetContainerType);
             if (typeInfo.IsArray || typeInfo.IsAbstract)
             {
-                return (IList) Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
+                return (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
             }
 
-            return (IList) Activator.CreateInstance(targetContainerType);
+            return (IList)Activator.CreateInstance(targetContainerType);
         }
 
         private static Type GetElementType(Type arrayOrGenericContainer)
@@ -247,7 +247,7 @@ namespace JsonSubTypes
 
             return GetTypeByName(discriminatorValue.Value<string>(), parentType);
         }
-        
+
         private static bool TryGetValueInJson(IDictionary<string, JToken> jObject, string propertyName, out JToken value)
         {
             if (jObject.TryGetValue(propertyName, out value))
@@ -276,11 +276,13 @@ namespace JsonSubTypes
             var insideAssembly = GetTypeInfo(parentType).Assembly;
 
             var typeByName = insideAssembly.GetType(typeName);
-            if (typeByName != null)
-                return typeByName;
+            if (typeByName == null)
+            {
+                var searchLocation = parentType.FullName.Substring(0, parentType.FullName.Length - parentType.Name.Length);
+                typeByName = insideAssembly.GetType(searchLocation + typeName, false, true);
+            }
 
-            var searchLocation = parentType.FullName.Substring(0, parentType.FullName.Length - parentType.Name.Length);
-            return insideAssembly.GetType(searchLocation + typeName, false, true);
+            return typeByName != null && GetTypeInfo(parentType).IsAssignableFrom(GetTypeInfo(typeByName)) ? typeByName : null;
         }
 
         private static Type GetTypeFromMapping(Dictionary<object, Type> typeMapping, JToken discriminatorToken)
@@ -295,7 +297,7 @@ namespace JsonSubTypes
             return null;
         }
 
-        protected  virtual Dictionary<object, Type> GetSubTypeMapping(Type type)
+        protected virtual Dictionary<object, Type> GetSubTypeMapping(Type type)
         {
             return GetAttributes<KnownSubTypeAttribute>(type)
                 .ToDictionary(x => x.AssociatedValue, x => x.SubType);
@@ -325,7 +327,7 @@ namespace JsonSubTypes
         private static IEnumerable<Type> GetGenericTypeArguments(Type type)
         {
 #if (NET35 || NET40)
-            var genericTypeArguments = type.GetGenericArguments();
+    var genericTypeArguments = type.GetGenericArguments();
 #else
             var genericTypeArguments = type.GenericTypeArguments;
 #endif
@@ -335,7 +337,7 @@ namespace JsonSubTypes
         private static TypeInfo GetTypeInfo(Type type)
         {
 #if (NET35 || NET40)
-            return type;
+    return type;
 #else
             return type.GetTypeInfo();
 #endif
