@@ -323,7 +323,7 @@ namespace JsonSubTypes
         private static IEnumerable<Type> GetGenericTypeArguments(Type type)
         {
 #if (NET35 || NET40)
-    var genericTypeArguments = type.GetGenericArguments();
+            var genericTypeArguments = type.GetGenericArguments();
 #else
             var genericTypeArguments = type.GenericTypeArguments;
 #endif
@@ -333,7 +333,7 @@ namespace JsonSubTypes
         private static TypeInfo GetTypeInfo(Type type)
         {
 #if (NET35 || NET40)
-    return type;
+            return type;
 #else
             return type.GetTypeInfo();
 #endif
