@@ -92,7 +92,6 @@ namespace JsonSubTypes.Tests
                 catch { }
 
                 Assert.IsFalse(Faulty.ctorCalled);
-                Assert.IsNull(deserializeObject);
             }
 
         }
