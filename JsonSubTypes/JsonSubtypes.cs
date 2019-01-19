@@ -39,8 +39,8 @@ namespace JsonSubTypes
         [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
         public class KnownSubTypeAttribute : Attribute
         {
-            public Type SubType { get; private set; }
-            public object AssociatedValue { get; private set; }
+            public Type SubType { get; }
+            public object AssociatedValue { get; }
 
             public KnownSubTypeAttribute(Type subType, object associatedValue)
             {
@@ -52,8 +52,8 @@ namespace JsonSubTypes
         [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
         public class KnownSubTypeWithPropertyAttribute : Attribute
         {
-            public Type SubType { get; private set; }
-            public string PropertyName { get; private set; }
+            public Type SubType { get; }
+            public string PropertyName { get; }
 
             public KnownSubTypeWithPropertyAttribute(Type subType, string propertyName)
             {
@@ -79,10 +79,7 @@ namespace JsonSubTypes
             }
         }
 
-        public override bool CanWrite
-        {
-            get { return false; }
-        }
+        public override bool CanWrite => false;
 
         public JsonSubtypes()
         {
@@ -221,8 +218,7 @@ namespace JsonSubTypes
             return knownSubTypeAttributes
                 .Select(knownType =>
                 {
-                    JToken ignore;
-                    if (TryGetValueInJson(jObject, knownType.PropertyName, out ignore))
+                    if (TryGetValueInJson(jObject, knownType.PropertyName, out var _))
                         return knownType.SubType;
 
                     return null;
