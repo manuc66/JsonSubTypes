@@ -39,8 +39,8 @@ namespace JsonSubTypes
         [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
         public class KnownSubTypeAttribute : Attribute
         {
-            public Type SubType { get; private set; }
-            public object AssociatedValue { get; private set; }
+            public Type SubType { get; }
+            public object AssociatedValue { get; }
 
             public KnownSubTypeAttribute(Type subType, object associatedValue)
             {
@@ -52,8 +52,8 @@ namespace JsonSubTypes
         [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
         public class KnownSubTypeWithPropertyAttribute : Attribute
         {
-            public Type SubType { get; private set; }
-            public string PropertyName { get; private set; }
+            public Type SubType { get; }
+            public string PropertyName { get; }
 
             public KnownSubTypeWithPropertyAttribute(Type subType, string propertyName)
             {
@@ -79,10 +79,7 @@ namespace JsonSubTypes
             }
         }
 
-        public override bool CanWrite
-        {
-            get { return false; }
-        }
+        public override bool CanWrite => false;
 
         public JsonSubtypes()
         {
@@ -165,10 +162,10 @@ namespace JsonSubTypes
             var typeInfo = GetTypeInfo(targetContainerType);
             if (typeInfo.IsArray || typeInfo.IsAbstract)
             {
-                return (IList) Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
+                return (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
             }
 
-            return (IList) Activator.CreateInstance(targetContainerType);
+            return (IList)Activator.CreateInstance(targetContainerType);
         }
 
         private static Type GetElementType(Type arrayOrGenericContainer)
@@ -221,8 +218,7 @@ namespace JsonSubTypes
             return knownSubTypeAttributes
                 .Select(knownType =>
                 {
-                    JToken ignore;
-                    if (TryGetValueInJson(jObject, knownType.PropertyName, out ignore))
+                    if (TryGetValueInJson(jObject, knownType.PropertyName, out var _))
                         return knownType.SubType;
 
                     return null;
@@ -247,7 +243,7 @@ namespace JsonSubTypes
 
             return GetTypeByName(discriminatorValue.Value<string>(), parentType);
         }
-        
+
         private static bool TryGetValueInJson(IDictionary<string, JToken> jObject, string propertyName, out JToken value)
         {
             if (jObject.TryGetValue(propertyName, out value))
@@ -276,11 +272,13 @@ namespace JsonSubTypes
             var insideAssembly = GetTypeInfo(parentType).Assembly;
 
             var typeByName = insideAssembly.GetType(typeName);
-            if (typeByName != null)
-                return typeByName;
+            if (typeByName == null)
+            {
+                var searchLocation = parentType.FullName.Substring(0, parentType.FullName.Length - parentType.Name.Length);
+                typeByName = insideAssembly.GetType(searchLocation + typeName, false, true);
+            }
 
-            var searchLocation = parentType.FullName.Substring(0, parentType.FullName.Length - parentType.Name.Length);
-            return insideAssembly.GetType(searchLocation + typeName, false, true);
+            return typeByName != null && GetTypeInfo(parentType).IsAssignableFrom(GetTypeInfo(typeByName)) ? typeByName : null;
         }
 
         private static Type GetTypeFromMapping(Dictionary<object, Type> typeMapping, JToken discriminatorToken)
@@ -295,7 +293,7 @@ namespace JsonSubTypes
             return null;
         }
 
-        protected  virtual Dictionary<object, Type> GetSubTypeMapping(Type type)
+        protected virtual Dictionary<object, Type> GetSubTypeMapping(Type type)
         {
             return GetAttributes<KnownSubTypeAttribute>(type)
                 .ToDictionary(x => x.AssociatedValue, x => x.SubType);
