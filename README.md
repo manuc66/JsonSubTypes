@@ -3,7 +3,7 @@
 [![Code Coverage](https://codecov.io/gh/manuc66/JsonSubTypes/branch/master/graph/badge.svg)](https://codecov.io/gh/manuc66/JsonSubTypes)
 [![Quality Gate](https://sonarcloud.io/api/badges/gate?key=manuc66:JsonSubtypes:master)](https://sonarcloud.io/dashboard?id=manuc66:JsonSubtypes:master)
 [![NuGet](https://img.shields.io/nuget/v/JsonSubTypes.svg)](https://www.nuget.org/packages/JsonSubTypes/)
-[![NuGet](https://img.shields.io/nuget/dt/JsonSubTypes.svg)]()
+[![NuGet](https://img.shields.io/nuget/dt/JsonSubTypes.svg)](https://www.nuget.org/packages/JsonSubTypes)
 
 ## DeserializeObject with custom type property name
 
