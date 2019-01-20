@@ -14,7 +14,7 @@
     <Description>Discriminated Json Subtypes Converter implementation for .NET</Description>
     <RepositoryUrl>https://github.com/manuc66/JsonSubTypes</RepositoryUrl>
     <PackageProjectUrl>https://github.com/manuc66/JsonSubTypes</PackageProjectUrl>
-	<RepositoryType>git</RepositoryType>
+    <RepositoryType>git</RepositoryType>
     <Authors>Emmanuel Counasse</Authors>
     <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
     <Version>1.5.2</Version>
