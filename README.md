@@ -23,6 +23,7 @@ public class Dog : IAnimal
 }
 
 public class Cat : IAnimal {
+    public string Kind { get; } = "Cat";
     public bool Declawed { get; set;}
 }
 ```
