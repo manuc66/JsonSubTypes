@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -36,7 +36,7 @@ namespace JsonSubTypes
 
         [ThreadStatic] private static bool _isInsideWrite;
         [ThreadStatic] private static bool _allowNextWrite;
-        private bool _addDiscriminatorFirst;
+        private readonly bool _addDiscriminatorFirst;
 
         internal JsonSubtypesConverter(Type baseType, string discriminatorProperty,
             Dictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty, bool addDiscriminatorFirst) : base(discriminatorProperty)
@@ -47,7 +47,19 @@ namespace JsonSubTypes
             _addDiscriminatorFirst = addDiscriminatorFirst;
             foreach (var type in _subTypeMapping)
             {
-                _supportedTypes.Add(type.Value, type.Key);
+                if (_supportedTypes.ContainsKey(type.Value))
+                {
+                    if (_addDiscriminatorFirst)
+                    {
+                        throw new InvalidOperationException(
+                            "Multiple discriminators on single type are not supported " +
+                            "when discriminator serialization is enabled");
+                    }
+                }
+                else
+                {
+                    _supportedTypes.Add(type.Value, type.Key);
+                }
             }
         }
 
