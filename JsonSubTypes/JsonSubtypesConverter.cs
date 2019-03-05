@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -49,7 +49,7 @@ namespace JsonSubTypes
             {
                 if (_supportedTypes.ContainsKey(type.Value))
                 {
-                    if (_addDiscriminatorFirst)
+                    if (_serializeDiscriminatorProperty)
                     {
                         throw new InvalidOperationException(
                             "Multiple discriminators on single type are not supported " +
