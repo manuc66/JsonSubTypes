@@ -15,13 +15,13 @@ before_build:
 - nuget restore
 - ps: >- 
     if ($env:APPVEYOR_PULL_REQUEST_NUMBER) {
-        MSBuild.SonarQube.Runner.exe begin /k:"manuc66:JsonSubtypes" /d:"sonar.host.url=https://sonarqube.com" /d:"sonar.organization=manuc66-github" /d:"sonar.login=$env:sonar_token" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" /d:sonar.cs.nunit.reportsPaths="nunitTestResult.xml" /d:"sonar.cpd.exclusions=**/*Tests.cs" /d:"sonar.language=cs" /d:"sonar.analysis.mode=preview" /d:"sonar.github.pullRequest=$env:APPVEYOR_PULL_REQUEST_NUMBER" /d:"sonar.github.repository=$env:APPVEYOR_REPO_NAME" /d:"sonar.github.oauth=$env:github_auth_token" 
+        SonarScanner.MSBuild.exe begin /k:"manuc66:JsonSubtypes" /d:"sonar.host.url=https://sonarqube.com" /o:"manuc66-github" /d:"sonar.login=$env:sonar_token" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" /d:sonar.cs.nunit.reportsPaths="nunitTestResult.xml" /d:"sonar.cpd.exclusions=**/*Tests.cs" /d:"sonar.language=cs" /d:"sonar.pullrequest.base=master" /d:"sonar.pullrequest.branch=$env:APPVEYOR_REPO_BRANCH" /d:"sonar.pullrequest.key=$env:APPVEYOR_PULL_REQUEST_NUMBER" /d:"sonar.pullrequest.provider=GitHub" /d:"sonar.pullrequest.github.repository=$env:APPVEYOR_REPO_NAME" /d:"sonar.github.oauth=$env:github_auth_token" 
     }
     elseif ($env:APPVEYOR_REPO_BRANCH -eq "master") {
-        MSBuild.SonarQube.Runner.exe begin /k:"manuc66:JsonSubtypes" /d:"sonar.host.url=https://sonarqube.com" /d:"sonar.organization=manuc66-github" /d:"sonar.login=$env:sonar_token" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" /d:sonar.cs.nunit.reportsPaths="nunitTestResult.xml" /d:"sonar.cpd.exclusions=**/*Tests.cs"  /d:"sonar.language=cs"
+        SonarScanner.MSBuild.exe begin /k:"manuc66:JsonSubtypes" /d:"sonar.host.url=https://sonarqube.com" /o:"manuc66-github" /d:"sonar.login=$env:sonar_token" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" /d:sonar.cs.nunit.reportsPaths="nunitTestResult.xml" /d:"sonar.cpd.exclusions=**/*Tests.cs"  /d:"sonar.language=cs"
     }
-    else {
-        MSBuild.SonarQube.Runner.exe begin /k:"manuc66:JsonSubtypes" /d:"sonar.host.url=https://sonarqube.com" /d:"sonar.organization=manuc66-github" /d:"sonar.login=$env:sonar_token" /d:"sonar.branch.name=$env:APPVEYOR_REPO_BRANCH" /d:"sonar.branch.target=master" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" /d:sonar.cs.nunit.reportsPaths="nunitTestResult.xml" /d:"sonar.cpd.exclusions=**/*Tests.cs"  /d:"sonar.language=cs"
+    else { 
+        SonarScanner.MSBuild.exe begin /k:"manuc66:JsonSubtypes" /d:"sonar.host.url=https://sonarqube.com" /o:"manuc66-github" /d:"sonar.login=$env:sonar_token" /d:"sonar.branch.name=$env:APPVEYOR_REPO_BRANCH" /d:"sonar.branch.target=master" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" /d:sonar.cs.nunit.reportsPaths="nunitTestResult.xml" /d:"sonar.cpd.exclusions=**/*Tests.cs"  /d:"sonar.language=cs"
     }
 
 configuration: Release
@@ -40,7 +40,7 @@ test_script:
 - codecov -f "MyProject_coverage.xml"
 
 after_test:
-- ps: MSBuild.SonarQube.Runner.exe end /d:"sonar.login=$env:sonar_token"
+- ps: SonarScanner.MSBuild.exe end /d:"sonar.login=$env:sonar_token"
 
 artifacts:
   # pushing all *.nupkg files in build directory recursively
