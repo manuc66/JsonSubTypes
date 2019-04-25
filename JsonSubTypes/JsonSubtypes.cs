@@ -49,6 +49,17 @@ namespace JsonSubTypes
             }
         }
 
+        [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = false)]
+        public class DefaultSubTypeAttribute : Attribute
+        {
+            public Type SubType { get; }
+
+            public DefaultSubTypeAttribute(Type subType)
+            {
+                SubType = subType;
+            }
+        }
+
         [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
         public class KnownSubTypeWithPropertyAttribute : Attribute
         {
@@ -217,12 +228,12 @@ namespace JsonSubTypes
             JsonSubtypes lastTypeResolver = null;
             JsonSubtypes currentTypeResolver = this;
 
-            var jsonConverterCollection = serializer.Converters.OfType<JsonSubtypesConverter>();
-            while (currentTypeResolver != null && currentTypeResolver != lastTypeResolver) 
+            var jsonConverterCollection = serializer.Converters.OfType<JsonSubtypesConverter>().ToList();
+            while (currentTypeResolver != null && currentTypeResolver != lastTypeResolver)
             {
                 targetType = currentTypeResolver.GetType(jObject, targetType);
                 lastTypeResolver = currentTypeResolver;
-                jsonConverterCollection = jsonConverterCollection.Where(c => c != currentTypeResolver);
+                jsonConverterCollection = jsonConverterCollection.Where(c => c != currentTypeResolver).ToList();
                 currentTypeResolver = GetTypeResolver(ToTypeInfo(targetType), jsonConverterCollection);
             }
 
@@ -263,8 +274,7 @@ namespace JsonSubTypes
 
         private Type GetTypeFromDiscriminatorValue(IDictionary<string, JToken> jObject, Type parentType)
         {
-            JToken discriminatorValue;
-            if (!TryGetValueInJson(jObject, JsonDiscriminatorPropertyName, out discriminatorValue))
+            if (!TryGetValueInJson(jObject, JsonDiscriminatorPropertyName, out var discriminatorValue))
                 return null;
 
             if (discriminatorValue.Type == JTokenType.Null)
@@ -273,10 +283,10 @@ namespace JsonSubTypes
             var typeMapping = GetSubTypeMapping(parentType);
             if (typeMapping.Any())
             {
-                return GetTypeFromMapping(typeMapping, discriminatorValue);
+                return GetTypeFromMapping(typeMapping, discriminatorValue) ?? GetFallbackSubType(parentType);
             }
 
-            return GetTypeByName(discriminatorValue.Value<string>(), ToTypeInfo(parentType));
+            return GetTypeByName(discriminatorValue.Value<string>(), ToTypeInfo(parentType)) ?? GetFallbackSubType(parentType);
         }
 
         private static bool TryGetValueInJson(IDictionary<string, JToken> jObject, string propertyName, out JToken value)
@@ -337,6 +347,11 @@ namespace JsonSubTypes
         {
             return GetAttributes<KnownSubTypeAttribute>(ToTypeInfo(type))
                 .ToDictionary(x => x.AssociatedValue, x => x.SubType);
+        }
+
+        private protected virtual Type GetFallbackSubType(Type type)
+        {
+            return GetAttribute<DefaultSubTypeAttribute>(ToTypeInfo(type))?.SubType;
         }
 
         private static object ThreadStaticReadObject(JsonReader reader, JsonSerializer serializer, JToken jToken, Type targetType)

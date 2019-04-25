@@ -36,15 +36,17 @@ namespace JsonSubTypes
 
         [ThreadStatic] private static bool _isInsideWrite;
         [ThreadStatic] private static bool _allowNextWrite;
-        private bool _addDiscriminatorFirst;
+        private readonly bool _addDiscriminatorFirst;
+        private readonly Type _fallbackType;
 
         internal JsonSubtypesConverter(Type baseType, string discriminatorProperty,
-            Dictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty, bool addDiscriminatorFirst) : base(discriminatorProperty)
+            Dictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty, bool addDiscriminatorFirst, Type fallbackType) : base(discriminatorProperty)
         {
             _serializeDiscriminatorProperty = serializeDiscriminatorProperty;
             _baseType = baseType;
             _subTypeMapping = subTypeMapping;
             _addDiscriminatorFirst = addDiscriminatorFirst;
+            _fallbackType = fallbackType;
             foreach (var type in _subTypeMapping)
             {
                 _supportedTypes.Add(type.Value, type.Key);
@@ -54,6 +56,11 @@ namespace JsonSubTypes
         protected override Dictionary<object, Type> GetSubTypeMapping(Type type)
         {
             return _subTypeMapping;
+        }
+
+        private protected override Type GetFallbackSubType(Type type)
+        {
+            return _fallbackType;
         }
 
         public override bool CanConvert(Type objectType)
