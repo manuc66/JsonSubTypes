@@ -214,12 +214,17 @@ namespace JsonSubTypes
 
         private Type GetType(JObject jObject, Type parentType)
         {
+            Type resolvedType;
             if (JsonDiscriminatorPropertyName == null)
             {
-                return GetTypeByPropertyPresence(jObject, parentType);
+                resolvedType = GetTypeByPropertyPresence(jObject, parentType);
+            }
+            else
+            {
+                resolvedType = GetTypeFromDiscriminatorValue(jObject, parentType);
             }
 
-            return GetTypeFromDiscriminatorValue(jObject, parentType);
+            return resolvedType ?? GetFallbackSubType(parentType);
         }
 
         private Type GetType(JObject jObject, Type parentType, JsonSerializer serializer)
@@ -280,10 +285,10 @@ namespace JsonSubTypes
             var typeMapping = GetSubTypeMapping(parentType);
             if (typeMapping.Entries().Any())
             {
-                return GetTypeFromMapping(typeMapping, discriminatorValue) ?? GetFallbackSubType(parentType);
+                return GetTypeFromMapping(typeMapping, discriminatorValue);
             }
 
-            return GetTypeByName(discriminatorValue.Value<string>(), ToTypeInfo(parentType)) ?? GetFallbackSubType(parentType);
+            return GetTypeByName(discriminatorValue.Value<string>(), ToTypeInfo(parentType));
         }
 
         private static bool TryGetValueInJson(IDictionary<string, JToken> jObject, string propertyName, out JToken value)
@@ -342,10 +347,10 @@ namespace JsonSubTypes
                 return targetType;
             }
 
-            var firstOrDefault = typeMapping.NotNullKeys().FirstOrDefault();
-            if (firstOrDefault != null)
+            var key = typeMapping.NotNullKeys().FirstOrDefault();
+            if (key != null)
             {
-                var targetLookupValueType = firstOrDefault.GetType();
+                var targetLookupValueType = key.GetType();
                 var lookupValue = discriminatorToken.ToObject(targetLookupValueType);
 
                 if (typeMapping.TryGetValue(lookupValue, out Type targetType))

@@ -1,5 +1,4 @@
-﻿using System;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace JsonSubTypes.Tests
@@ -87,7 +86,9 @@ namespace JsonSubTypes.Tests
                 var animal =
                     JsonConvert.DeserializeObject<Animal>(
                         "{\"ClassName\": null,\"Color\":\"blue\"}");
-                Assert.AreEqual("blue", (animal as Animal)?.Color);
+
+                Assert.AreEqual(typeof(Animal), animal.GetType());
+                Assert.AreEqual("blue", animal.Color);
             }
 
             [Test]
