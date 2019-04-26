@@ -277,11 +277,8 @@ namespace JsonSubTypes
             if (!TryGetValueInJson(jObject, JsonDiscriminatorPropertyName, out var discriminatorValue))
                 return null;
 
-            if (discriminatorValue.Type == JTokenType.Null)
-                return null;
-
             var typeMapping = GetSubTypeMapping(parentType);
-            if (typeMapping.Any())
+            if (typeMapping.Entries().Any())
             {
                 return GetTypeFromMapping(typeMapping, discriminatorValue) ?? GetFallbackSubType(parentType);
             }
@@ -312,14 +309,18 @@ namespace JsonSubTypes
         private static Type GetTypeByName(string typeName, TypeInfo parentType)
         {
             if (typeName == null)
+            {
                 return null;
+            }
 
             var insideAssembly = parentType.Assembly;
 
+            var parentTypeFullName = parentType.FullName;
+
             var typeByName = insideAssembly.GetType(typeName);
-            if (typeByName == null)
+            if (parentTypeFullName != null && typeByName == null)
             {
-                var searchLocation = parentType.FullName.Substring(0, parentType.FullName.Length - parentType.Name.Length);
+                var searchLocation = parentTypeFullName.Substring(0, parentTypeFullName.Length - parentType.Name.Length);
                 typeByName = insideAssembly.GetType(searchLocation + typeName, false, true);
             }
 
@@ -332,21 +333,39 @@ namespace JsonSubTypes
             return null;
         }
 
-        private static Type GetTypeFromMapping(Dictionary<object, Type> typeMapping, JToken discriminatorToken)
+        private static Type GetTypeFromMapping(NullableDictionary<object, Type> typeMapping, JToken discriminatorToken)
         {
-            var targetLookupValueType = typeMapping.First().Key.GetType();
-            var lookupValue = discriminatorToken.ToObject(targetLookupValueType);
+            if (discriminatorToken.Type == JTokenType.Null)
+            {
+                typeMapping.TryGetValue(null, out Type targetType);
 
-            if (typeMapping.TryGetValue(lookupValue, out Type targetType))
                 return targetType;
+            }
+
+            var firstOrDefault = typeMapping.NotNullKeys().FirstOrDefault();
+            if (firstOrDefault != null)
+            {
+                var targetLookupValueType = firstOrDefault.GetType();
+                var lookupValue = discriminatorToken.ToObject(targetLookupValueType);
+
+                if (typeMapping.TryGetValue(lookupValue, out Type targetType))
+                {
+                    return targetType;
+                }
+            }
 
             return null;
         }
 
-        protected virtual Dictionary<object, Type> GetSubTypeMapping(Type type)
+        protected virtual NullableDictionary<object, Type> GetSubTypeMapping(Type type)
         {
-            return GetAttributes<KnownSubTypeAttribute>(ToTypeInfo(type))
-                .ToDictionary(x => x.AssociatedValue, x => x.SubType);
+            var dictionary = new NullableDictionary<object, Type>();
+
+            GetAttributes<KnownSubTypeAttribute>(ToTypeInfo(type))
+                .ToList()
+                .ForEach(x => dictionary.Add(x.AssociatedValue, x.SubType));
+
+            return dictionary;
         }
 
         private protected virtual Type GetFallbackSubType(Type type)

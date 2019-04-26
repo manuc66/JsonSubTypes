@@ -217,6 +217,26 @@ namespace JsonSubTypes.Tests
             Assert.AreEqual(42.1f, (result as HammerheadShark)?.HammerSize);
         }
 
+        [Test]
+        public void ItRefuseToRegisterTwiceWithTheSameValue()
+        {
+            var jsonSubtypesConverterBuilder = JsonSubtypesConverterBuilder
+                .Of(typeof(Animal), "type")
+                .RegisterSubtype(typeof(Cat), AnimalType.Cat);
+
+            Assert.Throws<ArgumentException>(() => jsonSubtypesConverterBuilder.RegisterSubtype(typeof(Dog), AnimalType.Cat));
+        }
+
+        [Test]
+        public void ItRefuseToRegisterTwiceWithTheSameNullValue()
+        {
+            var jsonSubtypesConverterBuilder = JsonSubtypesConverterBuilder
+                .Of(typeof(Animal), "type")
+                .RegisterSubtype(typeof(Cat), null);
+
+            Assert.Throws<ArgumentException>(() => jsonSubtypesConverterBuilder.RegisterSubtype(typeof(Dog), null));
+        }
+
         public interface IExpression
         {
 
@@ -234,6 +254,31 @@ namespace JsonSubTypes.Tests
         {
             public string Value { get; set; }
             public string Type { get { return "Constant"; } }
+        }
+
+        public class NullExpression : IExpression
+        {
+            public bool Last { get; set; }
+            public string Type { get { return null; } }
+        }
+
+
+
+        [Test]
+        public void TestIfNullIsDeserialized()
+        {
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
+            settings.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(IExpression), "Type")
+                .RegisterSubtype(typeof(ConstantExpression), "Constant")
+                .RegisterSubtype(typeof(NullExpression), null)
+                .Build());
+
+            var expr = JsonConvert.DeserializeObject<IExpression>("{\"Type\": null,\"Last\":true}");
+
+            Assert.AreEqual(true, (expr as NullExpression)?.Last);
         }
 
         [Test]
@@ -392,7 +437,8 @@ namespace JsonSubTypes.Tests
                 .Build());
 
 
-            Action test = () => { 
+            Action test = () =>
+            {
                 var target = JsonConvert.SerializeObject(new BinaryExpression2
                 {
                     SubExpressionA = new ManyOrExpression2 { OrExpr = new List<IExpression2> { new ConstantExpression2 { Value = "A" }, new ConstantExpression2 { Value = "B" } } },

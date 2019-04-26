@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -32,7 +33,7 @@ namespace JsonSubTypes
         private readonly bool _serializeDiscriminatorProperty;
         private readonly Dictionary<Type, object> _supportedTypes = new Dictionary<Type, object>();
         private readonly Type _baseType;
-        private readonly Dictionary<object, Type> _subTypeMapping;
+        private readonly NullableDictionary<object, Type> _subTypeMapping;
 
         [ThreadStatic] private static bool _isInsideWrite;
         [ThreadStatic] private static bool _allowNextWrite;
@@ -40,20 +41,20 @@ namespace JsonSubTypes
         private readonly Type _fallbackType;
 
         internal JsonSubtypesConverter(Type baseType, string discriminatorProperty,
-            Dictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty, bool addDiscriminatorFirst, Type fallbackType) : base(discriminatorProperty)
+            NullableDictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty, bool addDiscriminatorFirst, Type fallbackType) : base(discriminatorProperty)
         {
             _serializeDiscriminatorProperty = serializeDiscriminatorProperty;
             _baseType = baseType;
             _subTypeMapping = subTypeMapping;
             _addDiscriminatorFirst = addDiscriminatorFirst;
             _fallbackType = fallbackType;
-            foreach (var type in _subTypeMapping)
+            foreach (var type in subTypeMapping.Entries())
             {
                 _supportedTypes.Add(type.Value, type.Key);
             }
         }
 
-        protected override Dictionary<object, Type> GetSubTypeMapping(Type type)
+        protected override NullableDictionary<object, Type> GetSubTypeMapping(Type type)
         {
             return _subTypeMapping;
         }

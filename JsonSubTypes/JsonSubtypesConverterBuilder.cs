@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 
 namespace JsonSubTypes
@@ -30,7 +31,7 @@ namespace JsonSubTypes
     {
         private Type _baseType;
         private string _discriminatorProperty;
-        private readonly Dictionary<object, Type> _subTypeMapping = new Dictionary<object, Type>();
+        private readonly NullableDictionary<object, Type> _subTypeMapping = new NullableDictionary<object, Type>();
         private bool _serializeDiscriminatorProperty;
         private bool _addDiscriminatorFirst;
         private Type _fallbackSubtype;

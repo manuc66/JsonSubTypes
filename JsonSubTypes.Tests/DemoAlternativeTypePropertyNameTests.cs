@@ -82,6 +82,15 @@ namespace JsonSubTypes.Tests
             }
 
             [Test]
+            public void DemoBaseWhenNull()
+            {
+                var animal =
+                    JsonConvert.DeserializeObject<Animal>(
+                        "{\"ClassName\": null,\"Color\":\"blue\"}");
+                Assert.AreEqual("blue", (animal as Animal)?.Color);
+            }
+
+            [Test]
             public void ArbitraryConstructorShouldNotBeCalled()
             {
                 Animal deserializeObject = null;
