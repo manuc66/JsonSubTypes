@@ -49,12 +49,12 @@ namespace JsonSubTypes
             }
         }
 
-        [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = false)]
-        public class DefaultSubTypeAttribute : Attribute
+        [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface)]
+        public class FallBackSubTypeAttribute : Attribute
         {
             public Type SubType { get; }
 
-            public DefaultSubTypeAttribute(Type subType)
+            public FallBackSubTypeAttribute(Type subType)
             {
                 SubType = subType;
             }
@@ -132,27 +132,37 @@ namespace JsonSubTypes
                     value = ReadObject(reader, objectType, serializer);
                     break;
                 case JsonToken.StartArray:
-                    value = ReadArray(reader, objectType, serializer);
-                    break;
-                default:
-                    var lineNumber = 0;
-                    var linePosition = 0;
-                    if (reader is IJsonLineInfo lineInfo && lineInfo.HasLineInfo())
                     {
-                        lineNumber = lineInfo.LineNumber;
-                        linePosition = lineInfo.LinePosition;
+                        var elementType = GetElementType(objectType);
+                        if (elementType == null)
+                        {
+                            throw CreateJsonReaderException(reader, $"Impossible to read JSON array to fill type: {objectType.Name}");
+                        }
+                        value = ReadArray(reader, objectType, elementType, serializer);
+                        break;
                     }
-
-                    throw new JsonReaderException($"Unrecognized token: {reader.TokenType}", reader.Path, lineNumber, linePosition, null);
+                default:
+                    throw CreateJsonReaderException(reader, $"Unrecognized token: {reader.TokenType}");
             }
 
             return value;
         }
 
-        private IList ReadArray(JsonReader reader, Type targetType, JsonSerializer serializer)
+        private static JsonReaderException CreateJsonReaderException(JsonReader reader, string message)
         {
-            var elementType = GetElementType(targetType);
+            var lineNumber = 0;
+            var linePosition = 0;
+            if (reader is IJsonLineInfo lineInfo && lineInfo.HasLineInfo())
+            {
+                lineNumber = lineInfo.LineNumber;
+                linePosition = lineInfo.LinePosition;
+            }
 
+            return new JsonReaderException(message, reader.Path, lineNumber, linePosition, null);
+        }
+
+        private IList ReadArray(JsonReader reader, Type targetType, Type elementType, JsonSerializer serializer)
+        {
             var list = CreateCompatibleList(targetType, elementType);
             while (reader.Read() && reader.TokenType != JsonToken.EndArray)
             {
@@ -162,7 +172,7 @@ namespace JsonSubTypes
             if (!targetType.IsArray)
                 return list;
 
-            var array = Array.CreateInstance(targetType.GetElementType(), list.Count);
+            var array = Array.CreateInstance(elementType, list.Count);
             list.CopyTo(array, 0);
             return array;
         }
@@ -375,7 +385,7 @@ namespace JsonSubTypes
 
         private protected virtual Type GetFallbackSubType(Type type)
         {
-            return GetAttribute<DefaultSubTypeAttribute>(ToTypeInfo(type))?.SubType;
+            return GetAttribute<FallBackSubTypeAttribute>(ToTypeInfo(type))?.SubType;
         }
 
         private static object ThreadStaticReadObject(JsonReader reader, JsonSerializer serializer, JToken jToken, Type targetType)

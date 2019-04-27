@@ -3,32 +3,32 @@ using System.Collections.Generic;
 
 namespace JsonSubTypes
 {
-    public class NullableDictionary<TKey, TValue> //: IEnumerable<KeyValuePair<TKey, TValue>>
+    public class NullableDictionary<TKey, TValue>
     {
-        private bool _hasNullKey = false;
+        private bool _hasNullKey;
         private TValue _nullKeyValue;
         private readonly Dictionary<TKey, TValue> _dictionary = new Dictionary<TKey, TValue>();
 
-        public bool TryGetValue(TKey lookupValue, out TValue type)
+        public bool TryGetValue(TKey key, out TValue value)
         {
-            if (Equals(lookupValue, default(TKey)))
+            if (Equals(key, default(TKey)))
             {
                 if (!_hasNullKey)
                 {
-                    type = default(TValue);
+                    value = default;
                     return false;
                 }
 
-                type = _nullKeyValue;
+                value = _nullKeyValue;
                 return true;
             }
 
-            return _dictionary.TryGetValue(lookupValue, out type);
+            return _dictionary.TryGetValue(key, out value);
         }
 
-        public void Add(TKey objAssociatedValue, TValue objSubType)
+        public void Add(TKey key, TValue value)
         {
-            if (Equals(objAssociatedValue, default(TKey)))
+            if (Equals(key, default(TKey)))
             {
                 if (_hasNullKey)
                 {
@@ -36,14 +36,13 @@ namespace JsonSubTypes
                 }
 
                 _hasNullKey = true;
-                _nullKeyValue = objSubType;
+                _nullKeyValue = value;
             }
             else
             {
-                _dictionary.Add(objAssociatedValue, objSubType);
+                _dictionary.Add(key, value);
             }
         }
-
 
         public IEnumerable<TKey> NotNullKeys()
         {
@@ -54,7 +53,7 @@ namespace JsonSubTypes
         {
             if (_hasNullKey)
             {
-                yield return new KeyValuePair<TKey, TValue>(default(TKey), _nullKeyValue);
+                yield return new KeyValuePair<TKey, TValue>(default, _nullKeyValue);
             }
 
             foreach (var value in _dictionary)
