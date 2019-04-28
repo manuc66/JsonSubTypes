@@ -221,7 +221,6 @@ namespace JsonSubTypes
             return jObjectReader;
         }
 
-
         private Type GetType(JObject jObject, Type parentType)
         {
             Type resolvedType;
