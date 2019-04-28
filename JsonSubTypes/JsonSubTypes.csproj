@@ -14,14 +14,21 @@
     <RepositoryUrl>https://github.com/manuc66/JsonSubTypes</RepositoryUrl>
     <PackageProjectUrl>https://github.com/manuc66/JsonSubTypes</PackageProjectUrl>
     <Authors>Emmanuel Counasse</Authors>
-    <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
+    <PackageLicenseUrl></PackageLicenseUrl>
     <Version>1.5.2</Version>
     <PackageTags>json converter subtype inheritance deserializeobject polymorphism</PackageTags>
     <AssemblyVersion>1.5.2.0</AssemblyVersion>
     <RepositoryType>git</RepositoryType>
     <PackageReleaseNotes>See in https://github.com/manuc66/JsonSubTypes/releases</PackageReleaseNotes>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
   </ItemGroup>
 </Project>
