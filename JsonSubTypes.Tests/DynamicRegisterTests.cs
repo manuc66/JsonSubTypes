@@ -90,10 +90,25 @@ namespace JsonSubTypes.Tests
 
             var result = JsonConvert.DeserializeObject<Animal>(json);
 
-
             Assert.AreEqual(typeof(Cat), result.GetType());
             Assert.AreEqual(0, result.Age);
             Assert.AreEqual(7, (result as Cat)?.Lives);
+        }
+
+        [Test]
+        public void MultipleRegistrationNotAllowedWithSerializeDiscriminatorProperty()
+        {
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
+            var exception = Assert.Throws<InvalidOperationException>(() => JsonSubtypesConverterBuilder
+                .Of(typeof(Animal), "type")
+                .SerializeDiscriminatorProperty()
+                .RegisterSubtype(typeof(Shark), AnimalType.Shark)
+                .RegisterSubtype(typeof(Shark), AnimalType.HammerheadShark)
+                .Build());
+
+            Assert.AreEqual("Multiple discriminators on single type are not supported when discriminator serialization is enabled", exception.Message);
         }
 
         [Test]
@@ -141,7 +156,6 @@ namespace JsonSubTypes.Tests
 
             Assert.AreEqual(json, result);
         }
-
 
         [Test]
         public void UnregisteredTypeSerializeTest2()
@@ -232,8 +246,38 @@ namespace JsonSubTypes.Tests
 
         public class ConstantExpression : IExpression
         {
+            private string _type = "Constant";
+
             public string Value { get; set; }
-            public string Type { get { return "Constant"; } }
+
+            public string Type
+            {
+                get => _type;
+                set => _type = value;
+            }
+        }
+
+        [Test]
+        public void MultipleRegistrationAllowed()
+        {
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
+            settings.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(IExpression), "Type")
+                .RegisterSubtype(typeof(ConstantExpression), "Constant")
+                .RegisterSubtype(typeof(ConstantExpression), "StringConstant")
+                .Build());
+
+            var constant = JsonConvert.DeserializeObject<IExpression>("{\"Type\":\"Constant\",\"Value\":\"B\"}");
+            var stringConstant = JsonConvert.DeserializeObject<IExpression>("{\"Type\":\"StringConstant\",\"Value\":\"C\"}");
+
+            Assert.AreEqual(typeof(ConstantExpression), constant.GetType());
+            Assert.AreEqual(typeof(ConstantExpression), stringConstant.GetType());
+            Assert.AreEqual("Constant", constant.Type);
+            Assert.AreEqual("StringConstant", stringConstant.Type);
+            Assert.AreEqual("B", ((ConstantExpression)constant).Value);
+            Assert.AreEqual("C", ((ConstantExpression)stringConstant).Value);
         }
 
         [Test]
@@ -392,7 +436,8 @@ namespace JsonSubTypes.Tests
                 .Build());
 
 
-            Action test = () => { 
+            Action test = () =>
+            {
                 var target = JsonConvert.SerializeObject(new BinaryExpression2
                 {
                     SubExpressionA = new ManyOrExpression2 { OrExpr = new List<IExpression2> { new ConstantExpression2 { Value = "A" }, new ConstantExpression2 { Value = "B" } } },
