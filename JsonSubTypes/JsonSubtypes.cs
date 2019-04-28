@@ -200,7 +200,6 @@ namespace JsonSubTypes
             return jObjectReader;
         }
 
-
         private Type GetType(JObject jObject, Type parentType)
         {
             if (JsonDiscriminatorPropertyName == null)
@@ -218,7 +217,7 @@ namespace JsonSubTypes
             JsonSubtypes currentTypeResolver = this;
 
             var jsonConverterCollection = serializer.Converters.OfType<JsonSubtypesConverter>();
-            while (currentTypeResolver != null && currentTypeResolver != lastTypeResolver) 
+            while (currentTypeResolver != null && currentTypeResolver != lastTypeResolver)
             {
                 targetType = currentTypeResolver.GetType(jObject, targetType);
                 lastTypeResolver = currentTypeResolver;
