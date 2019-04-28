@@ -49,7 +49,19 @@ namespace JsonSubTypes
             _fallbackType = fallbackType;
             foreach (var type in subTypeMapping.Entries())
             {
-                _supportedTypes.Add(type.Value, type.Key);
+                if (_supportedTypes.ContainsKey(type.Value))
+                {
+                    if (_serializeDiscriminatorProperty)
+                    {
+                        throw new InvalidOperationException(
+                            "Multiple discriminators on single type are not supported " +
+                            "when discriminator serialization is enabled");
+                    }
+                }
+                else
+                {
+                    _supportedTypes.Add(type.Value, type.Key);
+                }
             }
         }
 
