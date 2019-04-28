@@ -53,12 +53,12 @@ namespace JsonSubTypes
             }
         }
 
-        protected override NullableDictionary<object, Type> GetSubTypeMapping(Type type)
+        internal override NullableDictionary<object, Type> GetSubTypeMapping(Type type)
         {
             return _subTypeMapping;
         }
 
-        private protected override Type GetFallbackSubType(Type type)
+        internal override Type GetFallbackSubType(Type type)
         {
             return _fallbackType;
         }

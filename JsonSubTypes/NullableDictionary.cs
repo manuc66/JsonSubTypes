@@ -15,7 +15,7 @@ namespace JsonSubTypes
             {
                 if (!_hasNullKey)
                 {
-                    value = default;
+                    value = default(TValue);
                     return false;
                 }
 
@@ -53,7 +53,7 @@ namespace JsonSubTypes
         {
             if (_hasNullKey)
             {
-                yield return new KeyValuePair<TKey, TValue>(default, _nullKeyValue);
+                yield return new KeyValuePair<TKey, TValue>(default(TKey), _nullKeyValue);
             }
 
             foreach (var value in _dictionary)

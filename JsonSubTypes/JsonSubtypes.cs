@@ -372,7 +372,7 @@ namespace JsonSubTypes
             return null;
         }
 
-        protected virtual NullableDictionary<object, Type> GetSubTypeMapping(Type type)
+        internal virtual NullableDictionary<object, Type> GetSubTypeMapping(Type type)
         {
             var dictionary = new NullableDictionary<object, Type>();
 
@@ -383,7 +383,7 @@ namespace JsonSubTypes
             return dictionary;
         }
 
-        private protected virtual Type GetFallbackSubType(Type type)
+        internal virtual Type GetFallbackSubType(Type type)
         {
             return GetAttribute<FallBackSubTypeAttribute>(ToTypeInfo(type))?.SubType;
         }
