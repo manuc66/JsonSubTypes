@@ -29,13 +29,13 @@ namespace JsonSubTypes
 
     internal class JsonSubtypesByDiscriminatorValueConverter : JsonSubtypesConverter
     {
+        [ThreadStatic] private static bool _isInsideWrite;
+        [ThreadStatic] private static bool _allowNextWrite;
+
+        private readonly bool _addDiscriminatorFirst;
         private readonly bool _serializeDiscriminatorProperty;
         private readonly Dictionary<Type, object> _supportedTypes = new Dictionary<Type, object>();
         private readonly Dictionary<object, Type> _subTypeMapping;
-
-        [ThreadStatic] private static bool _isInsideWrite;
-        [ThreadStatic] private static bool _allowNextWrite;
-        private readonly bool _addDiscriminatorFirst;
 
         internal JsonSubtypesByDiscriminatorValueConverter(Type baseType, string discriminatorProperty,
             Dictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty, bool addDiscriminatorFirst) : base(baseType, discriminatorProperty)
