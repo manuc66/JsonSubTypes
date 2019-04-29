@@ -27,11 +27,10 @@ namespace JsonSubTypes
     //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     //  SOFTWARE.
 
-    internal class JsonSubtypesByDiscriminatorValueConverter : JsonSubtypes
+    internal class JsonSubtypesByDiscriminatorValueConverter : JsonSubtypesConverter
     {
         private readonly bool _serializeDiscriminatorProperty;
         private readonly Dictionary<Type, object> _supportedTypes = new Dictionary<Type, object>();
-        private readonly Type _baseType;
         private readonly Dictionary<object, Type> _subTypeMapping;
 
         [ThreadStatic] private static bool _isInsideWrite;
@@ -39,10 +38,9 @@ namespace JsonSubTypes
         private readonly bool _addDiscriminatorFirst;
 
         internal JsonSubtypesByDiscriminatorValueConverter(Type baseType, string discriminatorProperty,
-            Dictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty, bool addDiscriminatorFirst) : base(discriminatorProperty)
+            Dictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty, bool addDiscriminatorFirst) : base(baseType, discriminatorProperty)
         {
             _serializeDiscriminatorProperty = serializeDiscriminatorProperty;
-            _baseType = baseType;
             _subTypeMapping = subTypeMapping;
             _addDiscriminatorFirst = addDiscriminatorFirst;
             foreach (var type in _subTypeMapping)
@@ -70,7 +68,12 @@ namespace JsonSubTypes
 
         public override bool CanConvert(Type objectType)
         {
-            return objectType == _baseType || _supportedTypes.ContainsKey(objectType);
+            return base.CanConvert(objectType) || _supportedTypes.ContainsKey(objectType);
+        }
+
+        internal override Dictionary<string, Type> GetTypesByPropertyPresence(Type parentType)
+        {
+            return new Dictionary<string, Type>();
         }
 
         public override bool CanWrite
