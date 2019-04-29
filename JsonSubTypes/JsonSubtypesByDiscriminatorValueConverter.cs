@@ -27,7 +27,7 @@ namespace JsonSubTypes
     //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     //  SOFTWARE.
 
-    internal class JsonSubtypesConverter : JsonSubtypes
+    internal class JsonSubtypesByDiscriminatorValueConverter : JsonSubtypes
     {
         private readonly bool _serializeDiscriminatorProperty;
         private readonly Dictionary<Type, object> _supportedTypes = new Dictionary<Type, object>();
@@ -38,7 +38,7 @@ namespace JsonSubTypes
         [ThreadStatic] private static bool _allowNextWrite;
         private readonly bool _addDiscriminatorFirst;
 
-        internal JsonSubtypesConverter(Type baseType, string discriminatorProperty,
+        internal JsonSubtypesByDiscriminatorValueConverter(Type baseType, string discriminatorProperty,
             Dictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty, bool addDiscriminatorFirst) : base(discriminatorProperty)
         {
             _serializeDiscriminatorProperty = serializeDiscriminatorProperty;

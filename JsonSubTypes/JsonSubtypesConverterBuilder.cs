@@ -42,7 +42,7 @@ namespace JsonSubTypes
 
         public JsonConverter Build()
         {
-            return new JsonSubtypesConverter(_baseType, _discriminatorProperty, _subTypeMapping, _serializeDiscriminatorProperty, _addDiscriminatorFirst);
+            return new JsonSubtypesByDiscriminatorValueConverter(_baseType, _discriminatorProperty, _subTypeMapping, _serializeDiscriminatorProperty, _addDiscriminatorFirst);
         }
     }
 }

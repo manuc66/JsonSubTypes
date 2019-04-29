@@ -216,7 +216,7 @@ namespace JsonSubTypes
             JsonSubtypes lastTypeResolver = null;
             JsonSubtypes currentTypeResolver = this;
 
-            var jsonConverterCollection = serializer.Converters.OfType<JsonSubtypesConverter>();
+            var jsonConverterCollection = serializer.Converters.OfType<JsonSubtypesByDiscriminatorValueConverter>();
             while (currentTypeResolver != null && currentTypeResolver != lastTypeResolver)
             {
                 targetType = currentTypeResolver.GetType(jObject, targetType);
@@ -228,7 +228,7 @@ namespace JsonSubTypes
             return targetType;
         }
 
-        private JsonSubtypes GetTypeResolver(TypeInfo targetType, IEnumerable<JsonSubtypesConverter> jsonConverterCollection)
+        private JsonSubtypes GetTypeResolver(TypeInfo targetType, IEnumerable<JsonSubtypesByDiscriminatorValueConverter> jsonConverterCollection)
         {
             if (targetType == null)
             {
