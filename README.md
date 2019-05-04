@@ -158,6 +158,27 @@ var persons = JsonConvert.DeserializeObject<IReadOnlyCollection<Person>>(json);
 Assert.AreEqual("Painter", (persons.Last() as Artist)?.Skill);
 ```
 
+## A default class other than the base type can be defined
+
+```cs
+[JsonConverter(typeof(JsonSubtypes))]
+[JsonSubtypes.KnownSubType(typeof(ConstantExpression), "Constant")]
+[JsonSubtypes.FallBackSubType(typeof(UnknownExpression))]
+public interface IExpression
+{
+    string Type { get; }
+}
+```
+
+Or with code configuration:
+```cs
+settings.Converters.Add(JsonSubtypesConverterBuilder
+    .Of(typeof(IExpression), "Type")
+    .SetFallbackSubtype(typeof(UnknownExpression))
+    .RegisterSubtype(typeof(ConstantExpression), "Constant")
+    .Build());
+```
+
 ## 💖 Support this project
 If this project helped you save money or time or simply makes your life also easier, you can give me a cup of coffee =)
 

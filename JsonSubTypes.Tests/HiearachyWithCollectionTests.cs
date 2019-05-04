@@ -182,6 +182,15 @@ namespace JsonSubTypes.Tests
             }
 
             [Test]
+            public void DeserializeBadDocument()
+            {
+                var exception = Assert.Throws<JsonReaderException>(() => JsonConvert.DeserializeObject<Root>("{\"Content\": []}"), "Unrecognized token: Integer");
+
+                Assert.AreEqual("Impossible to read JSON array to fill type: Base", exception.Message);
+            }
+
+
+            [Test]
             public void DeserializeHierachyDeeperTest()
             {
                 var input =
