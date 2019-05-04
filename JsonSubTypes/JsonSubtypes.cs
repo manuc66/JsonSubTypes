@@ -49,6 +49,17 @@ namespace JsonSubTypes
             }
         }
 
+        [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface)]
+        public class FallBackSubTypeAttribute : Attribute
+        {
+            public Type SubType { get; }
+
+            public FallBackSubTypeAttribute(Type subType)
+            {
+                SubType = subType;
+            }
+        }
+
         [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
         public class KnownSubTypeWithPropertyAttribute : Attribute
         {
@@ -121,27 +132,37 @@ namespace JsonSubTypes
                     value = ReadObject(reader, objectType, serializer);
                     break;
                 case JsonToken.StartArray:
-                    value = ReadArray(reader, objectType, serializer);
-                    break;
-                default:
-                    var lineNumber = 0;
-                    var linePosition = 0;
-                    if (reader is IJsonLineInfo lineInfo && lineInfo.HasLineInfo())
                     {
-                        lineNumber = lineInfo.LineNumber;
-                        linePosition = lineInfo.LinePosition;
+                        var elementType = GetElementType(objectType);
+                        if (elementType == null)
+                        {
+                            throw CreateJsonReaderException(reader, $"Impossible to read JSON array to fill type: {objectType.Name}");
+                        }
+                        value = ReadArray(reader, objectType, elementType, serializer);
+                        break;
                     }
-
-                    throw new JsonReaderException($"Unrecognized token: {reader.TokenType}", reader.Path, lineNumber, linePosition, null);
+                default:
+                    throw CreateJsonReaderException(reader, $"Unrecognized token: {reader.TokenType}");
             }
 
             return value;
         }
 
-        private IList ReadArray(JsonReader reader, Type targetType, JsonSerializer serializer)
+        private static JsonReaderException CreateJsonReaderException(JsonReader reader, string message)
         {
-            var elementType = GetElementType(targetType);
+            var lineNumber = 0;
+            var linePosition = 0;
+            if (reader is IJsonLineInfo lineInfo && lineInfo.HasLineInfo())
+            {
+                lineNumber = lineInfo.LineNumber;
+                linePosition = lineInfo.LinePosition;
+            }
 
+            return new JsonReaderException(message, reader.Path, lineNumber, linePosition, null);
+        }
+
+        private IList ReadArray(JsonReader reader, Type targetType, Type elementType, JsonSerializer serializer)
+        {
             var list = CreateCompatibleList(targetType, elementType);
             while (reader.Read() && reader.TokenType != JsonToken.EndArray)
             {
@@ -151,7 +172,7 @@ namespace JsonSubTypes
             if (!targetType.IsArray)
                 return list;
 
-            var array = Array.CreateInstance(targetType.GetElementType(), list.Count);
+            var array = Array.CreateInstance(elementType, list.Count);
             list.CopyTo(array, 0);
             return array;
         }
@@ -202,12 +223,17 @@ namespace JsonSubTypes
 
         private Type GetType(JObject jObject, Type parentType)
         {
+            Type resolvedType;
             if (JsonDiscriminatorPropertyName == null)
             {
-                return GetTypeByPropertyPresence(jObject, parentType);
+                resolvedType = GetTypeByPropertyPresence(jObject, parentType);
+            }
+            else
+            {
+                resolvedType = GetTypeFromDiscriminatorValue(jObject, parentType);
             }
 
-            return GetTypeFromDiscriminatorValue(jObject, parentType);
+            return resolvedType ?? GetFallbackSubType(parentType);
         }
 
         private Type GetType(JObject jObject, Type parentType, JsonSerializer serializer)
@@ -216,12 +242,12 @@ namespace JsonSubTypes
             JsonSubtypes lastTypeResolver = null;
             JsonSubtypes currentTypeResolver = this;
 
-            var jsonConverterCollection = serializer.Converters.OfType<JsonSubtypesConverter>();
+            var jsonConverterCollection = serializer.Converters.OfType<JsonSubtypesConverter>().ToList();
             while (currentTypeResolver != null && currentTypeResolver != lastTypeResolver)
             {
                 targetType = currentTypeResolver.GetType(jObject, targetType);
                 lastTypeResolver = currentTypeResolver;
-                jsonConverterCollection = jsonConverterCollection.Where(c => c != currentTypeResolver);
+                jsonConverterCollection = jsonConverterCollection.Where(c => c != currentTypeResolver).ToList();
                 currentTypeResolver = GetTypeResolver(ToTypeInfo(targetType), jsonConverterCollection);
             }
 
@@ -262,15 +288,11 @@ namespace JsonSubTypes
 
         private Type GetTypeFromDiscriminatorValue(IDictionary<string, JToken> jObject, Type parentType)
         {
-            JToken discriminatorValue;
-            if (!TryGetValueInJson(jObject, JsonDiscriminatorPropertyName, out discriminatorValue))
-                return null;
-
-            if (discriminatorValue.Type == JTokenType.Null)
+            if (!TryGetValueInJson(jObject, JsonDiscriminatorPropertyName, out var discriminatorValue))
                 return null;
 
             var typeMapping = GetSubTypeMapping(parentType);
-            if (typeMapping.Any())
+            if (typeMapping.Entries().Any())
             {
                 return GetTypeFromMapping(typeMapping, discriminatorValue);
             }
@@ -301,14 +323,18 @@ namespace JsonSubTypes
         private static Type GetTypeByName(string typeName, TypeInfo parentType)
         {
             if (typeName == null)
+            {
                 return null;
+            }
 
             var insideAssembly = parentType.Assembly;
 
+            var parentTypeFullName = parentType.FullName;
+
             var typeByName = insideAssembly.GetType(typeName);
-            if (typeByName == null)
+            if (parentTypeFullName != null && typeByName == null)
             {
-                var searchLocation = parentType.FullName.Substring(0, parentType.FullName.Length - parentType.Name.Length);
+                var searchLocation = parentTypeFullName.Substring(0, parentTypeFullName.Length - parentType.Name.Length);
                 typeByName = insideAssembly.GetType(searchLocation + typeName, false, true);
             }
 
@@ -321,21 +347,44 @@ namespace JsonSubTypes
             return null;
         }
 
-        private static Type GetTypeFromMapping(Dictionary<object, Type> typeMapping, JToken discriminatorToken)
+        private static Type GetTypeFromMapping(NullableDictionary<object, Type> typeMapping, JToken discriminatorToken)
         {
-            var targetLookupValueType = typeMapping.First().Key.GetType();
-            var lookupValue = discriminatorToken.ToObject(targetLookupValueType);
+            if (discriminatorToken.Type == JTokenType.Null)
+            {
+                typeMapping.TryGetValue(null, out Type targetType);
 
-            if (typeMapping.TryGetValue(lookupValue, out Type targetType))
                 return targetType;
+            }
+
+            var key = typeMapping.NotNullKeys().FirstOrDefault();
+            if (key != null)
+            {
+                var targetLookupValueType = key.GetType();
+                var lookupValue = discriminatorToken.ToObject(targetLookupValueType);
+
+                if (typeMapping.TryGetValue(lookupValue, out Type targetType))
+                {
+                    return targetType;
+                }
+            }
 
             return null;
         }
 
-        protected virtual Dictionary<object, Type> GetSubTypeMapping(Type type)
+        internal virtual NullableDictionary<object, Type> GetSubTypeMapping(Type type)
         {
-            return GetAttributes<KnownSubTypeAttribute>(ToTypeInfo(type))
-                .ToDictionary(x => x.AssociatedValue, x => x.SubType);
+            var dictionary = new NullableDictionary<object, Type>();
+
+            GetAttributes<KnownSubTypeAttribute>(ToTypeInfo(type))
+                .ToList()
+                .ForEach(x => dictionary.Add(x.AssociatedValue, x.SubType));
+
+            return dictionary;
+        }
+
+        internal virtual Type GetFallbackSubType(Type type)
+        {
+            return GetAttribute<FallBackSubTypeAttribute>(ToTypeInfo(type))?.SubType;
         }
 
         private static object ThreadStaticReadObject(JsonReader reader, JsonSerializer serializer, JToken jToken, Type targetType)

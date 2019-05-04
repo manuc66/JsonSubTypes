@@ -231,6 +231,26 @@ namespace JsonSubTypes.Tests
             Assert.AreEqual(42.1f, (result as HammerheadShark)?.HammerSize);
         }
 
+        [Test]
+        public void ItRefuseToRegisterTwiceWithTheSameValue()
+        {
+            var jsonSubtypesConverterBuilder = JsonSubtypesConverterBuilder
+                .Of(typeof(Animal), "type")
+                .RegisterSubtype(typeof(Cat), AnimalType.Cat);
+
+            Assert.Throws<ArgumentException>(() => jsonSubtypesConverterBuilder.RegisterSubtype(typeof(Dog), AnimalType.Cat));
+        }
+
+        [Test]
+        public void ItRefuseToRegisterTwiceWithTheSameNullValue()
+        {
+            var jsonSubtypesConverterBuilder = JsonSubtypesConverterBuilder
+                .Of(typeof(Animal), "type")
+                .RegisterSubtype(typeof(Cat), null);
+
+            Assert.Throws<ArgumentException>(() => jsonSubtypesConverterBuilder.RegisterSubtype(typeof(Dog), null));
+        }
+
         public interface IExpression
         {
 
@@ -278,6 +298,88 @@ namespace JsonSubTypes.Tests
             Assert.AreEqual("StringConstant", stringConstant.Type);
             Assert.AreEqual("B", ((ConstantExpression)constant).Value);
             Assert.AreEqual("C", ((ConstantExpression)stringConstant).Value);
+        }
+
+        public class NullExpression : IExpression
+        {
+            public bool Last { get; set; }
+            public string Type { get { return null; } }
+        }
+
+        public class UnknownExpression : IExpression
+        {
+            public string Type { get; set; }
+        }
+
+
+        [Test]
+        public void TestIfNullIsDeserialized()
+        {
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
+            settings.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(IExpression), "Type")
+                .RegisterSubtype(typeof(ConstantExpression), "Constant")
+                .RegisterSubtype(typeof(NullExpression), null)
+                .Build());
+
+            var expr = JsonConvert.DeserializeObject<IExpression>("{\"Type\": null,\"Last\":true}");
+
+            Assert.AreEqual(true, (expr as NullExpression)?.Last);
+        }
+
+        [Test]
+        public void TestIfNullIsDeserializedWhenFallbackDefined()
+        {
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
+            settings.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(IExpression), "Type")
+                .SetFallbackSubtype(typeof(UnknownExpression))
+                .RegisterSubtype(typeof(ConstantExpression), "Constant")
+                .RegisterSubtype(typeof(NullExpression), null)
+                .Build());
+
+            var expr = JsonConvert.DeserializeObject<IExpression>("{\"Type\": null,\"Last\":true}");
+
+            Assert.AreEqual(true, (expr as NullExpression)?.Last);
+        }
+
+        [Test]
+        public void TestFallBack()
+        {
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
+            settings.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(IExpression), "Type")
+                .SetFallbackSubtype(typeof(UnknownExpression))
+                .RegisterSubtype(typeof(ConstantExpression), "Constant")
+                .Build());
+
+            var expr = JsonConvert.DeserializeObject<IExpression>("{\"Type\": \"False\"}");
+
+            Assert.AreEqual("False", (expr as UnknownExpression)?.Type);
+        }
+
+        [Test]
+        public void TestFallBackWithNullRegistered()
+        {
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
+            settings.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(IExpression), "Type")
+                .SetFallbackSubtype(typeof(UnknownExpression))
+                .RegisterSubtype(typeof(ConstantExpression), "Constant")
+                .RegisterSubtype(typeof(NullExpression), null)
+                .Build());
+
+            var expr = JsonConvert.DeserializeObject<IExpression>("{\"Type\": \"False\"}");
+
+            Assert.AreEqual("False", (expr as UnknownExpression)?.Type);
         }
 
         [Test]

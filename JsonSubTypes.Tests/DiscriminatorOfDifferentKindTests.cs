@@ -46,6 +46,7 @@ namespace JsonSubTypes.Tests
                 Assert.AreEqual("zzz", (obj.SubTypeData as SubTypeClass2)?.ZzzField);
             }
         }
+
         [TestFixture]
         public class DiscriminatorIsAnEnumStringValue
         {
@@ -130,5 +131,95 @@ namespace JsonSubTypes.Tests
                 Assert.AreEqual(typeof(Child), root5.child.GetType());
             }
         }
+
+
+        [TestFixture]
+        public class DiscriminatorIsANullableValueType
+        {
+            public class MainClass
+            {
+                public SubTypeClassBase SubTypeData { get; set; }
+            }
+
+            [JsonConverter(typeof(JsonSubtypes), "SubTypeType")]
+            [JsonSubtypes.KnownSubType(typeof(SubTypeClass0), null)]
+            [JsonSubtypes.KnownSubType(typeof(SubTypeClass1), SubType.WithAaaField)]
+            [JsonSubtypes.KnownSubType(typeof(SubTypeClass2), SubType.WithZzzField)]
+            public class SubTypeClassBase
+            {
+                public SubType? SubTypeType { get; set; }
+            }
+
+            public class SubTypeClass0 : SubTypeClassBase
+            {
+                public string ZeroField { get; set; }
+            }
+
+            public class SubTypeClass1 : SubTypeClassBase
+            {
+                public string AaaField { get; set; }
+            }
+
+            public class SubTypeClass2 : SubTypeClassBase
+            {
+                public string ZzzField { get; set; }
+            }
+
+            public enum SubType
+            {
+                WithAaaField,
+                WithZzzField
+            }
+
+            [Test]
+            public void Deserialize()
+            {
+                var obj = JsonConvert.DeserializeObject<MainClass>("{\"SubTypeData\":{\"ZzzField\":\"zzz\",\"SubTypeType\":1}}");
+                Assert.AreEqual("zzz", (obj.SubTypeData as SubTypeClass2)?.ZzzField);
+
+                obj = JsonConvert.DeserializeObject<MainClass>("{\"SubTypeData\":{\"ZeroField\":\"Jack\",\"SubTypeType\": null}}");
+                Assert.AreEqual("Jack", (obj.SubTypeData as SubTypeClass0)?.ZeroField);
+            }
+        }
+
+        [TestFixture]
+        public class DiscriminatorIsANullableRef
+        {
+
+            public class MainClass
+            {
+                public SubTypeClassBase SubTypeData { get; set; }
+            }
+
+            [JsonConverter(typeof(JsonSubtypes), "SubTypeType")]
+            [JsonSubtypes.KnownSubType(typeof(SubTypeClass1), "SubTypeClass1")]
+            [JsonSubtypes.KnownSubType(typeof(NullDiscriminatorClass), null)]
+            public class SubTypeClassBase
+            {
+                public string SubTypeType { get; set; }
+            }
+
+            public class NullDiscriminatorClass : SubTypeClassBase
+            {
+                public string CrazyTypeField { get; set; }
+            }
+
+
+            public class SubTypeClass1 : SubTypeClassBase
+            {
+                public string AaaField { get; set; }
+            }
+
+            [Test]
+            public void Deserialize()
+            {
+                var obj = JsonConvert.DeserializeObject<MainClass>("{\"SubTypeData\":{\"AaaField\":\"aaa\",\"SubTypeType\": \"SubTypeClass1\"}}");
+                Assert.AreEqual("aaa", (obj.SubTypeData as SubTypeClass1)?.AaaField);
+
+                obj = JsonConvert.DeserializeObject<MainClass>("{\"SubTypeData\":{\"CrazyTypeField\":\"Jack\",\"SubTypeType\": null}}");
+                Assert.AreEqual("Jack", (obj.SubTypeData as NullDiscriminatorClass)?.CrazyTypeField);
+            }
+        }
+
     }
 }
