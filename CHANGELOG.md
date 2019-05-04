@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Support for multiple discriminators on single type #66
 - Support for per inheritance level discriminators #60
+- Support specifying a falback sub type if none matched #63
 - Changelog history and documentation arround versionning
 
 ## [1.5.2] - 2019-01-19
