@@ -8,6 +8,7 @@ namespace JsonSubTypes
     {
         private readonly Type _baseType;
         private readonly Dictionary<string, Type> _subTypeMapping = new Dictionary<string, Type>();
+        private Type _fallbackSubtype;
 
         private JsonSubtypesWithPropertyConverterBuilder(Type baseType)
         {
@@ -25,9 +26,15 @@ namespace JsonSubTypes
             return this;
         }
 
+        public JsonSubtypesWithPropertyConverterBuilder SetFallbackSubtype(Type fallbackSubtype)
+        {
+            _fallbackSubtype = fallbackSubtype;
+            return this;
+        }
+
         public JsonConverter Build()
         {
-            return new JsonSubtypesByPropertyPresenceConverter(_baseType, _subTypeMapping);
+            return new JsonSubtypesByPropertyPresenceConverter(_baseType, _subTypeMapping, _fallbackSubtype);
         }
     }
 }

@@ -7,14 +7,14 @@ namespace JsonSubTypes
     {
         private readonly Dictionary<string, Type> _jsonPropertyName2Type;
 
-        internal JsonSubtypesByPropertyPresenceConverter(Type baseType, Dictionary<string, Type> jsonProperty2Type) : base(baseType)
+        internal JsonSubtypesByPropertyPresenceConverter(Type baseType, Dictionary<string, Type> jsonProperty2Type, Type fallbackType) : base(baseType, fallbackType)
         {
             _jsonPropertyName2Type = jsonProperty2Type;
         }
 
-        protected override Dictionary<object, Type> GetSubTypeMapping(Type type)
+        internal override NullableDictionary<object, Type> GetSubTypeMapping(Type type)
         {
-            return new Dictionary<object, Type>();
+            return new NullableDictionary<object, Type>();
         }
 
         internal override Dictionary<string, Type> GetTypesByPropertyPresence(Type parentType)

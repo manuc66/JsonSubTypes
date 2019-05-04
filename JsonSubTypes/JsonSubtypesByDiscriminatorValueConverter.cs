@@ -35,15 +35,15 @@ namespace JsonSubTypes
         private readonly bool _addDiscriminatorFirst;
         private readonly bool _serializeDiscriminatorProperty;
         private readonly Dictionary<Type, object> _supportedTypes = new Dictionary<Type, object>();
-        private readonly Dictionary<object, Type> _subTypeMapping;
+        private readonly NullableDictionary<object, Type> _subTypeMapping;
 
         internal JsonSubtypesByDiscriminatorValueConverter(Type baseType, string discriminatorProperty,
-            Dictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty, bool addDiscriminatorFirst) : base(baseType, discriminatorProperty)
+            NullableDictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty, bool addDiscriminatorFirst, Type fallbackType) : base(baseType, discriminatorProperty, fallbackType)
         {
             _serializeDiscriminatorProperty = serializeDiscriminatorProperty;
             _subTypeMapping = subTypeMapping;
             _addDiscriminatorFirst = addDiscriminatorFirst;
-            foreach (var type in _subTypeMapping)
+            foreach (var type in _subTypeMapping.Entries())
             {
                 if (_supportedTypes.ContainsKey(type.Value))
                 {
@@ -61,7 +61,7 @@ namespace JsonSubTypes
             }
         }
 
-        protected override Dictionary<object, Type> GetSubTypeMapping(Type type)
+        internal override NullableDictionary<object, Type> GetSubTypeMapping(Type type)
         {
             return _subTypeMapping;
         }
