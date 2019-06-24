@@ -11,3 +11,7 @@ obj
 
 # Local History for Visual Studio
 .localhistory/
+
+# Cake
+/tools/
+!/tools/packages.config
