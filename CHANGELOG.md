@@ -5,10 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.6.0] - 2019-06-25
 ### Added
 - Support for multiple discriminators on single type #66
 - Support for per inheritance level discriminators #60
 - Support specifying a falback sub type if none matched #63
+- Provide NuGet package with strong name #75
 - Changelog history and documentation arround versionning
 
 ## [1.5.2] - 2019-01-19
