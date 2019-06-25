@@ -33,7 +33,7 @@ The second parameter of the `JsonConverter` attribute is the JSON property name 
 
 ```csharp
 var animal = JsonConvert.DeserializeObject<IAnimal>("{\"Kind\":\"Dog\",\"Breed\":\"Jack Russell Terrier\"}");
-Assert.AreEqual("Jack Russell Terrier", (Animal as Dog)?.Breed);
+Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed);
 ```
 
 N.B.: Also works with fully qualified type name
@@ -65,7 +65,7 @@ public class Cat : Animal
 
 ```csharp
 var animal = JsonConvert.DeserializeObject<IAnimal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
-Assert.AreEqual("Jack Russell Terrier", (Animal as Dog)?.Breed);
+Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed);
 ```
 
 N.B.: Also works with other kind of value than string, i.e.: enums, int, ...
