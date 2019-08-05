@@ -421,7 +421,7 @@ namespace JsonSubTypes
 #endif
         }
 
-        private static TypeInfo ToTypeInfo(Type type)
+        internal static TypeInfo ToTypeInfo(Type type)
         {
 #if (NET35 || NET40)
             return type;
@@ -430,7 +430,7 @@ namespace JsonSubTypes
 #endif
         }
 
-        private static Type ToType(TypeInfo typeInfo)
+        internal static Type ToType(TypeInfo typeInfo)
         {
 #if (NET35 || NET40)
             return typeInfo;
