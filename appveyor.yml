@@ -9,7 +9,7 @@ environment:
 init:
   - choco install opencover.portable
   - choco install codecov
-  - choco install "msbuild-sonarqube-runner" -y
+  - choco install "sonarscanner-msbuild-net46" -y
 
 before_build:
   - nuget restore
