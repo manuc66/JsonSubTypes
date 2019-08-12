@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -77,7 +78,7 @@ namespace JsonSubTypes
 
         public override bool CanConvert(Type objectType)
         {
-            return objectType == _baseType || _supportedTypes.ContainsKey(objectType);
+            return objectType == _baseType || _supportedTypes.ContainsKey(objectType) || ToTypeInfo(_baseType).IsAssignableFrom(ToTypeInfo(objectType));
         }
 
         public override bool CanWrite
@@ -115,7 +116,10 @@ namespace JsonSubTypes
                 _isInsideWrite = false;
             }
 
-            var supportedType = _supportedTypes[value.GetType()];
+            if (!_supportedTypes.TryGetValue(value.GetType(), out var supportedType))
+            {
+                throw new JsonSerializationException("Impossible to serialize type: " + value.GetType().FullName + " because there is no registered mapping for the discriminator property");
+            }
             var typeMappingPropertyValue = JToken.FromObject(supportedType, serializer);
             if (_addDiscriminatorFirst)
             {
