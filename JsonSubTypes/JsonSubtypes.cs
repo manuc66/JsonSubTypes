@@ -241,11 +241,16 @@ namespace JsonSubTypes
             Type targetType = parentType;
             JsonSubtypes lastTypeResolver = null;
             JsonSubtypes currentTypeResolver = this;
+            HashSet<Type> visitedTypes = new HashSet<Type> {targetType};
 
             var jsonConverterCollection = serializer.Converters.OfType<JsonSubtypesConverter>().ToList();
             while (currentTypeResolver != null && currentTypeResolver != lastTypeResolver)
             {
                 targetType = currentTypeResolver.GetType(jObject, targetType);
+                if (!visitedTypes.Add(targetType))
+                {
+                    throw new JsonSerializationException("Found circular reference while trying to determine target type");
+                }
                 lastTypeResolver = currentTypeResolver;
                 jsonConverterCollection = jsonConverterCollection.Where(c => c != currentTypeResolver).ToList();
                 currentTypeResolver = GetTypeResolver(ToTypeInfo(targetType), jsonConverterCollection);
