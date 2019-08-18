@@ -40,8 +40,7 @@ namespace JsonSubTypes.Tests
         {
             public const string PAYLOAD_KIND = "$PayloadKind";
 
-            [JsonProperty(PAYLOAD_KIND)]
-            protected abstract PayloadDiscriminator PayloadKind { get; }
+            [JsonProperty(PAYLOAD_KIND)] public abstract PayloadDiscriminator PayloadKind { get; }
         }
 
         [JsonConverter(typeof(JsonSubtypes), GAME_KIND)]
@@ -49,27 +48,26 @@ namespace JsonSubTypes.Tests
         [JsonSubtypes.KnownSubType(typeof(Walk), GameDiscriminator.WALK)]
         public abstract class Game : Payload
         {
-            protected override PayloadDiscriminator PayloadKind => PayloadDiscriminator.GAME;
+            public override PayloadDiscriminator PayloadKind => PayloadDiscriminator.GAME;
 
             public const string GAME_KIND = "$GameKind";
 
-            [JsonProperty(GAME_KIND)]
-            protected abstract GameDiscriminator GameKind { get; }
+            [JsonProperty(GAME_KIND)] public abstract GameDiscriminator GameKind { get; }
         }
 
         public class Com : Payload
         {
-            protected override PayloadDiscriminator PayloadKind => PayloadDiscriminator.COM;
+            public override PayloadDiscriminator PayloadKind => PayloadDiscriminator.COM;
         }
 
         public class Walk : Game
         {
-            protected override GameDiscriminator GameKind => GameDiscriminator.WALK;
+            public override GameDiscriminator GameKind => GameDiscriminator.WALK;
         }
 
         public class Run : Game
         {
-            protected override GameDiscriminator GameKind => GameDiscriminator.RUN;
+            public override GameDiscriminator GameKind => GameDiscriminator.RUN;
         }
     }
 
@@ -77,6 +75,7 @@ namespace JsonSubTypes.Tests
     public class MultipleHierarchyLevelsDynamicRegistrationTests
     {
         JsonSerializerSettings settings;
+
         [SetUp]
         public void Init()
         {
@@ -127,33 +126,31 @@ namespace JsonSubTypes.Tests
         {
             public const string PAYLOAD_KIND = "$PayloadKind";
 
-            [JsonProperty(PAYLOAD_KIND)]
-            protected abstract PayloadDiscriminator PayloadKind { get; }
+            [JsonProperty(PAYLOAD_KIND)] public abstract PayloadDiscriminator PayloadKind { get; }
         }
 
         public abstract class Game : Payload
         {
-            protected override PayloadDiscriminator PayloadKind => PayloadDiscriminator.GAME;
+            public override PayloadDiscriminator PayloadKind => PayloadDiscriminator.GAME;
 
             public const string GAME_KIND = "$GameKind";
 
-            [JsonProperty(GAME_KIND)]
-            protected abstract GameDiscriminator GameKind { get; }
+            [JsonProperty(GAME_KIND)] public abstract GameDiscriminator GameKind { get; }
         }
 
         public class Com : Payload
         {
-            protected override PayloadDiscriminator PayloadKind => PayloadDiscriminator.COM;
+            public override PayloadDiscriminator PayloadKind => PayloadDiscriminator.COM;
         }
 
         public class Walk : Game
         {
-            protected override GameDiscriminator GameKind => GameDiscriminator.WALK;
+            public override GameDiscriminator GameKind => GameDiscriminator.WALK;
         }
 
         public class Run : Game
         {
-            protected override GameDiscriminator GameKind => GameDiscriminator.RUN;
+            public override GameDiscriminator GameKind => GameDiscriminator.RUN;
         }
     }
 
@@ -161,6 +158,7 @@ namespace JsonSubTypes.Tests
     public class MultipleHierarchyLevelsDynamicRegistrationWriteDiscriminatorTests
     {
         JsonSerializerSettings settings;
+
         [SetUp]
         public void Init()
         {
@@ -218,7 +216,6 @@ namespace JsonSubTypes.Tests
         public abstract class Game : Payload
         {
             public const string GAME_KIND = "$GameKind";
-
         }
 
         public class Com : Payload
