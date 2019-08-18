@@ -51,7 +51,7 @@ deploy:
     name: NuGet
     server: https://www.nuget.org/api/v2/package
     api_key:
-      secure: cSqsPd3H3eNIKcAiatmQXXe1oEqXANMUxS+5I4zvVqGR3k/ae8a/TaIvDuf8xJei
+      secure: I8mGPBaVaAK9e3mBzOBoqQLdPckvVYvSJqFc2BE7/P7UF3P3OqHkxUAa1/PAARuy
     artifact: /JsonSubTypes.*\.nupkg/
     on:
       branch: master
