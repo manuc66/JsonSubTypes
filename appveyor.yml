@@ -36,7 +36,7 @@ build:
 test_script:
   - dir /S JsonSubTypes\bin\Release
   - dir /S JsonSubTypes.Tests\bin\Release
-  - OpenCover.Console.exe -register:user -target:"nunit3-console.exe" -targetargs:".\JsonSubTypes.Tests\bin\Release\net46\JsonSubTypes.Tests.dll --result:nunitTestResult.xml" -filter:"+[JsonSubTypes*]* -[JsonSubTypes.Tests]*" -output:".\MyProject_coverage.xml"
+  - OpenCover.Console.exe -register:admin -target:"nunit3-console.exe" -targetargs:".\JsonSubTypes.Tests\bin\Release\net46\JsonSubTypes.Tests.dll --result:nunitTestResult.xml" -filter:"+[JsonSubTypes*]* -[JsonSubTypes.Tests]*" -output:".\MyProject_coverage.xml"
   - codecov -f "MyProject_coverage.xml"
 
 after_test:
