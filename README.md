@@ -36,7 +36,7 @@ var animal = JsonConvert.DeserializeObject<IAnimal>("{\"Kind\":\"Dog\",\"Breed\"
 Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed);
 ```
 
-N.B.: Also works with fully qualified type name
+N.B.: This only works types in the same assembly as the base type/interface and either in the same namespace or with a fully qualified type name.
 
 ## DeserializeObject with custom type mapping
 
