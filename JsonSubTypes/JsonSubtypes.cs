@@ -221,7 +221,7 @@ namespace JsonSubTypes
             return jObjectReader;
         }
 
-        private Type GetType(JObject jObject, Type parentType)
+        private Type GetType2(JObject jObject, Type parentType, JsonSerializer serializer)
         {
             Type resolvedType;
             if (JsonDiscriminatorPropertyName == null)
@@ -230,7 +230,7 @@ namespace JsonSubTypes
             }
             else
             {
-                resolvedType = GetTypeFromDiscriminatorValue(jObject, parentType);
+                resolvedType = GetTypeFromDiscriminatorValue(jObject, parentType, serializer);
             }
 
             return resolvedType ?? GetFallbackSubType(parentType);
@@ -241,12 +241,12 @@ namespace JsonSubTypes
             Type targetType = parentType;
             JsonSubtypes lastTypeResolver = null;
             JsonSubtypes currentTypeResolver = this;
-            var visitedTypes = new HashSet<Type> {targetType};
+            var visitedTypes = new HashSet<Type> { targetType };
 
             var jsonConverterCollection = serializer.Converters.OfType<JsonSubtypesConverter>().ToList();
             while (currentTypeResolver != null && currentTypeResolver != lastTypeResolver)
             {
-                targetType = currentTypeResolver.GetType(jObject, targetType);
+                targetType = currentTypeResolver.GetType2(jObject, targetType, serializer);
                 if (!visitedTypes.Add(targetType))
                 {
                     break;
@@ -291,7 +291,7 @@ namespace JsonSubTypes
                 .FirstOrDefault(type => type != null);
         }
 
-        private Type GetTypeFromDiscriminatorValue(IDictionary<string, JToken> jObject, Type parentType)
+        private Type GetTypeFromDiscriminatorValue(IDictionary<string, JToken> jObject, Type parentType, JsonSerializer serializer)
         {
             if (!TryGetValueInJson(jObject, JsonDiscriminatorPropertyName, out var discriminatorValue))
                 return null;
@@ -299,7 +299,7 @@ namespace JsonSubTypes
             var typeMapping = GetSubTypeMapping(parentType);
             if (typeMapping.Entries().Any())
             {
-                return GetTypeFromMapping(typeMapping, discriminatorValue);
+                return GetTypeFromMapping(typeMapping, discriminatorValue, serializer);
             }
 
             return GetTypeByName(discriminatorValue.Value<string>(), ToTypeInfo(parentType));
@@ -352,7 +352,7 @@ namespace JsonSubTypes
             return null;
         }
 
-        private static Type GetTypeFromMapping(NullableDictionary<object, Type> typeMapping, JToken discriminatorToken)
+        private static Type GetTypeFromMapping(NullableDictionary<object, Type> typeMapping, JToken discriminatorToken, JsonSerializer serializer)
         {
             if (discriminatorToken.Type == JTokenType.Null)
             {
@@ -365,7 +365,7 @@ namespace JsonSubTypes
             if (key != null)
             {
                 var targetLookupValueType = key.GetType();
-                var lookupValue = discriminatorToken.ToObject(targetLookupValueType);
+                var lookupValue = discriminatorToken.ToObject(targetLookupValueType, serializer);
 
                 if (typeMapping.TryGetValue(lookupValue, out Type targetType))
                 {
