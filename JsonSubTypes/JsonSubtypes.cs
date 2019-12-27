@@ -276,7 +276,7 @@ namespace JsonSubTypes
                 .FirstOrDefault(c => c.CanConvert(ToType(targetType)));
         }
 
-        private static Type GetTypeByPropertyPresence(IDictionary<string, JToken> jObject, Type parentType)
+        private static Type GetTypeByPropertyPresence(JObject jObject, Type parentType)
         {
             var knownSubTypeAttributes = GetAttributes<KnownSubTypeWithPropertyAttribute>(ToTypeInfo(parentType));
 
@@ -286,15 +286,28 @@ namespace JsonSubTypes
                     if (TryGetValueInJson(jObject, knownType.PropertyName, out JToken _))
                         return knownType.SubType;
 
+                    var token = jObject.SelectToken(knownType.PropertyName);
+                    if (token != null)
+                    {
+                        return knownType.SubType;
+                    }
+
                     return null;
                 })
                 .FirstOrDefault(type => type != null);
         }
 
-        private Type GetTypeFromDiscriminatorValue(IDictionary<string, JToken> jObject, Type parentType, JsonSerializer serializer)
+        private Type GetTypeFromDiscriminatorValue(JObject jObject, Type parentType, JsonSerializer serializer)
         {
             if (!TryGetValueInJson(jObject, JsonDiscriminatorPropertyName, out var discriminatorValue))
+            {
+                discriminatorValue = jObject.SelectToken(JsonDiscriminatorPropertyName);
+            }
+
+            if (discriminatorValue == null)
+            {
                 return null;
+            }
 
             var typeMapping = GetSubTypeMapping(parentType);
             if (typeMapping.Entries().Any())
