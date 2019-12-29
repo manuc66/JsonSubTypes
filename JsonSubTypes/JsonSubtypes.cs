@@ -221,7 +221,7 @@ namespace JsonSubTypes
             return jObjectReader;
         }
 
-        private Type GetType2(JObject jObject, Type parentType, JsonSerializer serializer)
+        private Type ResolveType(JObject jObject, Type parentType, JsonSerializer serializer)
         {
             Type resolvedType;
             if (JsonDiscriminatorPropertyName == null)
@@ -246,11 +246,12 @@ namespace JsonSubTypes
             var jsonConverterCollection = serializer.Converters.OfType<JsonSubtypesConverter>().ToList();
             while (currentTypeResolver != null && currentTypeResolver != lastTypeResolver)
             {
-                targetType = currentTypeResolver.GetType2(jObject, targetType, serializer);
+                targetType = currentTypeResolver.ResolveType(jObject, targetType, serializer);
                 if (!visitedTypes.Add(targetType))
                 {
                     break;
                 }
+
                 lastTypeResolver = currentTypeResolver;
                 jsonConverterCollection = jsonConverterCollection.Where(c => c != currentTypeResolver).ToList();
                 currentTypeResolver = GetTypeResolver(ToTypeInfo(targetType), jsonConverterCollection);
