@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Fallback to JSONPath to allow nested field as a deserialization property. #89
+- Bump Newtonsoft.Json from 11.0.2 to 12.0.3 #88
+
+### Fixed
+- JsonSubtypes does not respect naming strategy for discriminator property value #80
+- Fix infinite loop when specifying name of abstract base class as discriminator #83
+- Serializing base class with discriminator property results in KeyNotFoundException #79
+
 ## [1.6.0] - 2019-06-25
 ### Added
 - Support for multiple discriminators on single type #66
