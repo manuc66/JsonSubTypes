@@ -34,9 +34,9 @@ build:
   verbosity: minimal
 
 test_script:
-  - dir JsonSubTypes\bin\Release
-  - dir JsonSubTypes.Tests\bin\Release
-  - OpenCover.Console.exe -register:user -target:"nunit3-console.exe" -targetargs:".\JsonSubTypes.Tests\bin\Release\JsonSubTypes.Tests.dll --result:nunitTestResult.xml" -filter:"+[JsonSubTypes*]* -[JsonSubTypes.Tests]*" -output:".\MyProject_coverage.xml"
+  - dir /S JsonSubTypes\bin\Release
+  - dir /S JsonSubTypes.Tests\bin\Release
+  - OpenCover.Console.exe -register:admin -target:"nunit3-console.exe" -targetargs:".\JsonSubTypes.Tests\bin\Release\net46\JsonSubTypes.Tests.dll --result:nunitTestResult.xml" -filter:"+[JsonSubTypes*]* -[JsonSubTypes.Tests]*" -output:".\MyProject_coverage.xml"
   - codecov -f "MyProject_coverage.xml"
 
 after_test:
@@ -51,7 +51,7 @@ deploy:
     name: NuGet
     server: https://www.nuget.org/api/v2/package
     api_key:
-      secure: cSqsPd3H3eNIKcAiatmQXXe1oEqXANMUxS+5I4zvVqGR3k/ae8a/TaIvDuf8xJei
+      secure: I8mGPBaVaAK9e3mBzOBoqQLdPckvVYvSJqFc2BE7/P7UF3P3OqHkxUAa1/PAARuy
     artifact: /JsonSubTypes.*\.nupkg/
     on:
       branch: master
