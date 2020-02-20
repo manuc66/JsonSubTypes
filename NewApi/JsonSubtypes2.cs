@@ -8,6 +8,16 @@ using System.Text.Json.Serialization;
 
 namespace NewApi
 {
+    public class JsonSubTypeConverterAttribute : JsonConverterAttribute
+    {
+        public string DiscriminatorPropertyName { get; }
+
+        public JsonSubTypeConverterAttribute(Type converterType, string discriminatorPropertyName) : base(converterType)
+        {
+            DiscriminatorPropertyName = discriminatorPropertyName;
+        }
+    }
+
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
     public class KnownSubTypeAttribute : Attribute
     {
@@ -65,7 +75,7 @@ namespace NewApi
 
         public override bool CanConvert(Type objectType)
         {
-            return false;
+            return objectType == typeof(T);
         }
 
         public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions serializer)
@@ -110,17 +120,9 @@ namespace NewApi
             return value;
         }
 
-        private static JsonReaderException CreateJsonReaderException(ref Utf8JsonReader reader, string message)
+        private static InvalidOperationException CreateJsonReaderException(ref Utf8JsonReader reader, string message)
         {
-            var lineNumber = 0;
-            var linePosition = 0;
-            if (reader is IJsonLineInfo lineInfo && lineInfo.HasLineInfo())
-            {
-                lineNumber = lineInfo.LineNumber;
-                linePosition = lineInfo.LinePosition;
-            }
-
-            return new JsonReaderException(message, reader.Path, lineNumber, linePosition, null);
+            return new InvalidOperationException(message);
         }
 
         private IList ReadArray(ref Utf8JsonReader reader, Type targetType, Type elementType, JsonSerializerOptions serializer)
@@ -167,20 +169,7 @@ namespace NewApi
 
             var targetType = GetType(jObject, objectType, serializer) ?? objectType;
 
-            return ThreadStaticReadObject(reader, serializer, jObject, targetType);
-        }
-
-        private static JsonReader CreateAnotherReader(JToken jToken, JsonReader reader)
-        {
-            var jObjectReader = jToken.CreateReader();
-            jObjectReader.Culture = reader.Culture;
-            jObjectReader.CloseInput = reader.CloseInput;
-            jObjectReader.SupportMultipleContent = reader.SupportMultipleContent;
-            jObjectReader.DateTimeZoneHandling = reader.DateTimeZoneHandling;
-            jObjectReader.FloatParseHandling = reader.FloatParseHandling;
-            jObjectReader.DateFormatString = reader.DateFormatString;
-            jObjectReader.DateParseHandling = reader.DateParseHandling;
-            return jObjectReader;
+            return (T)JsonSerializer.Deserialize(jObject.RootElement.GetRawText(), targetType);
         }
 
         private Type GetType(JsonDocument jObject, Type parentType)
@@ -204,7 +193,7 @@ namespace NewApi
             JsonSubtypes<T> lastTypeResolver = null;
             JsonSubtypes<T> currentTypeResolver = this;
 
-            var jsonConverterCollection = serializer.Converters.OfType<JsonSubtypesConverter>().ToList();
+            var jsonConverterCollection = serializer.Converters.OfType<JsonSubtypes<T>>().ToList();
             while (currentTypeResolver != null && currentTypeResolver != lastTypeResolver)
             {
                 targetType = currentTypeResolver.GetType(jObject, targetType);
@@ -216,17 +205,17 @@ namespace NewApi
             return targetType;
         }
 
-        private JsonSubtypes<T> GetTypeResolver(TypeInfo targetType, IEnumerable<JsonSubtypesConverter> jsonConverterCollection)
+        private JsonSubtypes<T> GetTypeResolver(TypeInfo targetType, IEnumerable<JsonSubtypes<T>> jsonConverterCollection)
         {
             if (targetType == null)
             {
                 return null;
             }
 
-            var jsonConverterAttribute = GetAttribute<JsonConverterAttribute>(targetType);
+            var jsonConverterAttribute = GetAttribute<JsonSubTypeConverterAttribute>(targetType);
             if (jsonConverterAttribute != null && ToTypeInfo(typeof(JsonSubtypes<T>)).IsAssignableFrom(ToTypeInfo(jsonConverterAttribute.ConverterType)))
             {
-                return (JsonSubtypes<T>)Activator.CreateInstance(jsonConverterAttribute.ConverterType, jsonConverterAttribute.ConverterParameters);
+                return (JsonSubtypes<T>)Activator.CreateInstance(jsonConverterAttribute.ConverterType, jsonConverterAttribute.DiscriminatorPropertyName);
             }
 
             return jsonConverterCollection
@@ -322,13 +311,14 @@ namespace NewApi
             var key = typeMapping.NotNullKeys().FirstOrDefault();
             if (key != null)
             {
-                var targetLookupValueType = key.GetType();
-                var lookupValue = discriminatorToken.ToObject(targetLookupValueType);
+                throw new NotImplementedException();
+                //var targetLookupValueType = key.GetType();
+                //var lookupValue = discriminatorToken.ToObject(targetLookupValueType);
 
-                if (typeMapping.TryGetValue(lookupValue, out Type targetType))
-                {
-                    return targetType;
-                }
+                //if (typeMapping.TryGetValue(lookupValue, out Type targetType))
+                //{
+                //    return targetType;
+                //}
             }
 
             return null;
@@ -350,19 +340,6 @@ namespace NewApi
             return GetAttribute<FallBackSubTypeAttribute>(ToTypeInfo(type))?.SubType;
         }
 
-        private static object ThreadStaticReadObject(ref Utf8JsonReader reader, JsonSerializerOptions serializer, JsonDocument jToken, Type targetType)
-        {
-            _reader = CreateAnotherReader(jToken, reader);
-            _isInsideRead = true;
-            try
-            {
-                return serializer.Deserialize(_reader, targetType);
-            }
-            finally
-            {
-                _isInsideRead = false;
-            }
-        }
 
         private static IEnumerable<T> GetAttributes<T>(TypeInfo typeInfo) where T : Attribute
         {
