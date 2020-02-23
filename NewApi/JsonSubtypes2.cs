@@ -170,11 +170,18 @@ namespace NewApi
 
         private T ReadObject(ref Utf8JsonReader reader, Type objectType, JsonSerializerOptions serializer)
         {
+            // Copy the current state from reader (it's a struct)
+            var readerAtStart = reader;
+
             var jObject = JsonDocument.ParseValue(ref reader);
 
-            var targetType = GetType(jObject, objectType, serializer) ?? objectType;
+            var targetType = GetType(jObject, objectType, serializer);
+            if (targetType is null)
+            {
+                throw new JsonException($"Unable to resolve a subtype of {objectType.Name}");
+            }
 
-            return (T)JsonSerializer.Deserialize(jObject.RootElement.GetRawText(), targetType);
+            return (T)JsonSerializer.Deserialize(ref readerAtStart, targetType, serializer);
         }
 
         Type IJsonSubtypes.GetType(JsonDocument jObject, Type parentType)
