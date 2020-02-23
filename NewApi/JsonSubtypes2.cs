@@ -8,6 +8,7 @@ using System.Text.Json.Serialization;
 
 namespace NewApi
 {
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Struct | AttributeTargets.Enum | AttributeTargets.Property, AllowMultiple = false)]
     public class JsonSubTypeConverterAttribute : JsonConverterAttribute
     {
         public string DiscriminatorPropertyName { get; }
@@ -16,22 +17,8 @@ namespace NewApi
         {
             DiscriminatorPropertyName = discriminatorPropertyName;
         }
-
-        public override bool IsDefaultAttribute()
+        public JsonSubTypeConverterAttribute(Type converterType) : base(converterType)
         {
-            return base.IsDefaultAttribute();
-        }
-
-        public override bool Match(object obj)
-        {
-            return base.Match(obj);
-        }
-
-        public override object TypeId { get; }
-
-        public override JsonConverter CreateConverter(Type typeToConvert)
-        {
-            return base.CreateConverter(typeToConvert);
         }
     }
 
@@ -81,10 +68,6 @@ namespace NewApi
     {
 
         protected readonly string JsonDiscriminatorPropertyName;
-
-        [ThreadStatic] private static bool _isInsideRead;
-
-
 
         public JsonSubtypes()
         {

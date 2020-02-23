@@ -1,15 +1,12 @@
 ﻿using System.Text.Json;
+using NewApi;
 using NUnit.Framework;
 
-namespace NewApi.Tests
+namespace JsonSubTypes.Tests
 {
-    public class Tests
+    [TestFixture]
+    public class DemoCustomSubclassMappingTests
     {
-        [SetUp]
-        public void Setup()
-        {
-        }
-
         [JsonSubTypeConverter(typeof(JsonSubtypes<Animal>), "Sound")]
         [KnownSubType(typeof(Dog), "Bark")]
         [KnownSubType(typeof(Cat), "Meow")]
@@ -37,8 +34,8 @@ namespace NewApi.Tests
             var animal = JsonSerializer.Deserialize<Animal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
             Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed);
 
-            //animal = JsonSerializer.Deserialize<Animal>("{\"Sound\":\"Meow\",\"Declawed\":\"true\"}");
-            //Assert.AreEqual(true, (animal as Cat)?.Declawed);
+            animal = JsonSerializer.Deserialize<Animal>("{\"Sound\":\"Meow\",\"Declawed\":\"true\"}");
+            Assert.AreEqual(true, (animal as Cat)?.Declawed);
         }
     }
 }
