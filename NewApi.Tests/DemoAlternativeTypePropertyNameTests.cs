@@ -97,7 +97,6 @@ namespace JsonSubTypes.Tests
             [Test]
             public void ArbitraryConstructorShouldNotBeCalled()
             {
-                Assert.Fail("Not ready");
                 Animal deserializeObject = null;
                 try
                 {

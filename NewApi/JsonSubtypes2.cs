@@ -66,7 +66,6 @@ namespace NewApi
     }
     public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes
     {
-
         protected readonly string JsonDiscriminatorPropertyName;
 
         public JsonSubtypes()
@@ -203,7 +202,7 @@ namespace NewApi
         {
             Type targetType = parentType;
             IJsonSubtypes lastTypeResolver = null;
-            IJsonSubtypes currentTypeResolver = currentTypeResolver = GetTypeResolver(ToTypeInfo(targetType), serializer.Converters.OfType<IJsonSubtypes>());
+            IJsonSubtypes currentTypeResolver = GetTypeResolver(ToTypeInfo(targetType), serializer.Converters.OfType<IJsonSubtypes>());
 
             var jsonConverterCollection = serializer.Converters.OfType<IJsonSubtypes>().ToList();
             while (currentTypeResolver != null && currentTypeResolver != lastTypeResolver)
@@ -270,18 +269,15 @@ namespace NewApi
                 return true;
             }
 
-            JsonProperty matchingProperty = jObject
+            var objectEnumerator = jObject
                 .RootElement
-                .EnumerateObject()
-                .FirstOrDefault(jsonProperty => string.Equals(jsonProperty.Name, propertyName, StringComparison.OrdinalIgnoreCase));
-
-            if (string.Equals(matchingProperty.Name, propertyName, StringComparison.OrdinalIgnoreCase))
+                .EnumerateObject();
+            foreach (var jsonProperty in objectEnumerator.Where(jsonProperty => string.Equals(jsonProperty.Name, propertyName, StringComparison.OrdinalIgnoreCase)))
             {
-                return false;
+                value = jsonProperty.Value;
+                return true;
             }
-
-            value = matchingProperty.Value;
-            return true;
+            return false;
         }
 
         private static Type GetTypeByName(string typeName, TypeInfo parentType)
