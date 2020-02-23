@@ -16,6 +16,23 @@ namespace NewApi
         {
             DiscriminatorPropertyName = discriminatorPropertyName;
         }
+
+        public override bool IsDefaultAttribute()
+        {
+            return base.IsDefaultAttribute();
+        }
+
+        public override bool Match(object obj)
+        {
+            return base.Match(obj);
+        }
+
+        public override object TypeId { get; }
+
+        public override JsonConverter CreateConverter(Type typeToConvert)
+        {
+            return base.CreateConverter(typeToConvert);
+        }
     }
 
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
@@ -55,7 +72,12 @@ namespace NewApi
         }
     }
 
-    public class JsonSubtypes<T> : JsonConverter<T>
+    public interface IJsonSubtypes
+    {
+        Type GetType(JsonDocument jObject, Type parentType);
+        bool CanConvert(Type toType);
+    }
+    public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes
     {
 
         protected readonly string JsonDiscriminatorPropertyName;
@@ -172,7 +194,7 @@ namespace NewApi
             return (T)JsonSerializer.Deserialize(jObject.RootElement.GetRawText(), targetType);
         }
 
-        private Type GetType(JsonDocument jObject, Type parentType)
+        Type IJsonSubtypes.GetType(JsonDocument jObject, Type parentType)
         {
             Type resolvedType;
             if (JsonDiscriminatorPropertyName == null)
@@ -190,10 +212,10 @@ namespace NewApi
         private Type GetType(JsonDocument jObject, Type parentType, JsonSerializerOptions serializer)
         {
             Type targetType = parentType;
-            JsonSubtypes<T> lastTypeResolver = null;
-            JsonSubtypes<T> currentTypeResolver = this;
+            IJsonSubtypes lastTypeResolver = null;
+            IJsonSubtypes currentTypeResolver = currentTypeResolver = GetTypeResolver(ToTypeInfo(targetType), serializer.Converters.OfType<IJsonSubtypes>());
 
-            var jsonConverterCollection = serializer.Converters.OfType<JsonSubtypes<T>>().ToList();
+            var jsonConverterCollection = serializer.Converters.OfType<IJsonSubtypes>().ToList();
             while (currentTypeResolver != null && currentTypeResolver != lastTypeResolver)
             {
                 targetType = currentTypeResolver.GetType(jObject, targetType);
@@ -205,7 +227,7 @@ namespace NewApi
             return targetType;
         }
 
-        private JsonSubtypes<T> GetTypeResolver(TypeInfo targetType, IEnumerable<JsonSubtypes<T>> jsonConverterCollection)
+        private IJsonSubtypes GetTypeResolver(TypeInfo targetType, IEnumerable<IJsonSubtypes> jsonConverterCollection)
         {
             if (targetType == null)
             {
@@ -311,14 +333,13 @@ namespace NewApi
             var key = typeMapping.NotNullKeys().FirstOrDefault();
             if (key != null)
             {
-                throw new NotImplementedException();
-                //var targetLookupValueType = key.GetType();
-                //var lookupValue = discriminatorToken.ToObject(targetLookupValueType);
+                var targetLookupValueType = key.GetType();
+                var lookupValue = JsonSerializer.Deserialize(discriminatorToken.GetRawText(), targetLookupValueType);
 
-                //if (typeMapping.TryGetValue(lookupValue, out Type targetType))
-                //{
-                //    return targetType;
-                //}
+                if (typeMapping.TryGetValue(lookupValue, out Type targetType))
+                {
+                    return targetType;
+                }
             }
 
             return null;
