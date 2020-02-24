@@ -85,7 +85,6 @@ namespace JsonSubTypes.Tests
 
             public void DemoBaseWhenNull()
             {
-                Assert.Fail("Not ready");
                 var animal =
                     JsonSerializer.Deserialize<Animal>(
                         "{\"ClassName\": null,\"Color\":\"blue\"}");

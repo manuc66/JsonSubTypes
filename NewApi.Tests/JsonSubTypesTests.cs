@@ -202,7 +202,6 @@ namespace JsonSubTypes.Tests
         [Test]
         public void WhenDiscriminatorValueIsNullDeserializeToBaseType()
         {
-            Assert.Fail("Not ready");
             var expected = new Root
             {
                 Content = new Base()

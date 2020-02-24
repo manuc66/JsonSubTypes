@@ -177,7 +177,7 @@ namespace NewApi
             var targetType = GetType(jObject, objectType, serializer);
             if (targetType is null)
             {
-                throw new JsonException($"Unable to resolve a subtype of {objectType.Name}");
+                throw new JsonException($"Could not create an instance of type {objectType.FullName}. Type is an interface or abstract class and cannot be instantiated. Position: {reader.Position.GetInteger()}.");
             }
 
             return (T)JsonSerializer.Deserialize(ref readerAtStart, targetType, serializer);
@@ -203,11 +203,16 @@ namespace NewApi
             Type targetType = parentType;
             IJsonSubtypes lastTypeResolver = null;
             IJsonSubtypes currentTypeResolver = GetTypeResolver(ToTypeInfo(targetType), serializer.Converters.OfType<IJsonSubtypes>());
+            var visitedTypes = new HashSet<Type> { targetType };
 
             var jsonConverterCollection = serializer.Converters.OfType<IJsonSubtypes>().ToList();
             while (currentTypeResolver != null && currentTypeResolver != lastTypeResolver)
             {
                 targetType = currentTypeResolver.GetType(jObject, targetType);
+                if (!visitedTypes.Add(targetType))
+                {
+                    break;
+                }
                 lastTypeResolver = currentTypeResolver;
                 jsonConverterCollection = jsonConverterCollection.Where(c => c != currentTypeResolver).ToList();
                 currentTypeResolver = GetTypeResolver(ToTypeInfo(targetType), jsonConverterCollection);
@@ -224,7 +229,7 @@ namespace NewApi
             }
 
             var jsonConverterAttribute = GetAttribute<JsonSubTypeConverterAttribute>(targetType);
-            if (jsonConverterAttribute != null && ToTypeInfo(typeof(JsonSubtypes<T>)).IsAssignableFrom(ToTypeInfo(jsonConverterAttribute.ConverterType)))
+            if (jsonConverterAttribute != null && ToTypeInfo(typeof(T)).IsAssignableFrom(ToTypeInfo(jsonConverterAttribute.ConverterType.GenericTypeArguments[0])))
             {
                 return (JsonSubtypes<T>)Activator.CreateInstance(jsonConverterAttribute.ConverterType, jsonConverterAttribute.DiscriminatorPropertyName);
             }

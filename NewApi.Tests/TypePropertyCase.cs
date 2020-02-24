@@ -24,7 +24,6 @@ namespace JsonSubTypes.Tests
             [Test]
             public void FooParsingCamelCase()
             {
-                Assert.Fail("Not ready");
                 var serializeObject = "{\"MsgType\":1}";
                 var msgType = JsonSerializer.Deserialize<Foo>(serializeObject).MsgType;
                 Assert.AreEqual(1, msgType);
@@ -65,7 +64,6 @@ namespace JsonSubTypes.Tests
             [Test]
             public void FooParsingLowerPascalCase()
             {
-                Assert.Fail("Not ready");
                 var serializeObject = "{\"msgType\":1}";
                 Assert.AreEqual(1, JsonSerializer.Deserialize<Foo>(serializeObject).MsgType);
                 Assert.IsInstanceOf<Foo>(JsonSerializer.Deserialize<DtoBase>(serializeObject));
@@ -89,7 +87,6 @@ namespace JsonSubTypes.Tests
             [Test]
             public void FooParsingCamelCase()
             {
-                Assert.Fail("Not ready");
                 var serializeObject = "{\"MessageType\":1}";
                 Assert.AreEqual(1, JsonSerializer.Deserialize<Foo>(serializeObject).MsgType);
                 Assert.IsInstanceOf<Foo>(JsonSerializer.Deserialize<DtoBase>(serializeObject));
@@ -129,7 +126,6 @@ namespace JsonSubTypes.Tests
             [Test]
             public void FooParsingLowerPascalCase()
             {
-                Assert.Fail("Not ready");
                 var serializeObject = "{\"messageType\":1}";
                 Assert.AreEqual(1, JsonSerializer.Deserialize<Foo>(serializeObject).MsgType);
                 Assert.IsInstanceOf<Foo>(JsonSerializer.Deserialize<DtoBase>(serializeObject));

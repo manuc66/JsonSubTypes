@@ -75,7 +75,6 @@ namespace JsonSubTypes.Tests
             [Test]
             public void DiscriminatorValueCanBeANumber()
             {
-                Assert.Fail("Not ready");
                 var root1 = JsonSerializer.Deserialize<Parent>("{\"child\":{\"ChildType\":1}}");
                 var root2 = JsonSerializer.Deserialize<Parent>("{\"child\":{\"ChildType\":2}}");
                 var root3 = JsonSerializer.Deserialize<Parent>("{\"child\":{\"ChildType\":8}}");
