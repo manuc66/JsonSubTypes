@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Fallback to JSONPath to allow nested field as a deserialization property. #89
 - Bump Newtonsoft.Json from 11.0.2 to 12.0.3 #88
+- Implements dynamic registration for subtype detection by property presence. #50
 
 ### Fixed
 - JsonSubtypes does not respect naming strategy for discriminator property value #80
