@@ -9,19 +9,19 @@ environment:
 init:
   - choco install opencover.portable
   - choco install codecov
-  - choco install "msbuild-sonarqube-runner" -y
+  - choco install "sonarscanner-msbuild-net46" -y
 
 before_build:
   - nuget restore
   - ps: >-
       if ($env:APPVEYOR_PULL_REQUEST_NUMBER) {
-          SonarScanner.MSBuild.exe begin /k:"manuc66:JsonSubtypes" /d:"sonar.host.url=https://sonarqube.com" /o:"manuc66-github" /d:"sonar.login=$env:sonar_token" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" /d:sonar.cs.nunit.reportsPaths="nunitTestResult.xml" /d:"sonar.cpd.exclusions=**/*Tests.cs" /d:"sonar.language=cs" /d:"sonar.pullrequest.base=master" /d:"sonar.pullrequest.branch=$env:APPVEYOR_REPO_BRANCH" /d:"sonar.pullrequest.key=$env:APPVEYOR_PULL_REQUEST_NUMBER" /d:"sonar.pullrequest.provider=GitHub" /d:"sonar.pullrequest.github.repository=$env:APPVEYOR_REPO_NAME" /d:"sonar.github.oauth=$env:github_auth_token" 
+          SonarScanner.MSBuild.exe begin /k:"manuc66:JsonSubtypes" /d:"sonar.host.url=https://sonarcloud.io" /o:"manuc66-github" /d:"sonar.login=$env:sonar_token" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" /d:sonar.cs.nunit.reportsPaths="nunitTestResult.xml" /d:"sonar.cpd.exclusions=**/*Tests.cs" /d:"sonar.language=cs" /d:"sonar.pullrequest.base=master" /d:"sonar.pullrequest.branch=$env:APPVEYOR_REPO_BRANCH" /d:"sonar.pullrequest.key=$env:APPVEYOR_PULL_REQUEST_NUMBER" /d:"sonar.pullrequest.provider=GitHub" /d:"sonar.pullrequest.github.repository=$env:APPVEYOR_REPO_NAME" /d:"sonar.github.oauth=$env:github_auth_token" 
       }
       elseif ($env:APPVEYOR_REPO_BRANCH -eq "master") {
-          SonarScanner.MSBuild.exe begin /k:"manuc66:JsonSubtypes" /d:"sonar.host.url=https://sonarqube.com" /o:"manuc66-github" /d:"sonar.login=$env:sonar_token" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" /d:sonar.cs.nunit.reportsPaths="nunitTestResult.xml" /d:"sonar.cpd.exclusions=**/*Tests.cs"  /d:"sonar.language=cs"
+          SonarScanner.MSBuild.exe begin /k:"manuc66:JsonSubtypes" /d:"sonar.host.url=https://sonarcloud.io" /o:"manuc66-github" /d:"sonar.login=$env:sonar_token" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" /d:sonar.cs.nunit.reportsPaths="nunitTestResult.xml" /d:"sonar.cpd.exclusions=**/*Tests.cs"  /d:"sonar.language=cs"
       }
       else { 
-          SonarScanner.MSBuild.exe begin /k:"manuc66:JsonSubtypes" /d:"sonar.host.url=https://sonarqube.com" /o:"manuc66-github" /d:"sonar.login=$env:sonar_token" /d:"sonar.branch.name=$env:APPVEYOR_REPO_BRANCH" /d:"sonar.branch.target=master" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" /d:sonar.cs.nunit.reportsPaths="nunitTestResult.xml" /d:"sonar.cpd.exclusions=**/*Tests.cs"  /d:"sonar.language=cs"
+          SonarScanner.MSBuild.exe begin /k:"manuc66:JsonSubtypes" /d:"sonar.host.url=https://sonarcloud.io" /o:"manuc66-github" /d:"sonar.login=$env:sonar_token" /d:"sonar.branch.name=$env:APPVEYOR_REPO_BRANCH" /d:"sonar.branch.target=master" /d:sonar.cs.opencover.reportsPaths=".\MyProject_coverage.xml" /d:sonar.cs.nunit.reportsPaths="nunitTestResult.xml" /d:"sonar.cpd.exclusions=**/*Tests.cs"  /d:"sonar.language=cs"
       }
 
 configuration: Release
@@ -34,9 +34,9 @@ build:
   verbosity: minimal
 
 test_script:
-  - dir JsonSubTypes\bin\Release
-  - dir JsonSubTypes.Tests\bin\Release
-  - OpenCover.Console.exe -register:user -target:"nunit3-console.exe" -targetargs:".\JsonSubTypes.Tests\bin\Release\JsonSubTypes.Tests.dll --result:nunitTestResult.xml" -filter:"+[JsonSubTypes*]* -[JsonSubTypes.Tests]*" -output:".\MyProject_coverage.xml"
+  - dir /S JsonSubTypes\bin\Release
+  - dir /S JsonSubTypes.Tests\bin\Release
+  - OpenCover.Console.exe -register:admin -target:"nunit3-console.exe" -targetargs:".\JsonSubTypes.Tests\bin\Release\net46\JsonSubTypes.Tests.dll --result:nunitTestResult.xml" -filter:"+[JsonSubTypes*]* -[JsonSubTypes.Tests]*" -output:".\MyProject_coverage.xml"
   - codecov -f "MyProject_coverage.xml"
 
 after_test:
@@ -51,7 +51,7 @@ deploy:
     name: NuGet
     server: https://www.nuget.org/api/v2/package
     api_key:
-      secure: cSqsPd3H3eNIKcAiatmQXXe1oEqXANMUxS+5I4zvVqGR3k/ae8a/TaIvDuf8xJei
+      secure: I8mGPBaVaAK9e3mBzOBoqQLdPckvVYvSJqFc2BE7/P7UF3P3OqHkxUAa1/PAARuy
     artifact: /JsonSubTypes.*\.nupkg/
     on:
       branch: master

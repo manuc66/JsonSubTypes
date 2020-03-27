@@ -558,5 +558,26 @@ namespace JsonSubTypes.Tests
 
             Parallel.For(0, 100, index => test());
         }
+
+
+        public class Cat2 : Animal2 { }
+
+        public class Animal2 { }
+
+        [Test]
+        public void ExplicitExceptionWhenMappingNotRegistered()
+        {
+            var serializersettings = new JsonSerializerSettings();
+            serializersettings.Converters.Add(
+                JsonSubtypesConverterBuilder
+                    .Of(typeof(Animal2), "Type")
+                    .SerializeDiscriminatorProperty()
+                    .Build());
+
+            var e1 = Assert.Throws<JsonSerializationException>(() => JsonConvert.SerializeObject(new Animal2(), serializersettings));
+            Assert.AreEqual("Impossible to serialize type: JsonSubTypes.Tests.DynamicRegisterTests+Animal2 because there is no registered mapping for the discriminator property", e1.Message);
+            var e2 = Assert.Throws<JsonSerializationException>(() => JsonConvert.SerializeObject(new Cat2(), serializersettings));
+            Assert.AreEqual("Impossible to serialize type: JsonSubTypes.Tests.DynamicRegisterTests+Cat2 because there is no registered mapping for the discriminator property", e2.Message);
+        }
     }
 }

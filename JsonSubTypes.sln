@@ -5,9 +5,7 @@ VisualStudioVersion = 16.0.28803.202
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JsonSubTypes", "JsonSubTypes\JsonSubTypes.csproj", "{C133EBE9-0E84-44BC-920F-137BB0FEC7FD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonSubTypes.Tests", "JsonSubTypes.Tests\JsonSubTypes.Tests.csproj", "{DFE69232-1753-4FAD-ACF3-E8A9BBF434F1}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonSubTypes.Tests.Net35", "JsonSubTypesNet35\JsonSubTypes.Tests.Net35.csproj", "{FFBBBE62-26B1-41D1-AEF6-507CC5C0FB9D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JsonSubTypes.Tests", "JsonSubTypes.Tests\JsonSubTypes.Tests.csproj", "{DFE69232-1753-4FAD-ACF3-E8A9BBF434F1}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{F40E72F8-74C8-4BBA-96B8-888065C25DE3}"
 	ProjectSection(SolutionItems) = preProject
@@ -18,6 +16,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		LICENSE = LICENSE
 		README.md = README.md
 	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JsonSubTypes.Tests.Net35", "JsonSubTypes.Tests.Net35\JsonSubTypes.Tests.Net35.csproj", "{FFBBBE62-26B1-41D1-AEF6-507CC5C0FB9D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

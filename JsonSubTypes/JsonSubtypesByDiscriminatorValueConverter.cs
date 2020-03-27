@@ -111,7 +111,10 @@ namespace JsonSubTypes
                 _isInsideWrite = false;
             }
 
-            var supportedType = _supportedTypes[value.GetType()];
+            if (!_supportedTypes.TryGetValue(value.GetType(), out var supportedType))
+            {
+                throw new JsonSerializationException("Impossible to serialize type: " + value.GetType().FullName + " because there is no registered mapping for the discriminator property");
+            }
             var typeMappingPropertyValue = JToken.FromObject(supportedType, serializer);
             if (_addDiscriminatorFirst)
             {

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 
 namespace JsonSubTypes
 {
@@ -47,7 +48,7 @@ namespace JsonSubTypes
 
         public override bool CanConvert(Type objectType)
         {
-            return objectType == _baseType;
+            return objectType == _baseType || ToTypeInfo(_baseType).IsAssignableFrom(ToTypeInfo(objectType));
         }
     }
 }
