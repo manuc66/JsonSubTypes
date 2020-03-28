@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2019-06-25
+
 ### Added
 - Fallback to JSONPath to allow nested field as a deserialization property. #89
 - Bump Newtonsoft.Json from 11.0.2 to 12.0.3 #88
