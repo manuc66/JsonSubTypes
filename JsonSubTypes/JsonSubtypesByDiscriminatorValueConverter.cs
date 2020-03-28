@@ -71,11 +71,6 @@ namespace JsonSubTypes
             return base.CanConvert(objectType) || _supportedTypes.ContainsKey(objectType);
         }
 
-        internal override Dictionary<string, Type> GetTypesByPropertyPresence(Type parentType)
-        {
-            return new Dictionary<string, Type>();
-        }
-
         public override bool CanWrite
         {
             get

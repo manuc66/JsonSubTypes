@@ -12,11 +12,6 @@ namespace JsonSubTypes
             _jsonPropertyName2Type = jsonProperty2Type;
         }
 
-        internal override NullableDictionary<object, Type> GetSubTypeMapping(Type type)
-        {
-            return new NullableDictionary<object, Type>();
-        }
-
         internal override Dictionary<string, Type> GetTypesByPropertyPresence(Type parentType)
         {
             return _jsonPropertyName2Type;
