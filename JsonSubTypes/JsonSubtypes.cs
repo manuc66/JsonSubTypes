@@ -243,7 +243,7 @@ namespace JsonSubTypes
             JsonSubtypes currentTypeResolver = this;
             var visitedTypes = new HashSet<Type> { targetType };
 
-            var jsonConverterCollection = serializer.Converters.OfType<JsonSubtypesConverter>().ToList();
+            var jsonConverterCollection = serializer.Converters.OfType<JsonSubtypesByDiscriminatorValueConverter>().ToList();
             while (currentTypeResolver != null && currentTypeResolver != lastTypeResolver)
             {
                 targetType = currentTypeResolver.ResolveType(jObject, targetType, serializer);
@@ -260,7 +260,7 @@ namespace JsonSubTypes
             return targetType;
         }
 
-        private JsonSubtypes GetTypeResolver(TypeInfo targetType, IEnumerable<JsonSubtypesConverter> jsonConverterCollection)
+        private JsonSubtypes GetTypeResolver(TypeInfo targetType, IEnumerable<JsonSubtypesByDiscriminatorValueConverter> jsonConverterCollection)
         {
             if (targetType == null)
             {
@@ -277,25 +277,31 @@ namespace JsonSubTypes
                 .FirstOrDefault(c => c.CanConvert(ToType(targetType)));
         }
 
-        private static Type GetTypeByPropertyPresence(JObject jObject, Type parentType)
+        private Type GetTypeByPropertyPresence(JObject jObject, Type parentType)
         {
-            var knownSubTypeAttributes = GetAttributes<KnownSubTypeWithPropertyAttribute>(ToTypeInfo(parentType));
+            var knownSubTypeAttributes = GetTypesByPropertyPresence(parentType);
 
             return knownSubTypeAttributes
                 .Select(knownType =>
                 {
-                    if (TryGetValueInJson(jObject, knownType.PropertyName, out JToken _))
-                        return knownType.SubType;
+                    if (TryGetValueInJson(jObject, knownType.Key, out JToken _))
+                        return knownType.Value;
 
-                    var token = jObject.SelectToken(knownType.PropertyName);
+                    var token = jObject.SelectToken(knownType.Key);
                     if (token != null)
                     {
-                        return knownType.SubType;
+                        return knownType.Value;
                     }
 
                     return null;
                 })
                 .FirstOrDefault(type => type != null);
+        }
+
+        internal virtual Dictionary<string, Type> GetTypesByPropertyPresence(Type parentType)
+        {
+            return GetAttributes<KnownSubTypeWithPropertyAttribute>(ToTypeInfo(parentType))
+                .ToDictionary(a => a.PropertyName, a => a.SubType);
         }
 
         private Type GetTypeFromDiscriminatorValue(JObject jObject, Type parentType, JsonSerializer serializer)

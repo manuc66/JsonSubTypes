@@ -159,6 +159,16 @@ var persons = JsonConvert.DeserializeObject<IReadOnlyCollection<Person>>(json);
 Assert.AreEqual("Painter", (persons.Last() as Artist)?.Skill);
 ```
 
+
+### Registration:
+```cs
+settings.Converters.Add(JsonSubtypesWithPropertyConverterBuilder
+    .Of(typeof(Person))
+    .RegisterSubtypeWithProperty(typeof(Employee), "JobTitle")
+    .RegisterSubtypeWithProperty(typeof(Artist), "Skill")
+    .Build());
+```
+
 ## A default class other than the base type can be defined
 
 ```cs
@@ -177,6 +187,13 @@ settings.Converters.Add(JsonSubtypesConverterBuilder
     .Of(typeof(IExpression), "Type")
     .SetFallbackSubtype(typeof(UnknownExpression))
     .RegisterSubtype(typeof(ConstantExpression), "Constant")
+    .Build());
+```
+```cs
+settings.Converters.Add(JsonSubtypesWithPropertyConverterBuilder
+    .Of(typeof(IExpression))
+    .SetFallbackSubtype(typeof(UnknownExpression))
+    .RegisterSubtype(typeof(ConstantExpression), "Value")
     .Build());
 ```
 
