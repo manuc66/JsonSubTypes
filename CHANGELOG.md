@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.7.0] - 2019-06-25
+## [1.7.0] - 2020-03-28
 
 ### Added
 - Fallback to JSONPath to allow nested field as a deserialization property. #89
