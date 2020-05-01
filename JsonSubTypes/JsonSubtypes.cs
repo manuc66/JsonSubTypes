@@ -281,7 +281,7 @@ namespace JsonSubTypes
         {
             var knownSubTypeAttributes = GetTypesByPropertyPresence(parentType);
 
-            return knownSubTypeAttributes
+            var types = knownSubTypeAttributes
                 .Select(knownType =>
                 {
                     if (TryGetValueInJson(jObject, knownType.Key, out JToken _))
@@ -295,7 +295,15 @@ namespace JsonSubTypes
 
                     return null;
                 })
-                .FirstOrDefault(type => type != null);
+                .Where(type => type != null)
+                .ToArray();
+
+            if (types.Length == 1)
+            {
+                return types[0];
+            }
+
+            throw new JsonSerializationException("Ambiguous type resolution, expected only one type but got: " + String.Join(", ", types.Select(t => t.FullName).ToArray()));
         }
 
         internal virtual Dictionary<string, Type> GetTypesByPropertyPresence(Type parentType)

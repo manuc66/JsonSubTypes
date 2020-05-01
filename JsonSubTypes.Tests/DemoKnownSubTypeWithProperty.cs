@@ -61,5 +61,14 @@ namespace JsonSubTypes.Tests
             var persons = JsonConvert.DeserializeObject<ICollection<Person>>(json);
             Assert.AreEqual(typeof(Person), persons.First().GetType());
         }
+
+        [Test]
+        public void ThrowIfManyMatches()
+        {
+            string json = "{\r\n  \"Name\": \"Foo\",\r\n  \"Skill\": \"A\",\r\n  \"JobTitle\": \"B\"\r\n}";
+
+            var jsonSerializationException = Assert.Throws<JsonSerializationException>(() => JsonConvert.DeserializeObject<Person>(json));
+            Assert.AreEqual("Ambiguous type resolution, expected only one type but got: JsonSubTypes.Tests.DemoKnownSubTypeWithProperty+Employee, JsonSubTypes.Tests.DemoKnownSubTypeWithProperty+Artist", jsonSerializationException.Message);
+        }
     }
 }
