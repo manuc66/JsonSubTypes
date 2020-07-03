@@ -20,16 +20,31 @@ namespace JsonSubTypes
             return new JsonSubtypesWithPropertyConverterBuilder(baseType);
         }
 
+        public static JsonSubtypesWithPropertyConverterBuilder Of<T>()
+        {
+            return Of(typeof(T));
+        }
+
         public JsonSubtypesWithPropertyConverterBuilder RegisterSubtypeWithProperty(Type subtype, string jsonPropertyName)
         {
             _subTypeMapping.Add(jsonPropertyName, subtype);
             return this;
         }
 
+        public JsonSubtypesWithPropertyConverterBuilder RegisterSubtypeWithProperty<T>(string jsonPropertyName)
+        {
+            return RegisterSubtypeWithProperty(typeof(T), jsonPropertyName);
+        }
+
         public JsonSubtypesWithPropertyConverterBuilder SetFallbackSubtype(Type fallbackSubtype)
         {
             _fallbackSubtype = fallbackSubtype;
             return this;
+        }
+
+        public JsonSubtypesWithPropertyConverterBuilder SetFallbackSubtype<T>()
+        {
+            return SetFallbackSubtype(typeof(T));
         }
 
         public JsonConverter Build()
