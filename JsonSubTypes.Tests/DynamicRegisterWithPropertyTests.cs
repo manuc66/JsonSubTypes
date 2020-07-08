@@ -296,5 +296,24 @@ namespace JsonSubTypes.Tests
 
             Parallel.For(0, 100, index => test());
         }
+
+        [Test]
+        public void RegisterWithGeneric()
+        {
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
+            settings.Converters.Add(JsonSubtypesWithPropertyConverterBuilder
+                .Of<Animal>()
+                .RegisterSubtypeWithProperty<Cat>("catLives")
+                .RegisterSubtypeWithProperty<Dog>("CanBark")
+                .Build());
+
+            var json = "{\"catLives\":11,}";
+
+            var result = JsonConvert.DeserializeObject<Animal>(json);
+
+            Assert.AreEqual(typeof(Cat), result.GetType());
+        }
     }
 }
