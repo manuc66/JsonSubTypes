@@ -308,7 +308,12 @@ namespace JsonSubTypes
                 return types[0];
             }
 
-            throw new JsonSerializationException("Ambiguous type resolution, expected only one type but got: " + String.Join(", ", types.Select(t => t.FullName).ToArray()));
+            if (types.Length > 1)
+            {
+                throw new JsonSerializationException("Ambiguous type resolution, expected only one type but got: " + String.Join(", ", types.Select(t => t.FullName).ToArray()));
+            }
+
+            return null;
         }
 
         internal virtual Dictionary<string, Type> GetTypesByPropertyPresence(Type parentType)
