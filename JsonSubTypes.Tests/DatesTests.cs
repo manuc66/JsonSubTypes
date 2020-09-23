@@ -8,6 +8,7 @@ namespace JsonSubTypes.Tests
     public class DatesTest
     {
         [JsonConverter(typeof(JsonSubtypes), nameof(SubTypeClass.Discriminator))]
+        [JsonSubtypes.KnownSubType(typeof(SubTypeClass), "SubTypeClass")]
         public abstract class MainClass
         {
         }
@@ -22,13 +23,14 @@ namespace JsonSubTypes.Tests
         [Test]
         public void DeserializingSubTypeWithDateParsesCorrectly()
         {
-            var json = "{ \"Discriminator\": \"MainClass\", \"Date\": \"2020-06-28T00:00:00.00000+00:00\" }";
+            var json = "{ \"Discriminator\": \"SubTypeClass\", \"Date\": \"2020-06-28T00:00:00.00000+00:00\" }";
 
-            var obj = JsonConvert.DeserializeObject<SubTypeClass>(json);
+            var obj = JsonConvert.DeserializeObject<MainClass>(json);
 
             Assert.That(obj, Is.Not.Null);
-            Assert.That(obj.Date.HasValue, Is.True);
-            Assert.That(obj.Date.Value.Offset, Is.EqualTo(TimeSpan.Zero));
+            Assert.That(obj, Is.InstanceOf<SubTypeClass>());
+            Assert.That(((SubTypeClass)obj).Date.HasValue, Is.True);
+            Assert.That(((SubTypeClass)obj).Date.Value.Offset, Is.EqualTo(TimeSpan.Zero));
         }
     }
 }
