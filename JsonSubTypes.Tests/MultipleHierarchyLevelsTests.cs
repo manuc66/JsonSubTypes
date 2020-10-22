@@ -84,8 +84,13 @@ namespace JsonSubTypes.Tests
 
             settings.Converters.Add(JsonSubtypesConverterBuilder
                 .Of(typeof(Payload), Payload.PAYLOAD_KIND)
-                .RegisterSubtype(typeof(Game), PayloadDiscriminator.GAME)
+                .RegisterSubtype(typeof(Entertainment), PayloadDiscriminator.Entertainment)
                 .RegisterSubtype(typeof(Com), PayloadDiscriminator.COM)
+                .Build());
+
+            settings.Converters.Add(JsonSubtypesWithPropertyConverterBuilder
+                .Of(typeof(Entertainment))
+                .RegisterSubtypeWithProperty(typeof(Game), Game.GAME_KIND)
                 .Build());
 
             settings.Converters.Add(JsonSubtypesConverterBuilder
@@ -113,7 +118,7 @@ namespace JsonSubTypes.Tests
         public enum PayloadDiscriminator
         {
             COM = 0,
-            GAME = 1
+            Entertainment = 1
         }
 
         public enum GameDiscriminator
@@ -129,9 +134,13 @@ namespace JsonSubTypes.Tests
             [JsonProperty(PAYLOAD_KIND)] public abstract PayloadDiscriminator PayloadKind { get; }
         }
 
-        public abstract class Game : Payload
+        public abstract class Entertainment : Payload
         {
-            public override PayloadDiscriminator PayloadKind => PayloadDiscriminator.GAME;
+            public override PayloadDiscriminator PayloadKind => PayloadDiscriminator.Entertainment;
+        }
+
+        public abstract class Game : Entertainment
+        {
 
             public const string GAME_KIND = "$GameKind";
 
