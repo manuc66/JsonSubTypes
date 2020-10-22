@@ -79,6 +79,9 @@ namespace JsonSubTypes
 
         [ThreadStatic] private static JsonReader _reader;
 
+        private static readonly Dictionary<TypeInfo, IEnumerable<object>> _attributesCache = new Dictionary<TypeInfo, IEnumerable<object>>();
+
+
         public override bool CanRead
         {
             get
@@ -444,9 +447,26 @@ namespace JsonSubTypes
             }
         }
 
+        private static IEnumerable<object> GetAttributes(TypeInfo typeInfo)
+        {
+            if (_attributesCache.TryGetValue(typeInfo, out var res))
+                return res;
+
+            lock (_attributesCache)
+            {
+                if (!_attributesCache.TryGetValue(typeInfo, out res))
+                {
+                    res = typeInfo.GetCustomAttributes(false);
+                    _attributesCache.Add(typeInfo, res);
+                }
+            }
+
+            return res;
+        }
+
         private static IEnumerable<T> GetAttributes<T>(TypeInfo typeInfo) where T : Attribute
         {
-            return typeInfo.GetCustomAttributes(false)
+            return GetAttributes(typeInfo)
                 .OfType<T>();
         }
 
