@@ -9,6 +9,9 @@ using TypeInfo = System.Type;
 #else
 using System.Reflection;
 #endif
+#if !NET35
+using System.Collections.Concurrent;
+#endif
 
 namespace JsonSubTypes
 {
@@ -79,7 +82,11 @@ namespace JsonSubTypes
 
         [ThreadStatic] private static JsonReader _reader;
 
+#if NET35
         private static readonly Dictionary<TypeInfo, IEnumerable<object>> _attributesCache = new Dictionary<TypeInfo, IEnumerable<object>>();
+#else
+        private static readonly ConcurrentDictionary<TypeInfo, IEnumerable<object>> _attributesCache = new ConcurrentDictionary<TypeInfo, IEnumerable<object>>();
+#endif
 
         public override bool CanRead
         {
@@ -448,6 +455,7 @@ namespace JsonSubTypes
 
         private static IEnumerable<object> GetAttributes(TypeInfo typeInfo)
         {
+#if NET35
             if (_attributesCache.TryGetValue(typeInfo, out var res))
                 return res;
 
@@ -461,6 +469,9 @@ namespace JsonSubTypes
             }
 
             return res;
+#else
+            return _attributesCache.GetOrAdd(typeInfo, typeInfo.GetCustomAttributes(false));
+#endif
         }
 
         private static IEnumerable<T> GetAttributes<T>(TypeInfo typeInfo) where T : Attribute
