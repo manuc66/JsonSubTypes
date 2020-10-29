@@ -470,7 +470,7 @@ namespace JsonSubTypes
 
             return res;
 #else
-            return _attributesCache.GetOrAdd(typeInfo, typeInfo.GetCustomAttributes(false));
+            return _attributesCache.GetOrAdd(typeInfo, ti => ti.GetCustomAttributes(false));
 #endif
         }
 
