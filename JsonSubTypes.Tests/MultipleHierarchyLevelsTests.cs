@@ -230,4 +230,78 @@ namespace JsonSubTypes.Tests
         {
         }
     }
+
+    [TestFixture]
+    public class MultipleHierarchyLevelsSubtypesWithPropertyDynamicRegistrationTests
+    {
+        JsonSerializerSettings settings;
+
+        [SetUp]
+        public void Init()
+        {
+            settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
+            settings.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(Payload), Payload.PAYLOAD_KIND)
+                .RegisterSubtype(typeof(Game), PayloadDiscriminator.GAME)
+                .RegisterSubtype(typeof(Com), PayloadDiscriminator.COM)
+                .Build());
+
+            settings.Converters.Add(JsonSubtypesWithPropertyConverterBuilder
+                .Of(typeof(Game))
+                .RegisterSubtypeWithProperty(typeof(Walk), nameof(Walk.FootCount))
+                .RegisterSubtypeWithProperty(typeof(Ride), nameof(Ride.WheelCount))
+                .Build());
+        }
+
+        [Test]
+        public void ShouldDeserializeNestedLevel()
+        {
+            var data = "{\"$PayloadKind\":1,\"WheelCount\":2}";
+            Assert.IsInstanceOf<Ride>(JsonConvert.DeserializeObject<Payload>(data, settings));
+        }
+
+        [Test]
+        public void ShouldSerializeNestedLevel()
+        {
+            Payload ride = new Ride();
+            var data = JsonConvert.SerializeObject(ride, settings);
+            Assert.AreEqual("{\"WheelCount\":0,\"$PayloadKind\":1}", data);
+        }
+
+        public enum PayloadDiscriminator
+        {
+            COM = 0,
+            GAME = 1
+        }
+
+        public abstract class Payload
+        {
+            public const string PAYLOAD_KIND = "$PayloadKind";
+
+            [JsonProperty(PAYLOAD_KIND)] public abstract PayloadDiscriminator PayloadKind { get; }
+        }
+
+        public abstract class Game : Payload
+        {
+            public override PayloadDiscriminator PayloadKind => PayloadDiscriminator.GAME;
+
+        }
+
+        public class Com : Payload
+        {
+            public override PayloadDiscriminator PayloadKind => PayloadDiscriminator.COM;
+        }
+
+        public class Walk : Game
+        {
+            public int FootCount { get; set; }
+        }
+
+        public class Ride : Game
+        {
+            public int WheelCount { get; set; }
+        }
+    }
 }
