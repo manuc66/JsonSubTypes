@@ -86,6 +86,7 @@ namespace JsonSubTypes
         private static readonly Dictionary<TypeInfo, IEnumerable<object>> _attributesCache = new Dictionary<TypeInfo, IEnumerable<object>>();
 #else
         private static readonly ConcurrentDictionary<TypeInfo, IEnumerable<object>> _attributesCache = new ConcurrentDictionary<TypeInfo, IEnumerable<object>>();
+        private static readonly Func<TypeInfo, IEnumerable<object>> _getCustomAttributes = ti => ti.GetCustomAttributes(false);
 #endif
 
         public override bool CanRead
@@ -470,7 +471,7 @@ namespace JsonSubTypes
 
             return res;
 #else
-            return _attributesCache.GetOrAdd(typeInfo, ti => ti.GetCustomAttributes(false));
+            return _attributesCache.GetOrAdd(typeInfo, _getCustomAttributes);
 #endif
         }
 
