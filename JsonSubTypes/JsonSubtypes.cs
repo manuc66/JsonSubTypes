@@ -457,19 +457,16 @@ namespace JsonSubTypes
         private static IEnumerable<object> GetAttributes(TypeInfo typeInfo)
         {
 #if NET35
-            if (_attributesCache.TryGetValue(typeInfo, out var res))
-                return res;
-
             lock (_attributesCache)
             {
-                if (!_attributesCache.TryGetValue(typeInfo, out res))
-                {
-                    res = typeInfo.GetCustomAttributes(false);
-                    _attributesCache.Add(typeInfo, res);
-                }
-            }
+                if (_attributesCache.TryGetValue(typeInfo, out var res))
+                   return res;
 
-            return res;
+                res = typeInfo.GetCustomAttributes(false);
+                _attributesCache.Add(typeInfo, res);
+
+                return res;
+            }
 #else
             return _attributesCache.GetOrAdd(typeInfo, _getCustomAttributes);
 #endif
