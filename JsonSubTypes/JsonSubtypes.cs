@@ -380,6 +380,11 @@ namespace JsonSubTypes
                 var searchLocation = parentTypeFullName.Substring(0, parentTypeFullName.Length - parentType.Name.Length);
                 typeByName = insideAssembly.GetType(searchLocation + typeName, false, true);
             }
+            
+            if (parentTypeFullName != null && typeByName == null)
+            {
+                typeByName = Type.GetType(typeName);
+            }
 
             var typeByNameInfo = ToTypeInfo(typeByName);
             if (typeByNameInfo != null && parentType.IsAssignableFrom(typeByNameInfo))
