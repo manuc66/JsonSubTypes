@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-#if (NET35 || NET40)
+#if (!NETSTANDARD1_3)
 using TypeInfo = System.Type;
 #else
 using System.Reflection;
@@ -494,7 +494,7 @@ namespace JsonSubTypes
 
         internal static TypeInfo ToTypeInfo(Type type)
         {
-#if (NET35 || NET40)
+#if (!NETSTANDARD1_3)
             return type;
 #else
             return type?.GetTypeInfo();
@@ -503,7 +503,7 @@ namespace JsonSubTypes
 
         internal static Type ToType(TypeInfo typeInfo)
         {
-#if (NET35 || NET40)
+#if (!NETSTANDARD1_3)
             return typeInfo;
 #else
             return typeInfo?.AsType();
