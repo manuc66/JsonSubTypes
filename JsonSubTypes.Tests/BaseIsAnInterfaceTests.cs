@@ -51,7 +51,7 @@ namespace JsonSubTypes.Tests
         public void UnknownMappingFails()
         {
             var exception = Assert.Throws<JsonSerializationException>(() => JsonConvert.DeserializeObject<IAnimal>("{\"Sound\":\"Scream\"}"));
-            Assert.AreEqual("Could not create an instance of type JsonSubTypes.Tests.BaseIsAnInterfaceTests+IAnimal. Type is an interface or abstract class and cannot be instantiated. Path 'Sound', line 1, position 9.", exception.Message);
+            Assert.AreEqual("No instantiable subtype has been found for: JsonSubTypes.Tests.BaseIsAnInterfaceTests+IAnimal. Path '', line 1, position 1.", exception.Message);
         }
     }
 }

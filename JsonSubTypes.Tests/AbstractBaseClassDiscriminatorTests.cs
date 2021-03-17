@@ -23,7 +23,7 @@ namespace JsonSubTypes.Tests
             var exception = Assert.Throws<JsonSerializationException>(() =>
                 JsonConvert.DeserializeObject<MainClass>("{\"Discriminator\":\"MainClass\"}"));
             Assert.AreEqual(
-                "Could not create an instance of type JsonSubTypes.Tests.AbstractBaseClassDiscriminatorTests+MainClass. Type is an interface or abstract class and cannot be instantiated. Path 'Discriminator', line 1, position 17.",
+                "No instantiable subtype has been found for: JsonSubTypes.Tests.AbstractBaseClassDiscriminatorTests+MainClass. Path '', line 1, position 1.",
                 exception.Message);
         }
 
@@ -53,7 +53,7 @@ namespace JsonSubTypes.Tests
             var exception = Assert.Throws<JsonSerializationException>(() =>
                 JsonConvert.DeserializeObject<A>("{\"Discriminator\":\"D\"}"));
             Assert.AreEqual(
-                "Could not create an instance of type JsonSubTypes.Tests.AbstractBaseClassDiscriminatorTests+A. Type is an interface or abstract class and cannot be instantiated. Path 'Discriminator', line 1, position 17.",
+                "No instantiable subtype has been found for: JsonSubTypes.Tests.AbstractBaseClassDiscriminatorTests+A. Path '', line 1, position 1.",
                 exception.Message);
         }
     }

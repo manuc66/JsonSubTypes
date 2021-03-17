@@ -11,6 +11,7 @@ using System.Reflection;
 #endif
 #if !NET35
 using System.Collections.Concurrent;
+
 #endif
 
 namespace JsonSubTypes
@@ -83,10 +84,14 @@ namespace JsonSubTypes
         [ThreadStatic] private static JsonReader _reader;
 
 #if NET35
-        private static readonly Dictionary<TypeInfo, IEnumerable<object>> _attributesCache = new Dictionary<TypeInfo, IEnumerable<object>>();
+        private static readonly Dictionary<TypeInfo, IEnumerable<object>> _attributesCache =
+ new Dictionary<TypeInfo, IEnumerable<object>>();
 #else
-        private static readonly ConcurrentDictionary<TypeInfo, IEnumerable<object>> _attributesCache = new ConcurrentDictionary<TypeInfo, IEnumerable<object>>();
-        private static readonly Func<TypeInfo, IEnumerable<object>> _getCustomAttributes = ti => ti.GetCustomAttributes(false);
+        private static readonly ConcurrentDictionary<TypeInfo, IEnumerable<object>> _attributesCache =
+            new ConcurrentDictionary<TypeInfo, IEnumerable<object>>();
+
+        private static readonly Func<TypeInfo, IEnumerable<object>> _getCustomAttributes =
+            ti => ti.GetCustomAttributes(false);
 #endif
 
         public override bool CanRead
@@ -142,15 +147,17 @@ namespace JsonSubTypes
                     value = ReadObject(reader, objectType, serializer);
                     break;
                 case JsonToken.StartArray:
+                {
+                    var elementType = GetElementType(objectType);
+                    if (elementType == null)
                     {
-                        var elementType = GetElementType(objectType);
-                        if (elementType == null)
-                        {
-                            throw CreateJsonReaderException(reader, $"Impossible to read JSON array to fill type: {objectType.Name}");
-                        }
-                        value = ReadArray(reader, objectType, elementType, serializer);
-                        break;
+                        throw CreateJsonReaderException(reader,
+                            $"Impossible to read JSON array to fill type: {objectType.Name}");
                     }
+
+                    value = ReadArray(reader, objectType, elementType, serializer);
+                    break;
+                }
                 default:
                     throw CreateJsonReaderException(reader, $"Unrecognized token: {reader.TokenType}");
             }
@@ -192,10 +199,10 @@ namespace JsonSubTypes
             var typeInfo = ToTypeInfo(targetContainerType);
             if (typeInfo.IsArray || typeInfo.IsAbstract)
             {
-                return (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
+                return (IList) Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
             }
 
-            return (IList)Activator.CreateInstance(targetContainerType);
+            return (IList) Activator.CreateInstance(targetContainerType);
         }
 
         private static Type GetElementType(Type arrayOrGenericContainer)
@@ -211,6 +218,10 @@ namespace JsonSubTypes
 
         private object ReadObject(JsonReader reader, Type objectType, JsonSerializer serializer)
         {
+            string path = reader.Path;
+            int? lineNumber = (reader as IJsonLineInfo)?.LineNumber;
+            int? linePosition= (reader as IJsonLineInfo)?.LinePosition;
+            
             // I would prefer to create a new reader, but can't work out how to
             // This seems a reasonable alternative - https://github.com/JamesNK/Newtonsoft.Json/issues/1605#issuecomment-602673364
             var savedDateParseSettings = reader.DateParseHandling;
@@ -219,10 +230,32 @@ namespace JsonSubTypes
             reader.DateParseHandling = savedDateParseSettings;
 
             var targetType = GetType(jObject, objectType, serializer) ?? objectType;
+            
+            if (ToTypeInfo(targetType).IsAbstract)
+            {
+                if (targetType == objectType)
+                {
+                    throw new JsonSerializationException(FormatMessage(lineNumber, linePosition, path, "No instantiable subtype has been found for: " + objectType.ToString()));
+                }
+            }
 
             return ThreadStaticReadObject(reader, serializer, jObject, targetType);
         }
-
+        internal static string FormatMessage(int? lineNumber, int? linePosition, string path, string message)
+        {
+            if (!message.EndsWith(Environment.NewLine, StringComparison.Ordinal))
+            {
+                message = message.Trim();
+                if (!message.EndsWith("."))
+                    message += ".";
+                message += " ";
+            }
+            message += "Path '"+path+"'";
+            if (lineNumber.HasValue && linePosition.HasValue)
+                message += ", line "+lineNumber+", position "+linePosition+"";
+            message += ".";
+            return message;
+        }
         private static JsonReader CreateAnotherReader(JToken jToken, JsonReader reader)
         {
             var jObjectReader = jToken.CreateReader();
@@ -256,7 +289,7 @@ namespace JsonSubTypes
             Type targetType = parentType;
             JsonSubtypes lastTypeResolver = null;
             JsonSubtypes currentTypeResolver = this;
-            var visitedTypes = new HashSet<Type> { targetType };
+            var visitedTypes = new HashSet<Type> {targetType};
 
             var jsonConverterCollection = serializer.Converters.OfType<JsonSubtypes>().ToList();
             while (currentTypeResolver != null && currentTypeResolver != lastTypeResolver)
@@ -283,9 +316,11 @@ namespace JsonSubTypes
             }
 
             var jsonConverterAttribute = GetAttribute<JsonConverterAttribute>(targetType);
-            if (jsonConverterAttribute != null && ToTypeInfo(typeof(JsonSubtypes)).IsAssignableFrom(ToTypeInfo(jsonConverterAttribute.ConverterType)))
+            if (jsonConverterAttribute != null && ToTypeInfo(typeof(JsonSubtypes))
+                .IsAssignableFrom(ToTypeInfo(jsonConverterAttribute.ConverterType)))
             {
-                return (JsonSubtypes)Activator.CreateInstance(jsonConverterAttribute.ConverterType, jsonConverterAttribute.ConverterParameters);
+                return (JsonSubtypes) Activator.CreateInstance(jsonConverterAttribute.ConverterType,
+                    jsonConverterAttribute.ConverterParameters);
             }
 
             return jsonConverterCollection
@@ -320,7 +355,8 @@ namespace JsonSubTypes
 
             if (types.Length > 1)
             {
-                throw new JsonSerializationException("Ambiguous type resolution, expected only one type but got: " + String.Join(", ", types.Select(t => t.FullName).ToArray()));
+                throw new JsonSerializationException("Ambiguous type resolution, expected only one type but got: " +
+                                                     String.Join(", ", types.Select(t => t.FullName).ToArray()));
             }
 
             return null;
@@ -353,7 +389,8 @@ namespace JsonSubTypes
             return GetTypeByName(discriminatorValue.Value<string>(), ToTypeInfo(parentType));
         }
 
-        private static bool TryGetValueInJson(IDictionary<string, JToken> jObject, string propertyName, out JToken value)
+        private static bool TryGetValueInJson(IDictionary<string, JToken> jObject, string propertyName,
+            out JToken value)
         {
             if (jObject.TryGetValue(propertyName, out value))
             {
@@ -362,7 +399,8 @@ namespace JsonSubTypes
 
             var matchingProperty = jObject
                 .Keys
-                .FirstOrDefault(jsonProperty => string.Equals(jsonProperty, propertyName, StringComparison.OrdinalIgnoreCase));
+                .FirstOrDefault(jsonProperty =>
+                    string.Equals(jsonProperty, propertyName, StringComparison.OrdinalIgnoreCase));
 
             if (matchingProperty == null)
             {
@@ -387,7 +425,8 @@ namespace JsonSubTypes
             var typeByName = insideAssembly.GetType(typeName);
             if (parentTypeFullName != null && typeByName == null)
             {
-                var searchLocation = parentTypeFullName.Substring(0, parentTypeFullName.Length - parentType.Name.Length);
+                var searchLocation =
+                    parentTypeFullName.Substring(0, parentTypeFullName.Length - parentType.Name.Length);
                 typeByName = insideAssembly.GetType(searchLocation + typeName, false, true);
             }
 
@@ -400,7 +439,8 @@ namespace JsonSubTypes
             return null;
         }
 
-        private static Type GetTypeFromMapping(NullableDictionary<object, Type> typeMapping, JToken discriminatorToken, JsonSerializer serializer)
+        private static Type GetTypeFromMapping(NullableDictionary<object, Type> typeMapping, JToken discriminatorToken,
+            JsonSerializer serializer)
         {
             if (discriminatorToken.Type == JTokenType.Null)
             {
@@ -440,7 +480,8 @@ namespace JsonSubTypes
             return GetAttribute<FallBackSubTypeAttribute>(ToTypeInfo(type))?.SubType;
         }
 
-        private static object ThreadStaticReadObject(JsonReader reader, JsonSerializer serializer, JToken jToken, Type targetType)
+        private static object ThreadStaticReadObject(JsonReader reader, JsonSerializer serializer, JToken jToken,
+            Type targetType)
         {
             _reader = CreateAnotherReader(jToken, reader);
             _isInsideRead = true;

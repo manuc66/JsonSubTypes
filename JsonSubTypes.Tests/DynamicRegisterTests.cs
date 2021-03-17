@@ -222,7 +222,7 @@ namespace JsonSubTypes.Tests
             var exception = Assert.Throws<JsonSerializationException>(
                 () => JsonConvert.DeserializeObject<Animal>(json));
 
-            Assert.IsTrue(exception.Message.Contains("Type is an interface or abstract class and cannot be instantiated."));
+            Assert.AreEqual("No instantiable subtype has been found for: JsonSubTypes.Tests.DynamicRegisterTests+Animal. Path '', line 1, position 1.", exception.Message);
         }
 
         [Test]

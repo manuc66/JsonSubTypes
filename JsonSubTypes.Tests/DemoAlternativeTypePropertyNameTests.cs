@@ -157,7 +157,7 @@ namespace JsonSubTypes.Tests
                 var exception = Assert.Throws<JsonSerializationException>(() =>
                     JsonConvert.DeserializeObject<IAnimal>("{\"Kind\":8,\"Breed\":\"Jack Russell Terrier\"}")
                 );
-                Assert.AreEqual("Could not create an instance of type JsonSubTypes.Tests.SimplyQualifiedNameNestedType.DemoAlternativeTypePropertyNameTests+IAnimal. Type is an interface or abstract class and cannot be instantiated. Path 'Kind', line 1, position 8.", exception.Message);
+                Assert.AreEqual("No instantiable subtype has been found for: JsonSubTypes.Tests.SimplyQualifiedNameNestedType.DemoAlternativeTypePropertyNameTests+IAnimal. Path '', line 1, position 1.", exception.Message);
             }
         }
     }
