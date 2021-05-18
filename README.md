@@ -99,12 +99,25 @@ public enum AnimalType
 ```
 
 ### Registration:
+
 ```csharp
 var settings = new JsonSerializerSettings();
 settings.Converters.Add(JsonSubtypesConverterBuilder
     .Of(typeof(Animal), "Type") // type property is only defined here
     .RegisterSubtype(typeof(Cat), AnimalType.Cat)
     .RegisterSubtype(typeof(Dog), AnimalType.Dog)
+    .SerializeDiscriminatorProperty() // ask to serialize the type property
+    .Build());
+```
+
+or using syntax with generics:
+
+```csharp
+var settings = new JsonSerializerSettings();
+settings.Converters.Add(JsonSubtypesConverterBuilder
+    .Of<Animal>("Type") // type property is only defined here
+    .RegisterSubtype<Cat>(AnimalType.Cat)
+    .RegisterSubtype<Dog>(AnimalType.Dog)
     .SerializeDiscriminatorProperty() // ask to serialize the type property
     .Build());
 ```
@@ -148,6 +161,8 @@ public class Artist : Person
 }
 ```
 
+or using syntax with generics:
+
 
 ```csharp
 string json = "[{\"Department\":\"Department1\",\"JobTitle\":\"JobTitle1\",\"FirstName\":\"FirstName1\",\"LastName\":\"LastName1\"}," +
@@ -158,6 +173,27 @@ string json = "[{\"Department\":\"Department1\",\"JobTitle\":\"JobTitle1\",\"Fir
 var persons = JsonConvert.DeserializeObject<IReadOnlyCollection<Person>>(json);
 Assert.AreEqual("Painter", (persons.Last() as Artist)?.Skill);
 ```
+
+
+### Registration:
+```cs
+settings.Converters.Add(JsonSubtypesWithPropertyConverterBuilder
+    .Of(typeof(Person))
+    .RegisterSubtypeWithProperty(typeof(Employee), "JobTitle")
+    .RegisterSubtypeWithProperty(typeof(Artist), "Skill")
+    .Build());
+```
+
+or
+
+```cs
+settings.Converters.Add(JsonSubtypesWithPropertyConverterBuilder
+    .Of<Person>()
+    .RegisterSubtypeWithProperty<Employee>("JobTitle")
+    .RegisterSubtypeWithProperty<Artist>("Skill")
+    .Build());
+```
+
 
 ## A default class other than the base type can be defined
 
@@ -177,6 +213,13 @@ settings.Converters.Add(JsonSubtypesConverterBuilder
     .Of(typeof(IExpression), "Type")
     .SetFallbackSubtype(typeof(UnknownExpression))
     .RegisterSubtype(typeof(ConstantExpression), "Constant")
+    .Build());
+```
+```cs
+settings.Converters.Add(JsonSubtypesWithPropertyConverterBuilder
+    .Of(typeof(IExpression))
+    .SetFallbackSubtype(typeof(UnknownExpression))
+    .RegisterSubtype(typeof(ConstantExpression), "Value")
     .Build());
 ```
 

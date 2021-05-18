@@ -4,28 +4,31 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-#if (NET35 || NET40)
+#if (!NETSTANDARD1_3)
 using TypeInfo = System.Type;
 #else
 using System.Reflection;
+#endif
+#if !NET35
+using System.Collections.Concurrent;
 #endif
 
 namespace JsonSubTypes
 {
     //  MIT License
-    //  
+    //
     //  Copyright (c) 2017 Emmanuel Counasse
-    //  
+    //
     //  Permission is hereby granted, free of charge, to any person obtaining a copy
     //  of this software and associated documentation files (the "Software"), to deal
     //  in the Software without restriction, including without limitation the rights
     //  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
     //  copies of the Software, and to permit persons to whom the Software is
     //  furnished to do so, subject to the following conditions:
-    //  
+    //
     //  The above copyright notice and this permission notice shall be included in all
     //  copies or substantial portions of the Software.
-    //  
+    //
     //  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     //  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     //  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -78,6 +81,13 @@ namespace JsonSubTypes
         [ThreadStatic] private static bool _isInsideRead;
 
         [ThreadStatic] private static JsonReader _reader;
+
+#if NET35
+        private static readonly Dictionary<TypeInfo, IEnumerable<object>> _attributesCache = new Dictionary<TypeInfo, IEnumerable<object>>();
+#else
+        private static readonly ConcurrentDictionary<TypeInfo, IEnumerable<object>> _attributesCache = new ConcurrentDictionary<TypeInfo, IEnumerable<object>>();
+        private static readonly Func<TypeInfo, IEnumerable<object>> _getCustomAttributes = ti => ti.GetCustomAttributes(false);
+#endif
 
         public override bool CanRead
         {
@@ -201,7 +211,12 @@ namespace JsonSubTypes
 
         private object ReadObject(JsonReader reader, Type objectType, JsonSerializer serializer)
         {
+            // I would prefer to create a new reader, but can't work out how to
+            // This seems a reasonable alternative - https://github.com/JamesNK/Newtonsoft.Json/issues/1605#issuecomment-602673364
+            var savedDateParseSettings = reader.DateParseHandling;
+            reader.DateParseHandling = DateParseHandling.None;
             var jObject = JObject.Load(reader);
+            reader.DateParseHandling = savedDateParseSettings;
 
             var targetType = GetType(jObject, objectType, serializer) ?? objectType;
 
@@ -243,7 +258,7 @@ namespace JsonSubTypes
             JsonSubtypes currentTypeResolver = this;
             var visitedTypes = new HashSet<Type> { targetType };
 
-            var jsonConverterCollection = serializer.Converters.OfType<JsonSubtypesConverter>().ToList();
+            var jsonConverterCollection = serializer.Converters.OfType<JsonSubtypes>().ToList();
             while (currentTypeResolver != null && currentTypeResolver != lastTypeResolver)
             {
                 targetType = currentTypeResolver.ResolveType(jObject, targetType, serializer);
@@ -260,7 +275,7 @@ namespace JsonSubTypes
             return targetType;
         }
 
-        private JsonSubtypes GetTypeResolver(TypeInfo targetType, IEnumerable<JsonSubtypesConverter> jsonConverterCollection)
+        private JsonSubtypes GetTypeResolver(TypeInfo targetType, IEnumerable<JsonSubtypes> jsonConverterCollection)
         {
             if (targetType == null)
             {
@@ -277,25 +292,44 @@ namespace JsonSubTypes
                 .FirstOrDefault(c => c.CanConvert(ToType(targetType)));
         }
 
-        private static Type GetTypeByPropertyPresence(JObject jObject, Type parentType)
+        private Type GetTypeByPropertyPresence(JObject jObject, Type parentType)
         {
-            var knownSubTypeAttributes = GetAttributes<KnownSubTypeWithPropertyAttribute>(ToTypeInfo(parentType));
+            var knownSubTypeAttributes = GetTypesByPropertyPresence(parentType);
 
-            return knownSubTypeAttributes
+            var types = knownSubTypeAttributes
                 .Select(knownType =>
                 {
-                    if (TryGetValueInJson(jObject, knownType.PropertyName, out JToken _))
-                        return knownType.SubType;
+                    if (TryGetValueInJson(jObject, knownType.Key, out JToken _))
+                        return knownType.Value;
 
-                    var token = jObject.SelectToken(knownType.PropertyName);
+                    var token = jObject.SelectToken(knownType.Key);
                     if (token != null)
                     {
-                        return knownType.SubType;
+                        return knownType.Value;
                     }
 
                     return null;
                 })
-                .FirstOrDefault(type => type != null);
+                .Where(type => type != null)
+                .ToArray();
+
+            if (types.Length == 1)
+            {
+                return types[0];
+            }
+
+            if (types.Length > 1)
+            {
+                throw new JsonSerializationException("Ambiguous type resolution, expected only one type but got: " + String.Join(", ", types.Select(t => t.FullName).ToArray()));
+            }
+
+            return null;
+        }
+
+        internal virtual Dictionary<string, Type> GetTypesByPropertyPresence(Type parentType)
+        {
+            return GetAttributes<KnownSubTypeWithPropertyAttribute>(ToTypeInfo(parentType))
+                .ToDictionary(a => a.PropertyName, a => a.SubType);
         }
 
         private Type GetTypeFromDiscriminatorValue(JObject jObject, Type parentType, JsonSerializer serializer)
@@ -420,9 +454,27 @@ namespace JsonSubTypes
             }
         }
 
+        private static IEnumerable<object> GetAttributes(TypeInfo typeInfo)
+        {
+#if NET35
+            lock (_attributesCache)
+            {
+                if (_attributesCache.TryGetValue(typeInfo, out var res))
+                   return res;
+
+                res = typeInfo.GetCustomAttributes(false);
+                _attributesCache.Add(typeInfo, res);
+
+                return res;
+            }
+#else
+            return _attributesCache.GetOrAdd(typeInfo, _getCustomAttributes);
+#endif
+        }
+
         private static IEnumerable<T> GetAttributes<T>(TypeInfo typeInfo) where T : Attribute
         {
-            return typeInfo.GetCustomAttributes(false)
+            return GetAttributes(typeInfo)
                 .OfType<T>();
         }
 
@@ -442,7 +494,7 @@ namespace JsonSubTypes
 
         internal static TypeInfo ToTypeInfo(Type type)
         {
-#if (NET35 || NET40)
+#if (!NETSTANDARD1_3)
             return type;
 #else
             return type?.GetTypeInfo();
@@ -451,7 +503,7 @@ namespace JsonSubTypes
 
         internal static Type ToType(TypeInfo typeInfo)
         {
-#if (NET35 || NET40)
+#if (!NETSTANDARD1_3)
             return typeInfo;
 #else
             return typeInfo?.AsType();

@@ -132,6 +132,26 @@ namespace JsonSubTypes.Tests
         }
 
         [Test]
+        public void RegisterWithGenericTypes()
+        {
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
+            settings.Converters.Add(JsonSubtypesConverterBuilder
+                .Of<Animal>("type")
+                .SerializeDiscriminatorProperty()
+                .RegisterSubtype<Cat>(AnimalType.Cat)
+                .RegisterSubtype<Dog>(AnimalType.Dog)
+                .Build());
+
+            var json = "{\"catLives\":6,\"age\":11,\"type\":2}";
+
+            var result = JsonConvert.SerializeObject(new Cat { Age = 11, Lives = 6 });
+
+            Assert.AreEqual(json, result);
+        }
+
+        [Test]
         public void UnregisteredTypeSerializeTest()
         {
             var settings = new JsonSerializerSettings();

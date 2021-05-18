@@ -44,6 +44,11 @@ namespace JsonSubTypes
             return customConverterBuilder;
         }
 
+        public static JsonSubtypesConverterBuilder Of<T>(string discriminatorProperty)
+        {
+            return Of(typeof(T), discriminatorProperty);
+        }
+
         public JsonSubtypesConverterBuilder SerializeDiscriminatorProperty()
         {
             return SerializeDiscriminatorProperty(false);
@@ -62,15 +67,25 @@ namespace JsonSubTypes
             return this;
         }
 
+        public JsonSubtypesConverterBuilder RegisterSubtype<T>(object value)
+        {
+            return RegisterSubtype(typeof(T), value);
+        }
+
         public JsonSubtypesConverterBuilder SetFallbackSubtype(Type fallbackSubtype)
         {
             _fallbackSubtype = fallbackSubtype;
             return this;
         }
 
+        public JsonSubtypesConverterBuilder SetFallbackSubtype<T>(object value)
+        {
+            return RegisterSubtype(typeof(T), value);
+        }
+
         public JsonConverter Build()
         {
-            return new JsonSubtypesConverter(_baseType, _discriminatorProperty, _subTypeMapping, _serializeDiscriminatorProperty, _addDiscriminatorFirst, _fallbackSubtype);
+            return new JsonSubtypesByDiscriminatorValueConverter(_baseType, _discriminatorProperty, _subTypeMapping, _serializeDiscriminatorProperty, _addDiscriminatorFirst, _fallbackSubtype);
         }
     }
 }

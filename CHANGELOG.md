@@ -6,9 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [1.8.0] - 2020-09-24
+
+### Added
+- Add version of builder methods with generic types for cleaner syntax. #115
+
+### Fixed
+- Newtonsoft.Json dependency version should be lowest supported, not latest available #101
+- Multiple type discriminators in JSON silently passes. #100
+- Incorrect handling of datetime field in a sub-type #114
+
+## [1.7.0] - 2020-03-28
+
 ### Added
 - Fallback to JSONPath to allow nested field as a deserialization property. #89
 - Bump Newtonsoft.Json from 11.0.2 to 12.0.3 #88
+- Implements dynamic registration for subtype detection by property presence. #50
 
 ### Fixed
 - JsonSubtypes does not respect naming strategy for discriminator property value #80
