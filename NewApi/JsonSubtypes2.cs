@@ -120,13 +120,14 @@ namespace NewApi
                 default:
                     throw CreateJsonReaderException(ref reader, $"Unrecognized token: {reader.TokenType}");
             }
+        //    reader = beginnerReader;
 
             return value;
         }
 
-        private static InvalidOperationException CreateJsonReaderException(ref Utf8JsonReader reader, string message)
+        private static JsonException CreateJsonReaderException(ref Utf8JsonReader reader, string message)
         {
-            return new InvalidOperationException(message);
+            return new JsonException(message);
         }
 
         private IList ReadArray(ref Utf8JsonReader reader, Type targetType, Type elementType, JsonSerializerOptions serializer)

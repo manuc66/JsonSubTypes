@@ -173,7 +173,7 @@ namespace JsonSubTypes.Tests
             };
 
             var root = JsonSerializer.Deserialize<Root>(
-                "{\"Content\":/* foo bar */{\"Index\":1,\"@type\":\"SubB\"}}");
+                "{\"Content\":/* foo bar */{\"Index\":1,\"@type\":\"SubB\"}}", new JsonSerializerOptions() {ReadCommentHandling = JsonCommentHandling.Skip});
 
             Assert.AreEqual(expected, root);
         }
@@ -196,7 +196,7 @@ namespace JsonSubTypes.Tests
         {
             var exception = Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<Root>("{\"Content\":8}"));
 
-            Assert.AreEqual("Unrecognized token: Integer", exception.Message);
+            Assert.AreEqual("Unrecognized token: Number", exception.Message);
         }
 
         [Test]
