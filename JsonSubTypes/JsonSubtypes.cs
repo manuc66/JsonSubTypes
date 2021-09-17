@@ -233,6 +233,7 @@ namespace JsonSubTypes
             jObjectReader.FloatParseHandling = reader.FloatParseHandling;
             jObjectReader.DateFormatString = reader.DateFormatString;
             jObjectReader.DateParseHandling = reader.DateParseHandling;
+            jObjectReader.MaxDepth = reader.MaxDepth;
             return jObjectReader;
         }
 
