@@ -392,13 +392,29 @@ namespace JsonSubTypes
                 typeByName = insideAssembly.GetType(searchLocation + typeName, false, true);
             }
 
-            var typeByNameInfo = ToTypeInfo(typeByName);
-            if (typeByNameInfo != null && parentType.IsAssignableFrom(typeByNameInfo))
+            TypeInfo typeByNameInfo = ToTypeInfo(typeByName);
+            if (typeByNameInfo == null)
+            {
+                return null;
+            }
+
+            if (parentType.IsAssignableFrom(typeByNameInfo) || parentType.IsGenericType && IsSubclassOfRawGeneric(parentType, typeByNameInfo))
             {
                 return typeByName;
             }
 
             return null;
+        }
+        
+        static bool IsSubclassOfRawGeneric(TypeInfo generic, TypeInfo toCheck) {
+            while (toCheck != null && toCheck != typeof(object)) {
+                TypeInfo cur = toCheck.IsGenericType ? toCheck.GetGenericTypeDefinition() : toCheck;
+                if (generic == cur) {
+                    return true;
+                }
+                toCheck = toCheck.BaseType;
+            }
+            return false;
         }
 
         private static Type GetTypeFromMapping(NullableDictionary<object, Type> typeMapping, JToken discriminatorToken, JsonSerializer serializer)
