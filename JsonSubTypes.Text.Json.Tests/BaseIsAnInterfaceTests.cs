@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text.Json;
 using System.Threading.Tasks;
+using JsonSubTypes.Text.Json;
 using NewApi;
 using NUnit.Framework;
 

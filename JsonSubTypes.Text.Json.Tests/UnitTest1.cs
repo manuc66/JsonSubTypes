@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using JsonSubTypes.Text.Json;
 using NUnit.Framework;
 
 namespace NewApi.Tests
