@@ -407,15 +407,13 @@ namespace JsonSubTypes
         }
         
         static bool IsSubclassOfRawGeneric(TypeInfo generic, TypeInfo toCheck) {
+            TypeInfo cur = toCheck;
             TypeInfo objectTypeInfo = ToTypeInfo(typeof(object));
-            while (toCheck != null && toCheck != objectTypeInfo) {
-                TypeInfo cur = toCheck.IsGenericType ? ToTypeInfo(toCheck.GetGenericTypeDefinition()) : toCheck;
-                if (generic == cur) {
-                    return true;
-                }
+            while (generic != cur && toCheck != objectTypeInfo) {
+                cur = toCheck.IsGenericType ? ToTypeInfo(toCheck.GetGenericTypeDefinition()) : toCheck;
                 toCheck = ToTypeInfo(toCheck.BaseType);
             }
-            return false;
+            return generic == cur;
         }
 
         private static Type GetTypeFromMapping(NullableDictionary<object, Type> typeMapping, JToken discriminatorToken, JsonSerializer serializer)
