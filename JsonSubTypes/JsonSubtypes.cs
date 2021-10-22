@@ -398,7 +398,7 @@ namespace JsonSubTypes
                 return null;
             }
 
-            if (parentType.IsAssignableFrom(typeByNameInfo) || parentType.IsGenericType && IsSubclassOfRawGeneric(parentType, typeByNameInfo))
+            if (parentType.IsAssignableFrom(typeByNameInfo) || (parentType.IsGenericType && IsSubclassOfRawGeneric(parentType, typeByNameInfo)))
             {
                 return typeByName;
             }
@@ -407,12 +407,13 @@ namespace JsonSubTypes
         }
         
         static bool IsSubclassOfRawGeneric(TypeInfo generic, TypeInfo toCheck) {
-            while (toCheck != null && toCheck != typeof(object)) {
-                TypeInfo cur = toCheck.IsGenericType ? toCheck.GetGenericTypeDefinition() : toCheck;
+            TypeInfo objectTypeInfo = ToTypeInfo(typeof(object));
+            while (toCheck != null && toCheck != objectTypeInfo) {
+                TypeInfo cur = toCheck.IsGenericType ? ToTypeInfo(toCheck.GetGenericTypeDefinition()) : toCheck;
                 if (generic == cur) {
                     return true;
                 }
-                toCheck = toCheck.BaseType;
+                toCheck = ToTypeInfo(toCheck.BaseType);
             }
             return false;
         }
