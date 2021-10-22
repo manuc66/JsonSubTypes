@@ -233,6 +233,7 @@ namespace JsonSubTypes
             jObjectReader.FloatParseHandling = reader.FloatParseHandling;
             jObjectReader.DateFormatString = reader.DateFormatString;
             jObjectReader.DateParseHandling = reader.DateParseHandling;
+            jObjectReader.MaxDepth = reader.MaxDepth;
             return jObjectReader;
         }
 
@@ -391,13 +392,28 @@ namespace JsonSubTypes
                 typeByName = insideAssembly.GetType(searchLocation + typeName, false, true);
             }
 
-            var typeByNameInfo = ToTypeInfo(typeByName);
-            if (typeByNameInfo != null && parentType.IsAssignableFrom(typeByNameInfo))
+            TypeInfo typeByNameInfo = ToTypeInfo(typeByName);
+            if (typeByNameInfo == null)
+            {
+                return null;
+            }
+
+            if (parentType.IsAssignableFrom(typeByNameInfo) || (parentType.IsGenericType && IsSubclassOfRawGeneric(parentType, typeByNameInfo)))
             {
                 return typeByName;
             }
 
             return null;
+        }
+        
+        static bool IsSubclassOfRawGeneric(TypeInfo generic, TypeInfo toCheck) {
+            TypeInfo cur = toCheck;
+            TypeInfo objectTypeInfo = ToTypeInfo(typeof(object));
+            while (generic != cur && toCheck != objectTypeInfo) {
+                cur = toCheck.IsGenericType ? ToTypeInfo(toCheck.GetGenericTypeDefinition()) : toCheck;
+                toCheck = ToTypeInfo(toCheck.BaseType);
+            }
+            return generic == cur;
         }
 
         private static Type GetTypeFromMapping(NullableDictionary<object, Type> typeMapping, JToken discriminatorToken, JsonSerializer serializer)

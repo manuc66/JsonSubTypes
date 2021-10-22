@@ -20,20 +20,20 @@
     <AssemblyVersion>1.8.0.0</AssemblyVersion>
     <RepositoryType>git</RepositoryType>
     <PackageReleaseNotes>See in https://github.com/manuc66/JsonSubTypes/releases</PackageReleaseNotes>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <LangVersion>7</LangVersion>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>JsonSubTypes.Key.snk</AssemblyOriginatorKeyFile>
     <DelaySign>false</DelaySign>
     <FileVersion>1.8.0.0</FileVersion>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="10.0.1" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\LICENSE">
+    <Content Include="..\LICENSE">
       <Pack>True</Pack>
       <PackagePath></PackagePath>
-    </None>
+    </Content>
   </ItemGroup>
 </Project>
