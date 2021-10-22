@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NewApi\NewApi.csproj" />
+    <ProjectReference Include="..\JsonSubTypes.Text.Json\JsonSubTypes.Text.Json.csproj" />
   </ItemGroup>
 
 </Project>
