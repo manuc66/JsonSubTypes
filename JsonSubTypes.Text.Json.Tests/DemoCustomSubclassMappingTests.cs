@@ -35,7 +35,7 @@ namespace JsonSubTypes.Tests
             var animal = JsonSerializer.Deserialize<Animal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
             Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed);
 
-            animal = JsonSerializer.Deserialize<Animal>("{\"Sound\":\"Meow\",\"Declawed\":\"true\"}");
+            animal = JsonSerializer.Deserialize<Animal>("{\"Sound\":\"Meow\",\"Declawed\":true}");
             Assert.AreEqual(true, (animal as Cat)?.Declawed);
         }
     }
