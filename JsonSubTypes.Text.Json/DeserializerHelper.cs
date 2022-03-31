@@ -8,7 +8,6 @@ namespace JsonSubTypes.Text.Json;
 
 internal class DeserializerHelper<T>
 {
-    //;
     private T Deserialize(ref Utf8JsonReader reader, JsonSerializerOptions options)
     {
         return JsonSerializer.Deserialize<T>(ref reader, options);
@@ -17,22 +16,21 @@ internal class DeserializerHelper<T>
 
     public static T Deserialize(ref Utf8JsonReader reader, Type targetType, JsonSerializerOptions options)
     {
-        Type ggg = typeof(DeserializerHelper<>);
-        Type makeGenericType = ggg.MakeGenericType(targetType);
-        object converter = Activator.CreateInstance(makeGenericType)!;
+        Type converterTargetType = typeof(DeserializerHelper<>).MakeGenericType(targetType);
+        object genericConverterInstance = Activator.CreateInstance(converterTargetType)!;
 
-        var instance = Expression.Constant(converter);
-        var method = converter.GetType().GetMethod(nameof(DeserializerHelper<object>.Deserialize),
+        ConstantExpression instance = Expression.Constant(genericConverterInstance);
+        MethodInfo method = genericConverterInstance.GetType().GetMethod(nameof(DeserializerHelper<object>.Deserialize),
             BindingFlags.NonPublic | BindingFlags.Instance)!;
-        var parameters = method.GetParameters().Select(p => Expression.Parameter(p.ParameterType, p.Name))
+        ParameterExpression[] parameters = method.GetParameters().Select(p => Expression.Parameter(p.ParameterType, p.Name))
             .ToArray();
+        
+        MethodCallExpression call = Expression.Call(instance, method, parameters);
+        UnaryExpression cast = Expression.TypeAs(call, typeof(object));
 
-        var call = Expression.Call(instance, method, parameters);
-        var cast = Expression.TypeAs(call, typeof(object));
+        Expression<DeserializeDelegate> @delegate = Expression.Lambda<DeserializeDelegate>(cast, parameters);
 
-        var @delegate = Expression.Lambda<DeserializeDelegate>(cast, parameters);
-
-        var result = @delegate.Compile()(ref reader, options);
+        object result = @delegate.Compile()(ref reader, options);
 
         return (T)result;
     }
