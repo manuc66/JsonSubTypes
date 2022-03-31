@@ -129,6 +129,7 @@ namespace JsonSubTypes.Tests
 
             [KnownSubType(typeof(FolderNode), 1)]
             [KnownSubType(typeof(ElemNode), 2)]
+            [JsonSubTypeConverter(typeof(JsonSubtypes<Node>), "NodeType")]
             public class Node
             {
                 public virtual int NodeType { get; set; }
@@ -138,7 +139,7 @@ namespace JsonSubTypes.Tests
             {
                 public sealed override int NodeType { get; set; } = 1;
 
-                [JsonSubTypeConverter(typeof(JsonSubtypes<Node[]>), "NodeType")]
+               // [JsonSubTypeConverter(typeof(JsonSubtypes<Node[]>), "NodeType")]
                 public Node[] Children { get; set; }
             }
 
@@ -310,12 +311,13 @@ namespace JsonSubTypes.Tests
         {
             public class Hierachy
             {
-                [JsonSubTypeConverter(typeof(JsonSubtypes<Node>), "NodeType")]
+           
                 public Node Root { get; set; }
             }
 
             [KnownSubType(typeof(FolderNode), 1)]
             [KnownSubType(typeof(ElemNode), 2)]
+            [JsonSubTypeConverter(typeof(JsonSubtypes<Node>), "NodeType")]
             public class Node
             {
                 public virtual int NodeType { get; set; }
@@ -325,7 +327,6 @@ namespace JsonSubTypes.Tests
             {
                 public sealed override int NodeType { get; set; } = 1;
 
-                [JsonSubTypeConverter(typeof(JsonSubtypes<IEnumerable<Node>>), "NodeType")]
                 public IEnumerable<Node> Children { get; set; }
             }
 

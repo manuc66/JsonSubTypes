@@ -2,13 +2,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
+using System.Reflection.Metadata.Ecma335;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace JsonSubTypes.Text.Json
 {
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Struct | AttributeTargets.Enum | AttributeTargets.Property, AllowMultiple = false)]
+    [AttributeUsage(
+        AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Struct | AttributeTargets.Enum |
+        AttributeTargets.Property, AllowMultiple = false)]
     public class JsonSubTypeConverterAttribute : JsonConverterAttribute
     {
         public string DiscriminatorPropertyName { get; }
@@ -17,6 +21,7 @@ namespace JsonSubTypes.Text.Json
         {
             DiscriminatorPropertyName = discriminatorPropertyName;
         }
+
         public JsonSubTypeConverterAttribute(Type converterType) : base(converterType)
         {
         }
@@ -64,6 +69,7 @@ namespace JsonSubTypes.Text.Json
         Type GetType(JsonDocument jObject, Type parentType);
         bool CanConvert(Type toType);
     }
+
     public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes
     {
         protected readonly string JsonDiscriminatorPropertyName;
@@ -108,19 +114,21 @@ namespace JsonSubTypes.Text.Json
                     value = ReadObject(ref reader, objectType, serializer);
                     break;
                 case JsonTokenType.StartArray:
+                {
+                    var elementType = GetElementType(objectType);
+                    if (elementType == null)
                     {
-                        var elementType = GetElementType(objectType);
-                        if (elementType == null)
-                        {
-                            throw CreateJsonReaderException(ref reader, $"Impossible to read JSON array to fill type: {objectType.Name}");
-                        }
-                        value = (T)ReadArray(ref reader, objectType, elementType, serializer);
-                        break;
+                        throw CreateJsonReaderException(ref reader,
+                            $"Impossible to read JSON array to fill type: {objectType.Name}");
                     }
+
+                    value = (T)ReadArray(ref reader, objectType, elementType, serializer);
+                    break;
+                }
                 default:
                     throw CreateJsonReaderException(ref reader, $"Unrecognized token: {reader.TokenType}");
             }
-        //    reader = beginnerReader;
+            //    reader = beginnerReader;
 
             return value;
         }
@@ -130,7 +138,8 @@ namespace JsonSubTypes.Text.Json
             return new JsonException(message);
         }
 
-        private IList ReadArray(ref Utf8JsonReader reader, Type targetType, Type elementType, JsonSerializerOptions serializer)
+        private IList ReadArray(ref Utf8JsonReader reader, Type targetType, Type elementType,
+            JsonSerializerOptions serializer)
         {
             var list = CreateCompatibleList(targetType, elementType);
             while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
@@ -178,11 +187,55 @@ namespace JsonSubTypes.Text.Json
             var targetType = GetType(jObject, objectType, serializer);
             if (targetType is null)
             {
-                throw new JsonException($"Could not create an instance of type {objectType.FullName}. Type is an interface or abstract class and cannot be instantiated. Position: {reader.Position.GetInteger()}.");
+                throw new JsonException(
+                    $"Could not create an instance of type {objectType.FullName}. Type is an interface or abstract class and cannot be instantiated. Position: {reader.Position.GetInteger()}.");
             }
 
-            return (T)JsonSerializer.Deserialize(ref readerAtStart, targetType, serializer);
+            // MethodInfo method5 = typeof(JsonSerializer).GetMethods()
+            //     .Where(m => m.Name == nameof(JsonSerializer.Deserialize))
+            //     .Where(m => m.IsGenericMethod)
+            //     .Where(m =>
+            //     {
+            //         ParameterInfo[] parameterInfos = m.GetParameters();
+            //         if (parameterInfos.Length != 2) return false;
+            //         bool parameterTypeIsByRef = parameterInfos[0].ParameterType.IsByRef &&
+            //                                     parameterInfos[0].ParameterType.GetElementType() ==
+            //                                     typeof(Utf8JsonReader);
+            //         if (!parameterTypeIsByRef) return false;
+            //         bool isOptional = parameterInfos[1].IsOptional &&
+            //                           parameterInfos[1].ParameterType == typeof(JsonSerializerOptions);
+            //         return isOptional
+            //             ;
+            //     })
+            //     .FirstOrDefault();
+            //
+            //
+            // MethodInfo generic = method5.MakeGenericMethod(targetType);
+            //
+            //
+            // //var instance = Expression.Constant(converter);
+            // var method = converter.GetType().GetMethod("Read", BindingFlags.Public | BindingFlags.Instance);
+            // var parameters = method.GetParameters().Select(p => Expression.Parameter(p.ParameterType, p.Name))
+            //     .ToArray();
+            //
+            // var call = Expression.Call(instance, method, parameters);
+            // var cast = Expression.TypeAs(call, typeof(object));
+            //
+            // var @delegate = Expression.Lambda<ReadDelegate>(cast, parameters);
+            //
+            // var result = @delegate.Compile()(ref reader, type, options);
+            //
+            // Utf8JsonReader k = readerAtStart;
+            // object[] arguments = { k, serializer };
+            // generic.Invoke(null, arguments);
+            // JsonSerializer.Deserialize<T>(ref readerAtStart, serializer);
+
+            return (T)DeserializerHelper<T>.Deserialize(ref readerAtStart, targetType, serializer);
+            
+            // return (T)JsonSerializer.Deserialize(ref readerAtStart, targetType, serializer);
         }
+
+      
 
         Type IJsonSubtypes.GetType(JsonDocument jObject, Type parentType)
         {
@@ -203,7 +256,8 @@ namespace JsonSubTypes.Text.Json
         {
             Type targetType = parentType;
             IJsonSubtypes lastTypeResolver = null;
-            IJsonSubtypes currentTypeResolver = GetTypeResolver(ToTypeInfo(targetType), serializer.Converters.OfType<IJsonSubtypes>());
+            IJsonSubtypes currentTypeResolver =
+                GetTypeResolver(ToTypeInfo(targetType), serializer.Converters.OfType<IJsonSubtypes>());
             var visitedTypes = new HashSet<Type> { targetType };
 
             var jsonConverterCollection = serializer.Converters.OfType<IJsonSubtypes>().ToList();
@@ -214,6 +268,7 @@ namespace JsonSubTypes.Text.Json
                 {
                     break;
                 }
+
                 lastTypeResolver = currentTypeResolver;
                 jsonConverterCollection = jsonConverterCollection.Where(c => c != currentTypeResolver).ToList();
                 currentTypeResolver = GetTypeResolver(ToTypeInfo(targetType), jsonConverterCollection);
@@ -230,9 +285,11 @@ namespace JsonSubTypes.Text.Json
             }
 
             var jsonConverterAttribute = GetAttribute<JsonSubTypeConverterAttribute>(targetType);
-            if (jsonConverterAttribute != null && ToTypeInfo(typeof(T)).IsAssignableFrom(ToTypeInfo(jsonConverterAttribute.ConverterType.GenericTypeArguments[0])))
+            if (jsonConverterAttribute != null && ToTypeInfo(typeof(T))
+                    .IsAssignableFrom(ToTypeInfo(jsonConverterAttribute.ConverterType.GenericTypeArguments[0])))
             {
-                return (JsonSubtypes<T>)Activator.CreateInstance(jsonConverterAttribute.ConverterType, jsonConverterAttribute.DiscriminatorPropertyName);
+                return (JsonSubtypes<T>)Activator.CreateInstance(jsonConverterAttribute.ConverterType,
+                    jsonConverterAttribute.DiscriminatorPropertyName);
             }
 
             return jsonConverterCollection
@@ -278,11 +335,13 @@ namespace JsonSubTypes.Text.Json
             var objectEnumerator = jObject
                 .RootElement
                 .EnumerateObject();
-            foreach (var jsonProperty in objectEnumerator.Where(jsonProperty => string.Equals(jsonProperty.Name, propertyName, StringComparison.OrdinalIgnoreCase)))
+            foreach (var jsonProperty in objectEnumerator.Where(jsonProperty =>
+                         string.Equals(jsonProperty.Name, propertyName, StringComparison.OrdinalIgnoreCase)))
             {
                 value = jsonProperty.Value;
                 return true;
             }
+
             return false;
         }
 
@@ -300,7 +359,8 @@ namespace JsonSubTypes.Text.Json
             var typeByName = insideAssembly.GetType(typeName);
             if (parentTypeFullName != null && typeByName == null)
             {
-                var searchLocation = parentTypeFullName.Substring(0, parentTypeFullName.Length - parentType.Name.Length);
+                var searchLocation =
+                    parentTypeFullName.Substring(0, parentTypeFullName.Length - parentType.Name.Length);
                 typeByName = insideAssembly.GetType(searchLocation + typeName, false, true);
             }
 
@@ -313,7 +373,8 @@ namespace JsonSubTypes.Text.Json
             return null;
         }
 
-        private static Type GetTypeFromMapping(NullableDictionary<object, Type> typeMapping, JsonElement discriminatorToken)
+        private static Type GetTypeFromMapping(NullableDictionary<object, Type> typeMapping,
+            JsonElement discriminatorToken)
         {
             if (discriminatorToken.ValueKind == JsonValueKind.Null)
             {
@@ -392,6 +453,7 @@ namespace JsonSubTypes.Text.Json
 #endif
         }
     }
+
     public class NullableDictionary<TKey, TValue>
     {
         private bool _hasNullKey;
