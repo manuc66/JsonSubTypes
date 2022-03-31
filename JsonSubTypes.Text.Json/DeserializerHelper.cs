@@ -4,7 +4,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.Json;
 
-namespace NewApi;
+namespace JsonSubTypes.Text.Json;
 
 internal class DeserializerHelper<T>
 {
