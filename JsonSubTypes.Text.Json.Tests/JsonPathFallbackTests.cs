@@ -94,7 +94,7 @@ namespace JsonSubTypes.Tests.JsonPath
         [Test]
         public void CheckNestedProperty()
         {
-            string json = "{nested: { otherproperty: \"abc\" } }";
+            string json = "{\"nested\": { \"otherproperty\": \"abc\" } }";
             var result = JsonSerializer.Deserialize<Main>(json);
             Assert.IsInstanceOf<Nested>(result);
         }
@@ -102,7 +102,7 @@ namespace JsonSubTypes.Tests.JsonPath
         [Test]
         public void CheckNestedDiscriminator()
         {
-            string json = "{nested: { property: \"SubNestedClass\" } }";
+            string json = "{\"nested\": { \"property\": \"SubNestedClass\" } }";
             var result = JsonSerializer.Deserialize<MainDiscriminator>(json);
             Assert.IsInstanceOf<SubDiscriminator>(result);
         }

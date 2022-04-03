@@ -81,14 +81,24 @@ namespace JsonSubTypes.Text.Json
             JsonDiscriminatorPropertyName = jsonDiscriminatorPropertyName;
         }
 
+
         public override bool CanConvert(Type objectType)
         {
             return objectType == typeof(T);
         }
 
+        public override T ReadAsPropertyName(ref Utf8JsonReader reader, Type typeToConvert,
+            JsonSerializerOptions options)
+        {
+            return base.ReadAsPropertyName(ref reader, typeToConvert, options);
+        }
+
         public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions serializer)
         {
-            throw new NotImplementedException();
+            //JsonSerializer.Serialize(writer, value, serializer);
+           JsonSerializer.Serialize<object>(writer, value, serializer);
+         
+            //throw new NotImplementedException();
         }
 
 
@@ -113,7 +123,7 @@ namespace JsonSubTypes.Text.Json
                     break;
                 case JsonTokenType.StartArray:
                 {
-                    var elementType = GetElementType(objectType);
+                    Type elementType = GetElementType(objectType);
                     if (elementType == null)
                     {
                         throw CreateJsonReaderException(ref reader,
@@ -139,7 +149,7 @@ namespace JsonSubTypes.Text.Json
         private IList ReadArray(ref Utf8JsonReader reader, Type targetType, Type elementType,
             JsonSerializerOptions serializer)
         {
-            var list = CreateCompatibleList(targetType, elementType);
+            IList list = CreateCompatibleList(targetType, elementType);
             while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
             {
                 list.Add(ReadJson(ref reader, elementType, serializer));
@@ -148,14 +158,14 @@ namespace JsonSubTypes.Text.Json
             if (!targetType.IsArray)
                 return list;
 
-            var array = Array.CreateInstance(elementType, list.Count);
+            Array array = Array.CreateInstance(elementType, list.Count);
             list.CopyTo(array, 0);
             return array;
         }
 
         private static IList CreateCompatibleList(Type targetContainerType, Type elementType)
         {
-            var typeInfo = ToTypeInfo(targetContainerType);
+            TypeInfo typeInfo = ToTypeInfo(targetContainerType);
             if (typeInfo.IsArray || typeInfo.IsAbstract)
             {
                 return (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
@@ -171,69 +181,38 @@ namespace JsonSubTypes.Text.Json
                 return arrayOrGenericContainer.GetElementType();
             }
 
-            var genericTypeArguments = GetGenericTypeArguments(arrayOrGenericContainer);
+            IEnumerable<Type> genericTypeArguments = GetGenericTypeArguments(arrayOrGenericContainer);
             return genericTypeArguments.FirstOrDefault();
         }
 
         private T ReadObject(ref Utf8JsonReader reader, Type objectType, JsonSerializerOptions serializer)
         {
             // Copy the current state from reader (it's a struct)
-            var readerAtStart = reader;
+            Utf8JsonReader readerAtStart = reader;
 
-            var jObject = JsonDocument.ParseValue(ref reader);
+            JsonDocument jObject = JsonDocument.ParseValue(ref reader);
 
-            var targetType = GetType(jObject, objectType, serializer);
-            if (targetType is null)
+            Type targetType = GetType(jObject, objectType, serializer);
+            if (targetType is null || targetType.IsAbstract)
             {
                 throw new JsonException(
                     $"Could not create an instance of type {objectType.FullName}. Type is an interface or abstract class and cannot be instantiated. Position: {reader.Position.GetInteger()}.");
             }
 
-            // MethodInfo method5 = typeof(JsonSerializer).GetMethods()
-            //     .Where(m => m.Name == nameof(JsonSerializer.Deserialize))
-            //     .Where(m => m.IsGenericMethod)
-            //     .Where(m =>
-            //     {
-            //         ParameterInfo[] parameterInfos = m.GetParameters();
-            //         if (parameterInfos.Length != 2) return false;
-            //         bool parameterTypeIsByRef = parameterInfos[0].ParameterType.IsByRef &&
-            //                                     parameterInfos[0].ParameterType.GetElementType() ==
-            //                                     typeof(Utf8JsonReader);
-            //         if (!parameterTypeIsByRef) return false;
-            //         bool isOptional = parameterInfos[1].IsOptional &&
-            //                           parameterInfos[1].ParameterType == typeof(JsonSerializerOptions);
-            //         return isOptional
-            //             ;
-            //     })
-            //     .FirstOrDefault();
-            //
-            //
-            // MethodInfo generic = method5.MakeGenericMethod(targetType);
-            //
-            //
-            // //var instance = Expression.Constant(converter);
-            // var method = converter.GetType().GetMethod("Read", BindingFlags.Public | BindingFlags.Instance);
-            // var parameters = method.GetParameters().Select(p => Expression.Parameter(p.ParameterType, p.Name))
-            //     .ToArray();
-            //
-            // var call = Expression.Call(instance, method, parameters);
-            // var cast = Expression.TypeAs(call, typeof(object));
-            //
-            // var @delegate = Expression.Lambda<ReadDelegate>(cast, parameters);
-            //
-            // var result = @delegate.Compile()(ref reader, type, options);
-            //
-            // Utf8JsonReader k = readerAtStart;
-            // object[] arguments = { k, serializer };
-            // generic.Invoke(null, arguments);
-            // JsonSerializer.Deserialize<T>(ref readerAtStart, serializer);
+            if (targetType != objectType)
+            {
+                return (T)DeserializerHelper<T>.Deserialize(ref readerAtStart, targetType, serializer);
+            }
+            else
+            {
+                throw new JsonException(
+                    $"Could not deserialize to type {objectType.FullName}, no child type has been found. Position: {reader.Position.GetInteger()}.");
 
-            return (T)DeserializerHelper<T>.Deserialize(ref readerAtStart, targetType, serializer);
-            
-            // return (T)JsonSerializer.Deserialize(ref readerAtStart, targetType, serializer);
+            }
+
+            return default(T);
         }
 
-      
 
         Type IJsonSubtypes.GetType(JsonDocument jObject, Type parentType, JsonSerializerOptions jsonSerializerOptions)
         {
@@ -256,9 +235,9 @@ namespace JsonSubTypes.Text.Json
             IJsonSubtypes lastTypeResolver = null;
             IJsonSubtypes currentTypeResolver =
                 GetTypeResolver(ToTypeInfo(targetType), serializer.Converters.OfType<IJsonSubtypes>());
-            var visitedTypes = new HashSet<Type> { targetType };
+            HashSet<Type> visitedTypes = new HashSet<Type> { targetType };
 
-            var jsonConverterCollection = serializer.Converters.OfType<IJsonSubtypes>().ToList();
+            List<IJsonSubtypes> jsonConverterCollection = serializer.Converters.OfType<IJsonSubtypes>().ToList();
             while (currentTypeResolver != null && currentTypeResolver != lastTypeResolver)
             {
                 targetType = currentTypeResolver.GetType(jObject, targetType, serializer);
@@ -282,7 +261,8 @@ namespace JsonSubTypes.Text.Json
                 return null;
             }
 
-            var jsonConverterAttribute = GetAttribute<JsonSubTypeConverterAttribute>(targetType);
+            JsonSubTypeConverterAttribute jsonConverterAttribute =
+                GetAttribute<JsonSubTypeConverterAttribute>(targetType);
             if (jsonConverterAttribute != null && ToTypeInfo(typeof(T))
                     .IsAssignableFrom(ToTypeInfo(jsonConverterAttribute.ConverterType.GenericTypeArguments[0])))
             {
@@ -297,7 +277,8 @@ namespace JsonSubTypes.Text.Json
         private static Type GetTypeByPropertyPresence(JsonDocument jObject, Type parentType,
             JsonSerializerOptions jsonSerializerOptions)
         {
-            var knownSubTypeAttributes = GetAttributes<KnownSubTypeWithPropertyAttribute>(ToTypeInfo(parentType));
+            IEnumerable<KnownSubTypeWithPropertyAttribute> knownSubTypeAttributes =
+                GetAttributes<KnownSubTypeWithPropertyAttribute>(ToTypeInfo(parentType));
 
             return knownSubTypeAttributes
                 .Select(knownType =>
@@ -316,7 +297,7 @@ namespace JsonSubTypes.Text.Json
             if (!TryGetValueInJson(jObject, JsonDiscriminatorPropertyName, jsonSerializerOptions, out JsonElement discriminatorValue))
                 return null;
 
-            var typeMapping = GetSubTypeMapping(parentType);
+            NullableDictionary<object, Type> typeMapping = GetSubTypeMapping(parentType);
             if (typeMapping.Entries().Any())
             {
                 return GetTypeFromMapping(typeMapping, discriminatorValue);
@@ -344,8 +325,11 @@ namespace JsonSubTypes.Text.Json
             JsonElement.ObjectEnumerator objectEnumerator = jObject
                 .RootElement
                 .EnumerateObject();
-            foreach (var jsonProperty in objectEnumerator.Where(jsonProperty =>
-                         string.Equals(jsonProperty.Name, propertyName, StringComparison.OrdinalIgnoreCase)))
+            foreach (JsonProperty jsonProperty in objectEnumerator.Where(jsonProperty =>
+                     {
+                   
+                         return string.Equals(jsonProperty.Name, propertyName, comparisonType);
+                     }))
             {
                 value = jsonProperty.Value;
                 return true;
@@ -361,19 +345,19 @@ namespace JsonSubTypes.Text.Json
                 return null;
             }
 
-            var insideAssembly = parentType.Assembly;
+            Assembly insideAssembly = parentType.Assembly;
 
-            var parentTypeFullName = parentType.FullName;
+            string parentTypeFullName = parentType.FullName;
 
-            var typeByName = insideAssembly.GetType(typeName);
+            Type typeByName = insideAssembly.GetType(typeName);
             if (parentTypeFullName != null && typeByName == null)
             {
-                var searchLocation =
+                string searchLocation =
                     parentTypeFullName.Substring(0, parentTypeFullName.Length - parentType.Name.Length);
                 typeByName = insideAssembly.GetType(searchLocation + typeName, false, true);
             }
 
-            var typeByNameInfo = ToTypeInfo(typeByName);
+            TypeInfo typeByNameInfo = ToTypeInfo(typeByName);
             if (typeByNameInfo != null && parentType.IsAssignableFrom(typeByNameInfo))
             {
                 return typeByName;
@@ -392,11 +376,11 @@ namespace JsonSubTypes.Text.Json
                 return targetType;
             }
 
-            var key = typeMapping.NotNullKeys().FirstOrDefault();
+            object key = typeMapping.NotNullKeys().FirstOrDefault();
             if (key != null)
             {
-                var targetLookupValueType = key.GetType();
-                var lookupValue = JsonSerializer.Deserialize(discriminatorToken.GetRawText(), targetLookupValueType);
+                Type targetLookupValueType = key.GetType();
+                object lookupValue = JsonSerializer.Deserialize(discriminatorToken.GetRawText(), targetLookupValueType);
 
                 if (typeMapping.TryGetValue(lookupValue, out Type targetType))
                 {
@@ -409,7 +393,7 @@ namespace JsonSubTypes.Text.Json
 
         internal virtual NullableDictionary<object, Type> GetSubTypeMapping(Type type)
         {
-            var dictionary = new NullableDictionary<object, Type>();
+            NullableDictionary<object, Type> dictionary = new NullableDictionary<object, Type>();
 
             GetAttributes<KnownSubTypeAttribute>(ToTypeInfo(type))
                 .ToList()
@@ -516,7 +500,7 @@ namespace JsonSubTypes.Text.Json
                 yield return new KeyValuePair<TKey, TValue>(default(TKey), _nullKeyValue);
             }
 
-            foreach (var value in _dictionary)
+            foreach (KeyValuePair<TKey, TValue> value in _dictionary)
             {
                 yield return value;
             }

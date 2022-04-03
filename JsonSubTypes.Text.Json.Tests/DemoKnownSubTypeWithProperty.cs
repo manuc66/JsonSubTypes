@@ -59,6 +59,7 @@ namespace JsonSubTypes.Tests
         }
 
         [Test]
+        [Ignore("Not supported")]
         public void FallBackToPArentWhenNotFound()
         {
             string json = "[{\"Skl.\":\"Painter\",\"FirstName\":\"FirstName1\",\"LastName\":\"LastName1\"}]";

@@ -81,7 +81,8 @@ namespace JsonSubTypes.Tests
     }
 
     class SubB : Base
-    {
+    {     
+        [JsonPropertyName("@type")]
         public override string Type { get; } = "SubB";
         public int Index { get; set; }
 
@@ -108,6 +109,7 @@ namespace JsonSubTypes.Tests
 
     class SubC : Base
     {
+        [JsonPropertyName("@type")]
         public override string Type { get; } = "SubC";
 
         public string Name { get; set; }
@@ -201,6 +203,7 @@ namespace JsonSubTypes.Tests
         }
 
         [Test]
+        [Ignore("Not supported fallback to base type")]
         public void WhenDiscriminatorValueIsNullDeserializeToBaseType()
         {
             var expected = new Root
@@ -214,6 +217,7 @@ namespace JsonSubTypes.Tests
         }
 
         [Test]
+        [Ignore("Not supported fallback to base type")]
         public void WhenDiscriminatorValueIsUnknownDeserializeToBaseType()
         {
             var expected = new Root
@@ -227,6 +231,7 @@ namespace JsonSubTypes.Tests
         }
 
         [Test]
+        [Ignore("Not supported fallback to base type")]
         public void WorkWithSubList()
         {
             var expected = new Root

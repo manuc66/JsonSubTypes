@@ -19,14 +19,12 @@ namespace JsonSubTypes.Tests
         }
 
         [Test]
-        [Timeout(2000)]
-        [Ignore("Not ready")]
         public void DeserializingWithAbstractBaseClassDiscriminatorThrows()
         {
             var exception = Assert.Throws<JsonException>(() =>
                 JsonSerializer.Deserialize<MainClass>("{\"Discriminator\":\"MainClass\"}"));
             Assert.AreEqual(
-                "Could not create an instance of type JsonSubTypes.Tests.AbstractBaseClassDiscriminatorTests+MainClass. Type is an interface or abstract class and cannot be instantiated. Path 'Discriminator', line 1, position 17.",
+                "Could not create an instance of type JsonSubTypes.Tests.AbstractBaseClassDiscriminatorTests+MainClass. Type is an interface or abstract class and cannot be instantiated. Position: 0.",
                 exception.Message);
         }
 
@@ -50,14 +48,12 @@ namespace JsonSubTypes.Tests
 
 
         [Test]
-        [Timeout(2000)]
         public void DeserializingWithAbstractClassCircleThrows()
         {
-            Assert.Fail("Not ready");
             var exception = Assert.Throws<JsonException>(() =>
                 JsonSerializer.Deserialize<A>("{\"Discriminator\":\"D\"}"));
             Assert.AreEqual(
-                "Could not create an instance of type JsonSubTypes.Tests.AbstractBaseClassDiscriminatorTests+A. Type is an interface or abstract class and cannot be instantiated. Path 'Discriminator', line 1, position 17.",
+                "Could not create an instance of type JsonSubTypes.Tests.AbstractBaseClassDiscriminatorTests+A. Type is an interface or abstract class and cannot be instantiated. Position: 0.",
                 exception.Message);
         }
     }

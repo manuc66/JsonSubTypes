@@ -83,7 +83,7 @@ namespace JsonSubTypes.Tests
             }
 
             [Test]
-
+            [Ignore("Not supported fallback to basetype")]
             public void DemoBaseWhenNull()
             {
                 var animal =
@@ -102,16 +102,18 @@ namespace JsonSubTypes.Tests
                 {
                     deserializeObject = JsonSerializer.Deserialize<Animal>(@"{""ClassName"": ""Faulty""}");
                 }
-                catch { }
+                catch
+                {
+                }
 
                 Assert.IsFalse(Faulty.ctorCalled);
             }
-
         }
 
         public class Faulty
         {
             public static bool ctorCalled = false;
+
             public Faulty()
             {
                 ctorCalled = true;
@@ -160,7 +162,9 @@ namespace JsonSubTypes.Tests
                 var exception = Assert.Throws<JsonException>(() =>
                     JsonSerializer.Deserialize<IAnimal>("{\"Kind\":8,\"Breed\":\"Jack Russell Terrier\"}")
                 );
-                Assert.AreEqual("Could not create an instance of type JsonSubTypes.Tests.SimplyQualifiedNameNestedType.DemoAlternativeTypePropertyNameTests+IAnimal. Type is an interface or abstract class and cannot be instantiated. Position: 0.", exception.Message);
+                Assert.AreEqual(
+                    "Could not create an instance of type JsonSubTypes.Tests.SimplyQualifiedNameNestedType.DemoAlternativeTypePropertyNameTests+IAnimal. Type is an interface or abstract class and cannot be instantiated. Position: 0.",
+                    exception.Message);
             }
         }
     }
@@ -200,7 +204,8 @@ namespace JsonSubTypes.Tests
             [Test]
             public void WhenNoMappingPossible()
             {
-                var animal = JsonSerializer.Deserialize<IAnimal>("{\"Kind\":\"Octopus\",\"Specie\":\"Octopus tetricus\"}");
+                var animal =
+                    JsonSerializer.Deserialize<IAnimal>("{\"Kind\":\"Octopus\",\"Specie\":\"Octopus tetricus\"}");
 
                 Assert.AreEqual("Octopus", ((UnknownAnimal)animal).Kind);
             }
@@ -251,11 +256,11 @@ namespace JsonSubTypes.Tests
             [Test]
             public void WhenNoMappingPossible()
             {
-                var animal = JsonSerializer.Deserialize<IAnimal>("{\"Kind\":\"Octopus\",\"Specie\":\"Octopus tetricus\"}");
+                var animal =
+                    JsonSerializer.Deserialize<IAnimal>("{\"Kind\":\"Octopus\",\"Specie\":\"Octopus tetricus\"}");
 
                 Assert.AreEqual("Octopus", (animal as UnknownAnimal)?.Kind);
             }
         }
     }
 }
-

@@ -394,6 +394,7 @@ namespace JsonSubTypes.Tests
             }
 
             [Test]
+            [Ignore("Comment not supported")]
             public void DeserializeHierachyDeeperTestWithComments()
             {
                 var input = "/* foo bar */{/* foo bar */\"Root\":" +

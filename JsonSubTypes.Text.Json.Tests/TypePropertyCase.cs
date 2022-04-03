@@ -26,9 +26,9 @@ namespace JsonSubTypes.Tests
             public void FooParsingCamelCase()
             {
                 var serializeObject = "{\"MsgType\":1}";
-                var msgType = JsonSerializer.Deserialize<Foo>(serializeObject).MsgType;
+                var msgType = JsonSerializer.Deserialize<Foo>(serializeObject, new JsonSerializerOptions() {PropertyNameCaseInsensitive = true}).MsgType;
                 Assert.AreEqual(1, msgType);
-                Assert.IsInstanceOf<Foo>(JsonSerializer.Deserialize<DtoBase>(serializeObject));
+                Assert.IsInstanceOf<Foo>(JsonSerializer.Deserialize<DtoBase>(serializeObject, new JsonSerializerOptions() {PropertyNameCaseInsensitive = true}));
             }
 
             [Test]
@@ -59,15 +59,15 @@ namespace JsonSubTypes.Tests
             {
                 var serializeObject = "{\"MsgType\":1}";
                 Assert.AreEqual(1, JsonSerializer.Deserialize<Foo>(serializeObject, new JsonSerializerOptions() {PropertyNameCaseInsensitive = true}).MsgType);
-                Assert.IsInstanceOf<Foo>(JsonSerializer.Deserialize<DtoBase>(serializeObject));
+                Assert.IsInstanceOf<Foo>(JsonSerializer.Deserialize<DtoBase>(serializeObject, new JsonSerializerOptions() {PropertyNameCaseInsensitive = true}));
             }
 
             [Test]
             public void FooParsingLowerPascalCase()
             {
                 var serializeObject = "{\"msgType\":1}";
-                Assert.AreEqual(1, JsonSerializer.Deserialize<Foo>(serializeObject).MsgType);
-                Assert.IsInstanceOf<Foo>(JsonSerializer.Deserialize<DtoBase>(serializeObject));
+                Assert.AreEqual(1, JsonSerializer.Deserialize<Foo>(serializeObject, new JsonSerializerOptions() {PropertyNameCaseInsensitive = true}).MsgType);
+                Assert.IsInstanceOf<Foo>(JsonSerializer.Deserialize<DtoBase>(serializeObject, new JsonSerializerOptions() {PropertyNameCaseInsensitive = true}));
             }
         }
 
@@ -89,8 +89,8 @@ namespace JsonSubTypes.Tests
             public void FooParsingCamelCase()
             {
                 var serializeObject = "{\"MessageType\":1}";
-                Assert.AreEqual(1, JsonSerializer.Deserialize<Foo>(serializeObject).MsgType);
-                Assert.IsInstanceOf<Foo>(JsonSerializer.Deserialize<DtoBase>(serializeObject));
+                Assert.AreEqual(1, JsonSerializer.Deserialize<Foo>(serializeObject, new JsonSerializerOptions() {PropertyNameCaseInsensitive = true}).MsgType);
+                Assert.IsInstanceOf<Foo>(JsonSerializer.Deserialize<DtoBase>(serializeObject, new JsonSerializerOptions() {PropertyNameCaseInsensitive = true}));
             }
 
             [Test]
@@ -128,8 +128,8 @@ namespace JsonSubTypes.Tests
             public void FooParsingLowerPascalCase()
             {
                 var serializeObject = "{\"messageType\":1}";
-                Assert.AreEqual(1, JsonSerializer.Deserialize<Foo>(serializeObject).MsgType);
-                Assert.IsInstanceOf<Foo>(JsonSerializer.Deserialize<DtoBase>(serializeObject));
+                Assert.AreEqual(1, JsonSerializer.Deserialize<Foo>(serializeObject, new JsonSerializerOptions() {PropertyNameCaseInsensitive = true}).MsgType);
+                Assert.IsInstanceOf<Foo>(JsonSerializer.Deserialize<DtoBase>(serializeObject, new JsonSerializerOptions() {PropertyNameCaseInsensitive = true}));
             }
         }
     }
