@@ -64,7 +64,7 @@ namespace JsonSubTypes.Text.Json
 
     public interface IJsonSubtypes
     {
-        Type GetType(JsonDocument jObject, Type parentType);
+        Type GetType(JsonDocument jObject, Type parentType, JsonSerializerOptions jsonSerializerOptions);
         bool CanConvert(Type toType);
     }
 
@@ -235,19 +235,19 @@ namespace JsonSubTypes.Text.Json
 
       
 
-        Type IJsonSubtypes.GetType(JsonDocument jObject, Type parentType)
+        Type IJsonSubtypes.GetType(JsonDocument jObject, Type parentType, JsonSerializerOptions jsonSerializerOptions)
         {
             Type resolvedType;
             if (JsonDiscriminatorPropertyName == null)
             {
-                resolvedType = GetTypeByPropertyPresence(jObject, parentType);
+                resolvedType = GetTypeByPropertyPresence(jObject, parentType, jsonSerializerOptions);
             }
             else
             {
-                resolvedType = GetTypeFromDiscriminatorValue(jObject, parentType);
+                resolvedType = GetTypeFromDiscriminatorValue(jObject, parentType, jsonSerializerOptions);
             }
 
-            return resolvedType ?? GetFallbackSubType(parentType);
+            return resolvedType ?? GetFallbackSubType(parentType) ?? parentType;
         }
 
         private Type GetType(JsonDocument jObject, Type parentType, JsonSerializerOptions serializer)
@@ -261,7 +261,7 @@ namespace JsonSubTypes.Text.Json
             var jsonConverterCollection = serializer.Converters.OfType<IJsonSubtypes>().ToList();
             while (currentTypeResolver != null && currentTypeResolver != lastTypeResolver)
             {
-                targetType = currentTypeResolver.GetType(jObject, targetType);
+                targetType = currentTypeResolver.GetType(jObject, targetType, serializer);
                 if (!visitedTypes.Add(targetType))
                 {
                     break;
@@ -294,14 +294,15 @@ namespace JsonSubTypes.Text.Json
                 .FirstOrDefault(c => c.CanConvert(ToType(targetType)));
         }
 
-        private static Type GetTypeByPropertyPresence(JsonDocument jObject, Type parentType)
+        private static Type GetTypeByPropertyPresence(JsonDocument jObject, Type parentType,
+            JsonSerializerOptions jsonSerializerOptions)
         {
             var knownSubTypeAttributes = GetAttributes<KnownSubTypeWithPropertyAttribute>(ToTypeInfo(parentType));
 
             return knownSubTypeAttributes
                 .Select(knownType =>
                 {
-                    if (TryGetValueInJson(jObject, knownType.PropertyName, out JsonElement _))
+                    if (TryGetValueInJson(jObject, knownType.PropertyName, jsonSerializerOptions, out JsonElement _))
                         return knownType.SubType;
 
                     return null;
@@ -309,9 +310,10 @@ namespace JsonSubTypes.Text.Json
                 .FirstOrDefault(type => type != null);
         }
 
-        private Type GetTypeFromDiscriminatorValue(JsonDocument jObject, Type parentType)
+        private Type GetTypeFromDiscriminatorValue(JsonDocument jObject, Type parentType,
+            JsonSerializerOptions jsonSerializerOptions)
         {
-            if (!TryGetValueInJson(jObject, JsonDiscriminatorPropertyName, out var discriminatorValue))
+            if (!TryGetValueInJson(jObject, JsonDiscriminatorPropertyName, jsonSerializerOptions, out JsonElement discriminatorValue))
                 return null;
 
             var typeMapping = GetSubTypeMapping(parentType);
@@ -320,17 +322,26 @@ namespace JsonSubTypes.Text.Json
                 return GetTypeFromMapping(typeMapping, discriminatorValue);
             }
 
-            return GetTypeByName(discriminatorValue.GetString(), ToTypeInfo(parentType));
+            string discriminatorStringValue = discriminatorValue.ValueKind switch
+            {
+                JsonValueKind.Null => null,
+                JsonValueKind.String => discriminatorValue.GetString(),
+                _ => discriminatorValue.ToString()
+            };
+            return GetTypeByName(discriminatorStringValue, ToTypeInfo(parentType));
         }
 
-        private static bool TryGetValueInJson(JsonDocument jObject, string propertyName, out JsonElement value)
+        private static bool TryGetValueInJson(JsonDocument jObject, string propertyName,
+            JsonSerializerOptions jsonSerializerOptions, out JsonElement value)
         {
             if (jObject.RootElement.TryGetProperty(propertyName, out value))
             {
                 return true;
             }
-
-            var objectEnumerator = jObject
+            
+            StringComparison comparisonType = jsonSerializerOptions.PropertyNameCaseInsensitive ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            
+            JsonElement.ObjectEnumerator objectEnumerator = jObject
                 .RootElement
                 .EnumerateObject();
             foreach (var jsonProperty in objectEnumerator.Where(jsonProperty =>

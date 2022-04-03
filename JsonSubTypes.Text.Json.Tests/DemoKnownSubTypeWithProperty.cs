@@ -50,8 +50,11 @@ namespace JsonSubTypes.Tests
                           "{\"skill\"" +
                           ":\"Painter\",\"FirstName\":\"FirstName1\",\"LastName\":\"LastName1\"}]";
 
-
-            var persons = JsonSerializer.Deserialize<ICollection<Person>>(json);
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+            var persons = JsonSerializer.Deserialize<ICollection<Person>>(json, options);
             Assert.AreEqual("Painter", (persons.Last() as Artist)?.Skill);
         }
 
