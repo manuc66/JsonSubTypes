@@ -319,7 +319,7 @@ namespace JsonSubTypes
                 return types[0];
             }
 
-            if (types.Length > 1)
+            if (types.Distinct().Count() > 1)
             {
                 throw new JsonSerializationException("Ambiguous type resolution, expected only one type but got: " + String.Join(", ", types.Select(t => t.FullName).ToArray()));
             }
