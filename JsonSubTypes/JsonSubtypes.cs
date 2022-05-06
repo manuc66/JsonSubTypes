@@ -314,12 +314,14 @@ namespace JsonSubTypes
                 .Where(type => type != null)
                 .ToArray();
 
-            if (types.Length == 1)
+            var distinctTypes = types.Distinct().Count();
+
+            if (distinctTypes == 1)
             {
                 return types[0];
             }
 
-            if (types.Distinct().Count() > 1)
+            if (distinctTypes > 1)
             {
                 throw new JsonSerializationException("Ambiguous type resolution, expected only one type but got: " + String.Join(", ", types.Select(t => t.FullName).ToArray()));
             }
