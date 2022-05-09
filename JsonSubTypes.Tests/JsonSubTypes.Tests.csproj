@@ -9,7 +9,7 @@
     <TestProjectType>UnitTest</TestProjectType>
     <AssemblyTitle>JsonSubTypes.Tests</AssemblyTitle>
     <Product>JsonSubTypes.Tests</Product>
-    <Copyright>Copyright ©  2017</Copyright>
+    <Copyright>Copyright © 2022</Copyright>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <LangVersion>7</LangVersion>
