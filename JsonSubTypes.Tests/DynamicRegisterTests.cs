@@ -124,7 +124,7 @@ namespace JsonSubTypes.Tests
                 .RegisterSubtype(typeof(Dog), AnimalType.Dog)
                 .Build());
 
-            var json = "{\"catLives\":6,\"age\":11,\"type\":2}";
+            var json = "{\"type\":2,\"catLives\":6,\"age\":11}";
 
             var result = JsonConvert.SerializeObject(new Cat { Age = 11, Lives = 6 });
 
@@ -144,7 +144,7 @@ namespace JsonSubTypes.Tests
                 .RegisterSubtype<Dog>(AnimalType.Dog)
                 .Build());
 
-            var json = "{\"catLives\":6,\"age\":11,\"type\":2}";
+            var json = "{\"type\":2,\"catLives\":6,\"age\":11}";
 
             var result = JsonConvert.SerializeObject(new Cat { Age = 11, Lives = 6 });
 
@@ -506,10 +506,9 @@ namespace JsonSubTypes.Tests
                 SubExpressionB = new ConstantExpression2 { Value = "B" }
             });
 
-            Assert.AreEqual("{" +
-                            "\"SubExpressionA\":{\"Value\":\"A\",\"Type\":\"Constant\"}," +
-                            "\"SubExpressionB\":{\"Value\":\"B\",\"Type\":\"Constant\"}" +
-                            ",\"Type\":\"Binary\"}", target);
+            Assert.AreEqual("{\"Type\":\"Binary\"," +
+                            "\"SubExpressionA\":{\"Type\":\"Constant\",\"Value\":\"A\"}," +
+                            "\"SubExpressionB\":{\"Type\":\"Constant\",\"Value\":\"B\"}}", target);
         }
 
         [Test]
@@ -532,10 +531,10 @@ namespace JsonSubTypes.Tests
                 SubExpressionB = new ManyOrExpression2 { OrExpr = new List<IExpression2> { new ConstantExpression2 { Value = "A" }, new ManyOrExpression2 { OrExpr = new List<IExpression2> { new ConstantExpression2 { Value = "A" }, new ConstantExpression2 { Value = "B" } } } } }
             });
 
-            var json = "{" +
-                           "\"SubExpressionA\":{\"OrExpr\":[{\"Value\":\"A\",\"Type\":\"Constant\"},{\"Value\":\"B\",\"Type\":\"Constant\"}],\"Type\":\"ManyOr\"}," +
-                           "\"SubExpressionB\":{\"OrExpr\":[{\"Value\":\"A\",\"Type\":\"Constant\"},{\"OrExpr\":[{\"Value\":\"A\",\"Type\":\"Constant\"},{\"Value\":\"B\",\"Type\":\"Constant\"}],\"Type\":\"ManyOr\"}],\"Type\":\"ManyOr\"}" +
-                           ",\"Type\":\"Binary\"}";
+            var json = "{\"Type\":\"Binary\"," +
+                           "\"SubExpressionA\":{\"Type\":\"ManyOr\",\"OrExpr\":[{\"Type\":\"Constant\",\"Value\":\"A\"},{\"Type\":\"Constant\",\"Value\":\"B\"}]}," +
+                           "\"SubExpressionB\":{\"Type\":\"ManyOr\",\"OrExpr\":[{\"Type\":\"Constant\",\"Value\":\"A\"},{\"Type\":\"ManyOr\",\"OrExpr\":[{\"Type\":\"Constant\",\"Value\":\"A\"},{\"Type\":\"Constant\",\"Value\":\"B\"}]}]}" +
+                           "}";
             Assert.AreEqual(json, target);
 
 
@@ -566,10 +565,10 @@ namespace JsonSubTypes.Tests
                     SubExpressionB = new ManyOrExpression2 { OrExpr = new List<IExpression2> { new ConstantExpression2 { Value = "A" }, new ManyOrExpression2 { OrExpr = new List<IExpression2> { new ConstantExpression2 { Value = "A" }, new ConstantExpression2 { Value = "B" } } } } }
                 });
 
-                var json = "{" +
-                           "\"SubExpressionA\":{\"OrExpr\":[{\"Value\":\"A\",\"Type\":\"Constant\"},{\"Value\":\"B\",\"Type\":\"Constant\"}],\"Type\":\"ManyOr\"}," +
-                           "\"SubExpressionB\":{\"OrExpr\":[{\"Value\":\"A\",\"Type\":\"Constant\"},{\"OrExpr\":[{\"Value\":\"A\",\"Type\":\"Constant\"},{\"Value\":\"B\",\"Type\":\"Constant\"}],\"Type\":\"ManyOr\"}],\"Type\":\"ManyOr\"}" +
-                           ",\"Type\":\"Binary\"}";
+                var json = "{\"Type\":\"Binary\"," +
+                           "\"SubExpressionA\":{\"Type\":\"ManyOr\",\"OrExpr\":[{\"Type\":\"Constant\",\"Value\":\"A\"},{\"Type\":\"Constant\",\"Value\":\"B\"}]}," +
+                           "\"SubExpressionB\":{\"Type\":\"ManyOr\",\"OrExpr\":[{\"Type\":\"Constant\",\"Value\":\"A\"},{\"Type\":\"ManyOr\",\"OrExpr\":[{\"Type\":\"Constant\",\"Value\":\"A\"},{\"Type\":\"Constant\",\"Value\":\"B\"}]}]}" +
+                           "}";
                 Assert.AreEqual(json, target);
 
 

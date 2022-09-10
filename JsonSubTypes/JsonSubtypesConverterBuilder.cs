@@ -31,7 +31,7 @@ namespace JsonSubTypes
         private string _discriminatorProperty;
         private readonly NullableDictionary<object, Type> _subTypeMapping = new NullableDictionary<object, Type>();
         private bool _serializeDiscriminatorProperty;
-        private bool _addDiscriminatorFirst;
+        private bool _addDiscriminatorFirst = true;
         private Type _fallbackSubtype;
 
         public static JsonSubtypesConverterBuilder Of(Type baseType, string discriminatorProperty)
@@ -51,7 +51,7 @@ namespace JsonSubTypes
 
         public JsonSubtypesConverterBuilder SerializeDiscriminatorProperty()
         {
-            return SerializeDiscriminatorProperty(false);
+            return SerializeDiscriminatorProperty(true);
         }
 
         public JsonSubtypesConverterBuilder SerializeDiscriminatorProperty(bool addDiscriminatorFirst)
