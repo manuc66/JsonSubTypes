@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 #if (!NETSTANDARD1_3)
 using TypeInfo = System.Type;
+
 #else
 using System.Reflection;
 #endif
@@ -68,6 +69,7 @@ namespace JsonSubTypes
         {
             public Type SubType { get; }
             public string PropertyName { get; }
+            public bool StopLookupOnMatch { get; set; }
 
             public KnownSubTypeWithPropertyAttribute(Type subType, string propertyName)
             {
@@ -142,15 +144,16 @@ namespace JsonSubTypes
                     value = ReadObject(reader, objectType, serializer);
                     break;
                 case JsonToken.StartArray:
+                {
+                    var elementType = GetElementType(objectType);
+                    if (elementType == null)
                     {
-                        var elementType = GetElementType(objectType);
-                        if (elementType == null)
-                        {
-                            throw CreateJsonReaderException(reader, $"Impossible to read JSON array to fill type: {objectType.Name}");
-                        }
-                        value = ReadArray(reader, objectType, elementType, serializer);
-                        break;
+                        throw CreateJsonReaderException(reader, $"Impossible to read JSON array to fill type: {objectType.Name}");
                     }
+
+                    value = ReadArray(reader, objectType, elementType, serializer);
+                    break;
+                }
                 default:
                     throw CreateJsonReaderException(reader, $"Unrecognized token: {reader.TokenType}");
             }
@@ -297,42 +300,51 @@ namespace JsonSubTypes
         {
             var knownSubTypeAttributes = GetTypesByPropertyPresence(parentType);
 
-            var types = knownSubTypeAttributes
-                .Select(knownType =>
+            HashSet<Type> typesFound = new HashSet<Type>();
+            foreach (TypeWithPropertyMatchingAttributes knownTypeItem in knownSubTypeAttributes)
+            {
+                Type matchingKnownType = null;
+                if (TryGetValueInJson(jObject, knownTypeItem.JsonPropertyName, out JToken _))
                 {
-                    if (TryGetValueInJson(jObject, knownType.Key, out JToken _))
-                        return knownType.Value;
-
-                    var token = jObject.SelectToken(knownType.Key);
+                    matchingKnownType = knownTypeItem.Type;
+                }
+                else
+                {
+                    JToken token = jObject.SelectToken(knownTypeItem.JsonPropertyName);
                     if (token != null)
                     {
-                        return knownType.Value;
+                        matchingKnownType = knownTypeItem.Type;
                     }
+                }
 
-                    return null;
-                })
-                .Where(type => type != null)
-                .ToArray();
-
-            var distinctTypes = types.Distinct().Count();
-
-            if (distinctTypes == 1)
-            {
-                return types[0];
+                if (matchingKnownType != null)
+                {
+                    if (knownTypeItem.StopLookupOnMatch)
+                    {
+                        return knownTypeItem.Type;
+                    }
+                    typesFound.Add(matchingKnownType);
+                }
             }
 
-            if (distinctTypes > 1)
+            if (typesFound.Count == 1)
             {
-                throw new JsonSerializationException("Ambiguous type resolution, expected only one type but got: " + String.Join(", ", types.Select(t => t.FullName).ToArray()));
+                return typesFound.First();
+            }
+
+            if (typesFound.Count > 1)
+            {
+                throw new JsonSerializationException("Ambiguous type resolution, expected only one type but got: " + String.Join(", ", typesFound.Select(t => t.FullName).ToArray()));
             }
 
             return null;
         }
 
-        internal virtual Dictionary<string, Type> GetTypesByPropertyPresence(Type parentType)
+        internal virtual List<TypeWithPropertyMatchingAttributes> GetTypesByPropertyPresence(Type parentType)
         {
             return GetAttributes<KnownSubTypeWithPropertyAttribute>(ToTypeInfo(parentType))
-                .ToDictionary(a => a.PropertyName, a => a.SubType);
+                .Select(a => new TypeWithPropertyMatchingAttributes(a.SubType, a.PropertyName, a.StopLookupOnMatch))
+                .ToList();
         }
 
         private Type GetTypeFromDiscriminatorValue(JObject jObject, Type parentType, JsonSerializer serializer)
@@ -407,14 +419,17 @@ namespace JsonSubTypes
 
             return null;
         }
-        
-        static bool IsSubclassOfRawGeneric(TypeInfo generic, TypeInfo toCheck) {
+
+        static bool IsSubclassOfRawGeneric(TypeInfo generic, TypeInfo toCheck)
+        {
             TypeInfo cur = toCheck;
             TypeInfo objectTypeInfo = ToTypeInfo(typeof(object));
-            while (generic != cur && toCheck != objectTypeInfo) {
+            while (generic != cur && toCheck != objectTypeInfo)
+            {
                 cur = toCheck.IsGenericType ? ToTypeInfo(toCheck.GetGenericTypeDefinition()) : toCheck;
                 toCheck = ToTypeInfo(toCheck.BaseType);
             }
+
             return generic == cur;
         }
 
@@ -478,7 +493,7 @@ namespace JsonSubTypes
             lock (_attributesCache)
             {
                 if (_attributesCache.TryGetValue(typeInfo, out var res))
-                   return res;
+                    return res;
 
                 res = typeInfo.GetCustomAttributes(false);
                 _attributesCache.Add(typeInfo, res);
