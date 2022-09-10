@@ -385,6 +385,23 @@ namespace JsonSubTypes.Tests
         }
 
         [Test]
+        public void TestFallBackGeneric()
+        {
+            var settings = new JsonSerializerSettings();
+            JsonConvert.DefaultSettings = () => settings;
+
+            settings.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(IExpression), "Type")
+                .SetFallbackSubtype<UnknownExpression>()
+                .RegisterSubtype(typeof(ConstantExpression), "Constant")
+                .Build());
+
+            var expr = JsonConvert.DeserializeObject<IExpression>("{\"Type\": \"False\"}");
+
+            Assert.AreEqual("False", (expr as UnknownExpression)?.Type);
+        }
+
+        [Test]
         public void TestFallBackWithNullRegistered()
         {
             var settings = new JsonSerializerSettings();

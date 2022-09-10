@@ -78,9 +78,9 @@ namespace JsonSubTypes
             return this;
         }
 
-        public JsonSubtypesConverterBuilder SetFallbackSubtype<T>(object value)
+        public JsonSubtypesConverterBuilder SetFallbackSubtype<T>()
         {
-            return RegisterSubtype(typeof(T), value);
+            return SetFallbackSubtype(typeof(T));
         }
 
         public JsonConverter Build()
