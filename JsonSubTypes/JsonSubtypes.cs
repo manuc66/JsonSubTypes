@@ -211,12 +211,7 @@ namespace JsonSubTypes
 
         private object ReadObject(JsonReader reader, Type objectType, JsonSerializer serializer)
         {
-            // I would prefer to create a new reader, but can't work out how to
-            // This seems a reasonable alternative - https://github.com/JamesNK/Newtonsoft.Json/issues/1605#issuecomment-602673364
-         //   var savedDateParseSettings = reader.DateParseHandling;
-       //     reader.DateParseHandling = DateParseHandling.None;
             var jObject = JObject.Load(reader);
-       //     reader.DateParseHandling = savedDateParseSettings;
 
             var targetType = GetType(jObject, objectType, serializer) ?? objectType;
 
