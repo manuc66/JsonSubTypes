@@ -14,16 +14,16 @@
     <RepositoryUrl>https://github.com/manuc66/JsonSubTypes</RepositoryUrl>
     <PackageProjectUrl>https://github.com/manuc66/JsonSubTypes</PackageProjectUrl>
     <Authors>Emmanuel Counasse</Authors>
-    <Version>2.0.0</Version>
+    <Version>2.0.1</Version>
     <PackageTags>json converter subtype inheritance deserializeobject polymorphism</PackageTags>
-    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <AssemblyVersion>2.0.1.0</AssemblyVersion>
     <RepositoryType>git</RepositoryType>
     <PackageReleaseNotes>See in https://github.com/manuc66/JsonSubTypes/releases</PackageReleaseNotes>
     <LangVersion>7</LangVersion>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>JsonSubTypes.Key.snk</AssemblyOriginatorKeyFile>
     <DelaySign>false</DelaySign>
-    <FileVersion>2.0.0.0</FileVersion>
+    <FileVersion>2.0.1.0</FileVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
