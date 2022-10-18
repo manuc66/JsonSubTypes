@@ -6,6 +6,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2022-05-09
+
+### Changed
+- Discriminator property is placed first by default now #46 #149
+- Depends on the latest Newtonsoft.Json #131 #148
+- Signature of SetFallbackSubtype has been changed to fix a design bug #152 #147
+
+### Added
+- Allow to stop searching when a match is found #128 #151
+
+### Fixed
+- Fix a DateTime issue introduced in release 1.8.0 #120 #128
+
+## [1.9.0] - 2022-05-09
+
+### Added
+- Add version of builder methods with generic types for cleaner syntax. #110
+- Support (serializing) sub types with generic type parameters when using JsonSubtypesConverterBuilder #135
+- Add cache of type's attributes #119
+
+### Fixed
+- Newtonsoft.Json dependency version should be lowest supported, not latest available #101
+- Multiple type discriminators in JSON silently passes. #100
+- Incorrect handling of datetime field in a sub-type #114
+- Too many target framework inside the nuget package #48
+- Copy MaxDepth when creating internal JObjectReader #137
+- Fix deserialization of hierarchy with multiple levels #118
 
 ## [1.8.0] - 2020-09-24
 
