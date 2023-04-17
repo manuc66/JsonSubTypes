@@ -214,7 +214,10 @@ namespace JsonSubTypes
 
         private object ReadObject(JsonReader reader, Type objectType, JsonSerializer serializer)
         {
+            var prevDateParseHandling = reader.DateParseHandling;
+            reader.DateParseHandling = DateParseHandling.None;
             var jObject = JObject.Load(reader);
+            reader.DateParseHandling = prevDateParseHandling;
 
             var targetType = GetType(jObject, objectType, serializer) ?? objectType;
 
