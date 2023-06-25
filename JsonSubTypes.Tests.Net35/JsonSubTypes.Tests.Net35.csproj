@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectGuid>{FFBBBE62-26B1-41D1-AEF6-507CC5C0FB9D}</ProjectGuid>
     <RootNamespace>JsonSubTypesNet35</RootNamespace>
@@ -15,7 +15,7 @@
     <DefineConstants>TRACE;NET35</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="NUnit" Version="3.13.3" />
     <PackageReference Include="TaskParallelLibrary" Version="1.0.2856.0" />
   </ItemGroup>
