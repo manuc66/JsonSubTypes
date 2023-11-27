@@ -24,18 +24,18 @@ namespace JsonSubTypes
     //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
     //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     //  SOFTWARE.
-    internal class JsonSubtypesConverter : JsonSubtypes
+    public class JsonSubtypesConverter : JsonSubtypes
     {
         private readonly Type _baseType;
         private readonly Type _fallbackType;
 
-        public JsonSubtypesConverter(Type baseType, Type fallbackType) : base()
+        internal JsonSubtypesConverter(Type baseType, Type fallbackType) : base()
         {
             _baseType = baseType;
             _fallbackType = fallbackType;
         }
 
-        public JsonSubtypesConverter(Type baseType, string jsonDiscriminatorPropertyName, Type fallbackType) : base(jsonDiscriminatorPropertyName)
+        internal JsonSubtypesConverter(Type baseType, string jsonDiscriminatorPropertyName, Type fallbackType) : base(jsonDiscriminatorPropertyName)
         {
             _baseType = baseType;
             _fallbackType = fallbackType;
