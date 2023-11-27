@@ -27,7 +27,7 @@ namespace JsonSubTypes
     //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     //  SOFTWARE.
 
-    internal class JsonSubtypesByDiscriminatorValueConverter : JsonSubtypesConverter
+    public class JsonSubtypesByDiscriminatorValueConverter : JsonSubtypesConverter
     {
         [ThreadStatic] private static bool _isInsideWrite;
         [ThreadStatic] private static bool _allowNextWrite;
@@ -37,13 +37,14 @@ namespace JsonSubTypes
         private readonly Dictionary<Type, object> _supportedTypes = new Dictionary<Type, object>();
         private readonly NullableDictionary<object, Type> _subTypeMapping;
 
-        internal JsonSubtypesByDiscriminatorValueConverter(Type baseType, string discriminatorProperty,
+        // this constructor is part of the public api since it's protected and this class is public
+       protected internal JsonSubtypesByDiscriminatorValueConverter(Type baseType, string discriminatorProperty,
             NullableDictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty, bool addDiscriminatorFirst, Type fallbackType) : base(baseType, discriminatorProperty, fallbackType)
         {
             _serializeDiscriminatorProperty = serializeDiscriminatorProperty;
             _subTypeMapping = subTypeMapping;
             _addDiscriminatorFirst = addDiscriminatorFirst;
-            foreach (var type in _subTypeMapping.Entries())
+            foreach (KeyValuePair<object, Type> type in _subTypeMapping.Entries())
             {
                 if (_supportedTypes.ContainsKey(type.Value))
                 {
@@ -106,11 +107,11 @@ namespace JsonSubTypes
                 _isInsideWrite = false;
             }
 
-            if (!_supportedTypes.TryGetValue(value.GetType(), out var supportedType))
+            if (!_supportedTypes.TryGetValue(value.GetType(), out object supportedType))
             {
                 throw new JsonSerializationException("Impossible to serialize type: " + value.GetType().FullName + " because there is no registered mapping for the discriminator property");
             }
-            var typeMappingPropertyValue = JToken.FromObject(supportedType, serializer);
+            JToken typeMappingPropertyValue = JToken.FromObject(supportedType, serializer);
             if (_addDiscriminatorFirst)
             {
                 jsonObj.AddFirst(new JProperty(JsonDiscriminatorPropertyName, typeMappingPropertyValue));
