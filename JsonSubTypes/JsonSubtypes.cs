@@ -590,7 +590,7 @@ namespace JsonSubTypes
                     }
                 }
 #endif
-            };
+            }
 
 #if NET35
             lock (_attributesCache)
