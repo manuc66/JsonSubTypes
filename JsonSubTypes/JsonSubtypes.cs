@@ -577,10 +577,19 @@ namespace JsonSubTypes
                 var assemblies = AppDomain.CurrentDomain.GetAssemblies();
                 foreach (var assembly in assemblies)
                 {
-                    // Get types from the assembly
-                    var types = assembly.GetTypes();
-
-                    // Filter types based on the presence of the attribute and its property value
+                    TypeInfo[] types;
+                    try
+                    {
+                        types = assembly.GetTypes();
+                    }
+                    //For example: Microsoft.Graph, combined with PnP.Framework can throw these.
+                    //In my testing, combining PnP.Framework v1.8.0 and Microsoft.Graph v5.38.0 gives the following Exception:
+                    //System.Reflection.ReflectionTypeLoadException: Unable to load one or more of the requested types.
+                    //Could not load type 'Microsoft.Graph.HttpProvider' from assembly 'Microsoft.Graph.Core, Version=3.1.3.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35'.
+                    catch (System.Reflection.ReflectionTypeLoadException)
+                    {
+                        continue;
+                    }
                     var filteredTypes = types
                             .Where(t => t.GetCustomAttributes(attributeType, false).Any());
 
@@ -598,7 +607,7 @@ namespace JsonSubTypes
                 if (_typesWithKnownBaseTypeAttributesCache.TryGetValue(attributeType, out var res))
                     return res;
 
-                    res = _getTypesWithCustomAttribute();
+                res = _getTypesWithCustomAttribute();
                 _typesWithKnownBaseTypeAttributesCache.Add(attributeType, res);
 
                 return res;
