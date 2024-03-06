@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -133,6 +133,7 @@ namespace JsonSubTypes
 
         public override bool CanWrite => false;
 
+        private static readonly TypeInfo _knownBaseTypeAttributeType = ToTypeInfo(typeof(KnownBaseTypeAttribute));
         public JsonSubtypes()
         {
         }
@@ -499,22 +500,24 @@ namespace JsonSubTypes
         {
             var dictionary = new NullableDictionary<object, Type>();
 
-            GetAttributes<KnownSubTypeAttribute>(ToTypeInfo(type))
+            var typeAsTypeInfo = ToTypeInfo(type);
+
+            GetAttributes<KnownSubTypeAttribute>(typeAsTypeInfo)
                 .ToList()
                 .ForEach(x => dictionary.Add(x.AssociatedValue, x.SubType));
 
-            FindTypesWithAttribute(ToTypeInfo(typeof(KnownBaseTypeAttribute)))
-                .Where(x => GetAttributes<KnownBaseTypeAttribute>(ToTypeInfo(x)).Any(t => t.BaseType == type))
-                .Select(x => new
-                {
-                    AssociatedValue = GetAttributes<KnownBaseTypeAttribute>(ToTypeInfo(x))
-                                                .Where(t => t.BaseType == type)
-                                                .Select(t => t.AssociatedValue)
-                                                .First(),
-                    SubType = x
-                })
-                .ToList()
-                .ForEach(x => dictionary.Add(x.AssociatedValue, x.SubType));
+            FindTypesWithAttribute(_knownBaseTypeAttributeType)
+            .Where(x => GetAttributes<KnownBaseTypeAttribute>(typeAsTypeInfo).Any(t => t.BaseType == type))
+            .Select(x => new
+            {
+                AssociatedValue = GetAttributes<KnownBaseTypeAttribute>(typeAsTypeInfo)
+                                            .Where(t => t.BaseType == type)
+                                            .Select(t => t.AssociatedValue)
+                                            .First(),
+                SubType = x
+            })
+            .ToList()
+            .ForEach(x => dictionary.Add(x.AssociatedValue, x.SubType));
 
             return dictionary;
         }
@@ -567,53 +570,52 @@ namespace JsonSubTypes
             return GetAttributes<T>(typeInfo).FirstOrDefault();
         }
 
-        private static IEnumerable<Type> FindTypesWithAttribute(TypeInfo attributeType)
+        private static IEnumerable<Type> _getTypesWithCustomAttribute(TypeInfo attributeType)
         {
-            IEnumerable<Type> _getTypesWithCustomAttribute()
-            {
 #if NETSTANDARD1_3
                 return new Type[0];
 #else
-                var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-                foreach (var assembly in assemblies)
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            List<IEnumerable<Type>> typesInAssemblies = new List<IEnumerable<TypeInfo>>();
+            foreach (var assembly in assemblies)
+            {
+                IEnumerable<Type> types;
+                try
                 {
-                    TypeInfo[] types;
-                    try
-                    {
-                        types = assembly.GetTypes();
-                    }
-                    //For example: Microsoft.Graph, combined with PnP.Framework can throw these.
-                    //In my testing, combining PnP.Framework v1.8.0 and Microsoft.Graph v5.38.0 gives the following Exception:
-                    //System.Reflection.ReflectionTypeLoadException: Unable to load one or more of the requested types.
-                    //Could not load type 'Microsoft.Graph.HttpProvider' from assembly 'Microsoft.Graph.Core, Version=3.1.3.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35'.
-                    catch (System.Reflection.ReflectionTypeLoadException)
-                    {
-                        continue;
-                    }
-                    var filteredTypes = types
-                            .Where(t => t.GetCustomAttributes(attributeType, false).Any());
-
-                    foreach (var t in filteredTypes)
-                    {
-                        yield return t;
-                    }
+                    types = assembly.GetTypes();
                 }
-#endif
-            }
+                //For example: Microsoft.Graph, combined with PnP.Framework can throw these.
+                //In my testing, combining PnP.Framework v1.8.0 and Microsoft.Graph v5.38.0 gives the following Exception:
+                //System.Reflection.ReflectionTypeLoadException: Unable to load one or more of the requested types.
+                //Could not load type 'Microsoft.Graph.HttpProvider' from assembly 'Microsoft.Graph.Core, Version=3.1.3.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35'.
+                catch (System.Reflection.ReflectionTypeLoadException e)
+                {
+                    types = e.Types.Where(x => x != null);
+                }
+                var filteredTypes = types
+                        .Where(t => t.GetCustomAttributes(attributeType, false).Any());
 
+                typesInAssemblies.Add(filteredTypes);
+            }
+            return typesInAssemblies.SelectMany(x => x).ToList();
+#endif
+        }
+
+        private static IEnumerable<Type> FindTypesWithAttribute(TypeInfo attributeType)
+        {
 #if NET35
             lock (_attributesCache)
             {
                 if (_typesWithKnownBaseTypeAttributesCache.TryGetValue(attributeType, out var res))
                     return res;
 
-                res = _getTypesWithCustomAttribute();
+                res = _getTypesWithCustomAttribute(attributeType);
                 _typesWithKnownBaseTypeAttributesCache.Add(attributeType, res);
 
                 return res;
             }
 #else
-            return _typesWithKnownBaseTypeAttributesCache.GetOrAdd(attributeType, _getTypesWithCustomAttribute());
+            return _typesWithKnownBaseTypeAttributesCache.GetOrAdd(attributeType, _getTypesWithCustomAttribute);
 #endif
         }
 
