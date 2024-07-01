@@ -37,4 +37,39 @@ namespace JsonSubTypes.Tests
             Assert.AreEqual(true, (animal as Cat)?.Declawed);
         }
     }
+
+    [TestFixture]
+    public class KnownBaseType_DemoCustomSubclassMappingTests
+    {
+        [JsonConverter(typeof(JsonSubtypes), "Sound")]
+        public class Animal
+        {
+            public virtual string Sound { get; }
+            public string Color { get; set; }
+        }
+
+        [JsonSubtypes.KnownBaseType(typeof(Animal), "Bark")]
+        public class Dog : Animal
+        {
+            public override string Sound { get; } = "Bark";
+            public string Breed { get; set; }
+        }
+
+        [JsonSubtypes.KnownBaseType(typeof(Animal), "Meow")]
+        public class Cat : Animal
+        {
+            public override string Sound { get; } = "Meow";
+            public bool Declawed { get; set; }
+        }
+
+        [Test]
+        public void Demo()
+        {
+            var animal = JsonConvert.DeserializeObject<Animal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
+            Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed);
+
+            animal = JsonConvert.DeserializeObject<Animal>("{\"Sound\":\"Meow\",\"Declawed\":\"true\"}");
+            Assert.AreEqual(true, (animal as Cat)?.Declawed);
+        }
+    }
 }
