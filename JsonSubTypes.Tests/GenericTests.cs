@@ -56,7 +56,13 @@ namespace JsonSubTypes.Tests
     [TestFixture]
     public class GenericBaseTests
     {
-        abstract class Base<T>
+        interface IBase<T>
+        {
+            T Value { get; set; }
+	
+            string Kind { get; }
+        }
+        abstract class Base<T> : IBase<T> 
         {
             public T Value { get; set; }
 	
@@ -74,14 +80,13 @@ namespace JsonSubTypes.Tests
         }
 
         [Test]
-        public void DeserializingSubTypeWithDateParsesCorrectly()
+        public void Deserialize_BaseConcreteSubtype_WithJsonSubtypes_OnAbstractBase_ReturnsNested1()
         {
             var settings = new JsonSerializerSettings();
             settings.Converters.Add(JsonSubtypesConverterBuilder
                 .Of(typeof(Base<>), "Kind") // type property is only defined here
                 .RegisterSubtype(typeof(Nested1<>), "1")
                 .RegisterSubtype(typeof(Nested2<>), "2")
-                //.SerializeDiscriminatorProperty() // ask to serialize the type property
                 .Build());
 	
             var json = JsonConvert.SerializeObject(new Nested1<int>
@@ -93,39 +98,15 @@ namespace JsonSubTypes.Tests
             
             Assert.AreEqual(42, @base.Value);
         }
-    }
-    
-    [TestFixture]
-    public class GenericBaseInterfaceTests
-    {
-        interface IBase<T>
-        {
-            T Value { get; set; }
-	
-            string Kind { get; }
-        }
-
-        class Nested1<T> : IBase<T>
-        {
-           public T Value { get; set; }
-            public string Kind => "1";
-        }
-
-        class Nested2<T>: IBase<T>
-        {
-            public T Value { get; set; }
-            public string Kind => "2";
-        }
-
+        
         [Test]
-        public void DeserializingSubTypeWithDateParsesCorrectly()
+        public void Deserialize_InterfaceConcreteSubtype_WithJsonSubtypes_OnInterface_ReturnsNested1()
         {
             var settings = new JsonSerializerSettings();
             settings.Converters.Add(JsonSubtypesConverterBuilder
                 .Of(typeof(IBase<>), "Kind") // type property is only defined here
                 .RegisterSubtype(typeof(Nested1<>), "1")
                 .RegisterSubtype(typeof(Nested2<>), "2")
-                //.SerializeDiscriminatorProperty() // ask to serialize the type property
                 .Build());
 	
             var json = JsonConvert.SerializeObject(new Nested1<int>
@@ -138,4 +119,5 @@ namespace JsonSubTypes.Tests
             Assert.AreEqual(42, @base.Value);
         }
     }
+    
 }
