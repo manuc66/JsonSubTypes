@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Reflection;
+using System.Linq;
 
 namespace JsonSubTypes
 {
@@ -48,7 +48,46 @@ namespace JsonSubTypes
 
         public override bool CanConvert(Type objectType)
         {
-            return objectType == _baseType || ToTypeInfo(_baseType).IsAssignableFrom(ToTypeInfo(objectType));
+            if (objectType == _baseType || ToTypeInfo(_baseType).IsAssignableFrom(ToTypeInfo(objectType)))
+            {
+                return true;
+            }
+
+            return InheritsOrImplementsGeneric(objectType, _baseType);
+        }
+
+        protected static bool InheritsOrImplementsGeneric(Type objectType, Type baseType)
+        {
+            // Cas générique ouvert : _baseType = Base<> et objectType = Base<int>
+            if (ToTypeInfo(baseType).IsGenericTypeDefinition && ToTypeInfo(objectType).IsGenericType)
+            {
+                // Comparer la définition générique
+                if (objectType.GetGenericTypeDefinition() == baseType)
+                {
+                    return true;
+                }
+
+                // Optionnel : remonter la hiérarchie des bases
+                var current = ToTypeInfo(objectType).BaseType;
+                while (current != null)
+                {
+                    if (ToTypeInfo(current).IsGenericType && current.GetGenericTypeDefinition() == baseType)
+                    {
+                        return true;
+                    }
+
+                    current = ToTypeInfo(current).BaseType;
+                }
+
+                // Optionnel : interfaces génériques
+                if (GetImplementedInterfaces(objectType)
+                    .Any(iface => ToTypeInfo(iface).IsGenericType && iface.GetGenericTypeDefinition() == baseType))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

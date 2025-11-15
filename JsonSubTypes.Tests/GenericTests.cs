@@ -3,7 +3,8 @@ using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace JsonSubTypes.Tests
-{[JsonConverter(typeof(JsonSubtypes), "Type")]	
+{
+    [JsonConverter(typeof(JsonSubtypes), "Type")]	
     [JsonSubtypes.KnownSubType(typeof(Some<>), "Some")]												
     public interface IResult
     {
@@ -47,6 +48,50 @@ namespace JsonSubTypes.Tests
             var result = JsonConvert.DeserializeObject<IResult>(json);
 
             Console.WriteLine(result);
+        }
+    }
+    
+
+    
+    [TestFixture]
+    public class GenericBaseTests
+    {
+        abstract class Base<T>
+        {
+            public T Value { get; set; }
+	
+            public abstract string Kind { get; }
+        }
+
+        class Nested1<T> : Base<T>
+        {
+            public override string Kind => "1";
+        }
+
+        class Nested2<T>: Base<T>
+        {
+            public override string Kind => "2";
+        }
+
+        [Test]
+        public void DeserializingSubTypeWithDateParsesCorrectly()
+        {
+            var settings = new JsonSerializerSettings();
+            settings.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(Base<>), "Kind") // type property is only defined here
+                .RegisterSubtype(typeof(Nested1<>), "1")
+                .RegisterSubtype(typeof(Nested2<>), "2")
+                //.SerializeDiscriminatorProperty() // ask to serialize the type property
+                .Build());
+	
+            var json = JsonConvert.SerializeObject(new Nested1<int>
+            {
+                Value = 42,
+            }, settings); // {"Kind":"1","Value":42}
+
+            var @base = JsonConvert.DeserializeObject<Base<int>>(json, settings); // JsonSerializationException. Could not create an instance of type Base`1[System.Int32]. Type is an interface or abstract class and cannot be instantiated. Path 'Kind', line 1, position 8.
+            
+            Assert.AreEqual(42, @base.Value);
         }
     }
 }
