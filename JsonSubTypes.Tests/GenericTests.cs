@@ -94,4 +94,48 @@ namespace JsonSubTypes.Tests
             Assert.AreEqual(42, @base.Value);
         }
     }
+    
+    [TestFixture]
+    public class GenericBaseInterfaceTests
+    {
+        interface IBase<T>
+        {
+            T Value { get; set; }
+	
+            string Kind { get; }
+        }
+
+        class Nested1<T> : IBase<T>
+        {
+           public T Value { get; set; }
+            public string Kind => "1";
+        }
+
+        class Nested2<T>: IBase<T>
+        {
+            public T Value { get; set; }
+            public string Kind => "2";
+        }
+
+        [Test]
+        public void DeserializingSubTypeWithDateParsesCorrectly()
+        {
+            var settings = new JsonSerializerSettings();
+            settings.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(IBase<>), "Kind") // type property is only defined here
+                .RegisterSubtype(typeof(Nested1<>), "1")
+                .RegisterSubtype(typeof(Nested2<>), "2")
+                //.SerializeDiscriminatorProperty() // ask to serialize the type property
+                .Build());
+	
+            var json = JsonConvert.SerializeObject(new Nested1<int>
+            {
+                Value = 42,
+            }, settings); // {"Kind":"1","Value":42}
+
+            var @base = JsonConvert.DeserializeObject<IBase<int>>(json, settings); // JsonSerializationException. Could not create an instance of type Base`1[System.Int32]. Type is an interface or abstract class and cannot be instantiated. Path 'Kind', line 1, position 8.
+            
+            Assert.AreEqual(42, @base.Value);
+        }
+    }
 }
