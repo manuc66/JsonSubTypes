@@ -274,6 +274,12 @@ namespace JsonSubTypes
                 currentTypeResolver = GetTypeResolver(ToTypeInfo(targetType), jsonConverterCollection);
             }
 
+            if (targetType != null && ToTypeInfo(targetType).IsGenericTypeDefinition && !ToTypeInfo(parentType).IsGenericTypeDefinition)
+            {
+                Type closedTargetType = ToTypeInfo(targetType).MakeGenericType(GetGenericTypeArguments(parentType).ToArray());
+                return closedTargetType;
+            } 
+
             return targetType;
         }
 
@@ -529,6 +535,15 @@ namespace JsonSubTypes
             return type;
 #else
             return type?.GetTypeInfo();
+#endif
+        }
+
+        internal static IEnumerable<Type> GetImplementedInterfaces(Type type)
+        {
+#if (!NETSTANDARD1_3)
+            return type.GetInterfaces();
+#else
+            return type?.GetTypeInfo().ImplementedInterfaces;
 #endif
         }
 
