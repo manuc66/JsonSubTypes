@@ -57,4 +57,37 @@ namespace JsonSubTypes.Tests
                 exception.Message);
         }
     }
+
+    [TestFixture]
+    public class KnownBaseType_AbstractBaseClassDiscriminatorTests
+    {
+        [JsonConverter(typeof(JsonSubtypes), "Discriminator")]
+        [JsonSubtypes.KnownBaseType(typeof(CC), "D")]
+        public abstract class AA
+        {
+        }
+
+        [JsonConverter(typeof(JsonSubtypes), "Discriminator")]
+        [JsonSubtypes.KnownBaseType(typeof(AA), "D")]
+        public abstract class BB
+        {
+        }
+
+        [JsonConverter(typeof(JsonSubtypes), "Discriminator")]
+        [JsonSubtypes.KnownBaseType(typeof(BB), "D")]
+        public abstract class CC
+        {
+        }
+
+        [Test]
+        [Timeout(2000)]
+        public void DeserializingWithAbstractClassCircleThrows()
+        {
+            var exception = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<AA>("{\"Discriminator\":\"D\"}"));
+            Assert.AreEqual(
+                "Could not create an instance of type JsonSubTypes.Tests.KnownBaseType_AbstractBaseClassDiscriminatorTests+AA. Type is an interface or abstract class and cannot be instantiated. Path 'Discriminator', line 1, position 17.",
+                exception.Message);
+        }
+    }
 }

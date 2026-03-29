@@ -253,6 +253,46 @@ namespace JsonSubTypes.Tests
                 Assert.AreEqual("Octopus", (animal as UnknownAnimal)?.Kind);
             }
         }
+
+        [TestFixture]
+        public class KnownBaseType_DemoAlternativeTypePropertyNameTests
+        {
+            [JsonConverter(typeof(JsonSubtypes), "Kind")]
+            [JsonSubtypes.FallBackSubType(typeof(UnknownAnimal))]
+            public interface IAnimal
+            {
+                string Kind { get; }
+            }
+
+            public class UnknownAnimal : IAnimal
+            {
+                public string Kind { get; set; }
+            }
+
+            [JsonSubtypes.KnownBaseType(typeof(IAnimal), null)]
+            public class Dog : IAnimal
+            {
+                public string Kind { get; } = null;
+                public string Breed { get; set; }
+            }
+
+            [Test]
+            public void Demo()
+            {
+                var animal =
+                    JsonConvert.DeserializeObject<IAnimal>(
+                        "{\"Kind\":null,\"Breed\":\"Jack Russell Terrier\"}");
+                Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed);
+            }
+
+            [Test]
+            public void WhenNoMappingPossible()
+            {
+                var animal = JsonConvert.DeserializeObject<IAnimal>("{\"Kind\":\"Octopus\",\"Specie\":\"Octopus tetricus\"}");
+
+                Assert.AreEqual("Octopus", (animal as UnknownAnimal)?.Kind);
+            }
+        }
     }
 }
 
