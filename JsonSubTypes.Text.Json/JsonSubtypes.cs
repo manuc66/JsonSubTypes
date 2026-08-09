@@ -90,6 +90,12 @@ namespace JsonSubTypes.Text.Json
         private static readonly ConcurrentDictionary<Type, Dictionary<Type, object?>?>
             AttributeReverseMapCache = new ConcurrentDictionary<Type, Dictionary<Type, object?>?>();
 
+        private static readonly ConcurrentDictionary<Type, JsonSubTypeConverterAttribute?>
+            ConverterAttributeCache = new ConcurrentDictionary<Type, JsonSubTypeConverterAttribute?>();
+
+        private static readonly ConcurrentDictionary<(Type OuterType, Type TargetType), IJsonSubtypes>
+            AttributeResolverCache = new ConcurrentDictionary<(Type, Type), IJsonSubtypes>();
+
         protected readonly string? JsonDiscriminatorPropertyName;
 
         private readonly NullableDictionary<object, Type>? _subTypeMapping;
@@ -488,16 +494,27 @@ namespace JsonSubTypes.Text.Json
                 return null;
             }
 
+            Type target = targetType.AsType();
             JsonSubTypeConverterAttribute? jsonConverterAttribute =
-                GetAttribute<JsonSubTypeConverterAttribute>(targetType);
+                ConverterAttributeCache.GetOrAdd(target, static type =>
+                    GetAttribute<JsonSubTypeConverterAttribute>(type.GetTypeInfo()));
             if (jsonConverterAttribute != null &&
                 typeof(T).IsAssignableFrom(jsonConverterAttribute.ConverterType!.GenericTypeArguments[0]))
             {
-                return (IJsonSubtypes)Activator.CreateInstance(jsonConverterAttribute.ConverterType,
-                    jsonConverterAttribute.DiscriminatorPropertyName)!;
+                return AttributeResolverCache.GetOrAdd((typeof(T), target),
+                    static key => CreateTypeResolver(key.Item2));
             }
 
-            return jsonConverterCollection.FirstOrDefault(c => c.CanConvert(targetType.AsType()));
+            return jsonConverterCollection.FirstOrDefault(c => c.CanConvert(target));
+        }
+
+        private static IJsonSubtypes CreateTypeResolver(Type targetType)
+        {
+            JsonSubTypeConverterAttribute? attribute =
+                ConverterAttributeCache.GetOrAdd(targetType, static type =>
+                    GetAttribute<JsonSubTypeConverterAttribute>(type.GetTypeInfo()));
+            return (IJsonSubtypes)Activator.CreateInstance(attribute!.ConverterType!,
+                attribute.DiscriminatorPropertyName)!;
         }
 
         private Type? GetTypeByPropertyPresence(JsonDocument jObject, Type parentType,
