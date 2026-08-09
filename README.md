@@ -119,6 +119,7 @@ public interface IExpression { }
 - Name-based type resolution stays scoped to the base type's assembly by default. Cross-assembly subtypes require an explicit opt-in: `JsonSubTypesTypeResolution.AddAssembly(...)`, a capability the Newtonsoft version does not have.
 - `JsonNamingPolicy` and `PropertyNameCaseInsensitive` are respected when matching the discriminator property, and `JsonStringEnumConverter` is respected when mapping discriminator values. Note that `JsonStringEnumConverter` (.NET 8) does **not** honor `[EnumMember(Value = ...)]` — use enum names or `[JsonStringEnumMemberName]` (.NET 9+).
 - Dotted or nested discriminator property paths (e.g. `"nested.property"`) are supported.
+- **AOT / trimming**: like the Newtonsoft version, this library relies on runtime reflection (`Activator.CreateInstance`, `MakeGenericType`) and reflection-based `System.Text.Json` serialization, so it is not compatible with strict trimming or Native AOT.
 
 ## DeserializeObject with custom type property name
 
