@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- New package `JsonSubTypes.Text.Json` (1.0.0-rc.1) bringing polymorphic subtype serialization to `System.Text.Json` (.NET 8+).
+  - Attribute-based and builder-based subtype registration.
+  - Discriminator mapping by property presence (`KnownSubTypeWithProperty`).
+  - Fallback subtype support (`FallBackSubType`).
+  - Opt-in cross-assembly subtype resolution (`JsonSubTypesTypeResolution.AddAssembly`).
+  - Comprehensive unit test suite with 129 test cases.
+
 ## [2.0.1] - 2022-05-09
 
 ### Fixed

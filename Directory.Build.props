@@ -1,0 +1,18 @@
+<Project>
+
+  <!-- Shared NuGet package metadata for both JsonSubTypes packages.
+       Versions stay independent per project (see each .csproj). -->
+
+  <PropertyGroup>
+    <Authors>Emmanuel Counasse</Authors>
+    <Company>manuc66</Company>
+    <Copyright>manuc66</Copyright>
+    <RepositoryUrl>https://github.com/manuc66/JsonSubTypes</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/manuc66/JsonSubTypes</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReleaseNotes>See in https://github.com/manuc66/JsonSubTypes/releases</PackageReleaseNotes>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+</Project>
