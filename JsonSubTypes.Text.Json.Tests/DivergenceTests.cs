@@ -68,40 +68,75 @@ namespace JsonSubTypes.Tests
             Assert.That(deserialized.Label, Is.EqualTo("WORLD"));
         }
 
-        [JsonSubTypeConverter(typeof(JsonSubtypes<AnimalWithConditionalIgnore>), "Kind")]
-        [KnownSubType(typeof(DogWithConditionalIgnore), "Dog")]
-        public class AnimalWithConditionalIgnore
+        [JsonSubTypeConverter(typeof(JsonSubtypes<BaseWithConditionalIgnores>), "Kind")]
+        [KnownSubType(typeof(DerivedWithConditionalIgnores), "Derived")]
+        public class BaseWithConditionalIgnores
         {
             public string Kind { get; set; }
 
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public string? Nickname { get; set; }
+            public string Optional { get; set; }
 
-            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public string? Missing { get; set; }
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+            public int Count { get; set; }
+
+            [JsonIgnore]
+            public string Secret { get; set; }
         }
 
-        public class DogWithConditionalIgnore : AnimalWithConditionalIgnore
+        public class DerivedWithConditionalIgnores : BaseWithConditionalIgnores
         {
-        }
-
-        [Test]
-        public void FallbackWriteHonorsJsonIgnoreCondition()
-        {
-            var json = JsonSerializer.Serialize<AnimalWithConditionalIgnore>(
-                new AnimalWithConditionalIgnore { Kind = "Animal", Nickname = "Buddy" });
-
-            Assert.That(json, Does.Contain("\"Nickname\":\"Buddy\""));
-            Assert.That(json, Does.Not.Contain("\"Missing\""));
+            public bool Barks { get; set; }
         }
 
         [Test]
-        public void FallbackReadHonorsWhenWritingNullIgnoreAsReadable()
+        public void BaseTypedWriteHonorsJsonIgnoreCondition()
         {
-            var animal = JsonSerializer.Deserialize<AnimalWithConditionalIgnore>(
-                "{\"Kind\":\"Animal\",\"Nickname\":\"Buddy\",\"Missing\":null}");
+            var json = JsonSerializer.Serialize<BaseWithConditionalIgnores>(
+                new BaseWithConditionalIgnores { Kind = "Base", Optional = "set", Count = 5, Secret = "hidden" });
 
-            Assert.That(animal.Nickname, Is.EqualTo("Buddy"));
+            Assert.That(json, Does.Contain("\"Optional\":\"set\""));
+            Assert.That(json, Does.Contain("\"Count\":5"));
+            Assert.That(json, Does.Not.Contain("Secret"));
+        }
+
+        [Test]
+        public void BaseTypedWriteDropsNullAndDefaultValuesWithJsonIgnoreCondition()
+        {
+            var json = JsonSerializer.Serialize<BaseWithConditionalIgnores>(
+                new BaseWithConditionalIgnores { Kind = "Base", Optional = null, Count = 0, Secret = "hidden" });
+
+            Assert.That(json, Does.Not.Contain("Optional"));
+            Assert.That(json, Does.Not.Contain("Count"));
+            Assert.That(json, Does.Not.Contain("Secret"));
+        }
+
+        [Test]
+        public void BaseTypedReadHonorsJsonIgnoreCondition()
+        {
+            var back = JsonSerializer.Deserialize<BaseWithConditionalIgnores>(
+                "{\"Kind\":\"Unknown\",\"Optional\":\"hello\",\"Count\":7,\"Secret\":\"nope\"}");
+
+            Assert.IsInstanceOf<BaseWithConditionalIgnores>(back);
+            Assert.That(back.Optional, Is.EqualTo("hello"));
+            Assert.That(back.Count, Is.EqualTo(7));
+            Assert.That(back.Secret, Is.Null);
+        }
+
+        [Test]
+        public void DerivedSubtypeRoundTripKeepsConditionalIgnores()
+        {
+            var derived = new DerivedWithConditionalIgnores { Kind = "Derived", Optional = null, Count = 0, Secret = "hidden", Barks = true };
+            var json = JsonSerializer.Serialize<BaseWithConditionalIgnores>(derived);
+
+            Assert.That(json, Does.Not.Contain("Optional"));
+            Assert.That(json, Does.Not.Contain("Count"));
+            Assert.That(json, Does.Not.Contain("Secret"));
+            Assert.That(json, Does.Contain("\"Barks\":true"));
+
+            var back = JsonSerializer.Deserialize<BaseWithConditionalIgnores>(json);
+            Assert.IsInstanceOf<DerivedWithConditionalIgnores>(back);
+            Assert.That(((DerivedWithConditionalIgnores)back).Barks, Is.True);
         }
     }
 }

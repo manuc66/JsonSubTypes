@@ -135,10 +135,15 @@ public interface IExpression { }
 | Seamless migration from `Newtonsoft.Json` `JsonSubTypes` | ❌ | ✅ |
 | Native AOT / Trimming support | ✅ | ⚠️ (Requires reflection) |
 
-### Current Limitations
+### Known Scope & Fallback Path Behavior
 
-- **Parameterless Constructor Requirement for Fallback**: When deserializing into a base type that falls back to a concrete type without explicit discriminator mapping (or during base fallback), the target type currently requires a parameterless constructor. Immutable types (`record`, primary constructors) are supported when matched via discriminator mapping, but fallback deserialization requires parameterless instantiation.
-- **Native AOT**: Uses runtime reflection to map sub-types and properties; annotated with `[RequiresUnreferencedCode]` and `[RequiresDynamicCode]`.
+To preserve full compatibility with advanced features (`KnownSubTypeWithProperty`, nested discriminator paths, enum/null discriminators, cross-assembly resolution) while delegating 99% of object serialization to `System.Text.Json`, the library isolates base-type serialization to two narrow paths (when serializing the base type directly or reading an unregistered fallback type):
+
+1. **Subtypes (99% of cases)**: Full delegation to `System.Text.Json`. All STJ attributes (`[JsonIgnore]`, `[JsonInclude]`, property `[JsonConverter]`, `[JsonConstructor]`, `record` types, naming policies) are fully supported natively.
+2. **Base-as-leaf & Fallback path**: Handled via lightweight direct property mapping. Standard attributes (`[JsonIgnore]`, `[JsonPropertyName]`, `PropertyNamingPolicy`, `PropertyNameCaseInsensitive`) are honored. Advanced member-level STJ attributes (e.g. `[JsonInclude]` on fields, `[JsonConverter]` on individual base properties, parameterized constructors) on the fallback base type itself are intentionally not re-implemented to avoid duplicate serializer engine complexity.
+
+- **Parameterless Constructor for Fallback**: The base fallback type requires a parameterless constructor. Subtypes resolved via discriminator mapping support all STJ constructor features (primary constructors, `record` types).
+- **Native AOT**: Relies on reflection to discover subtypes; annotated with `[RequiresUnreferencedCode]` and `[RequiresDynamicCode]`.
 
 ### Native `[JsonDerivedType]` or `JsonSubTypes.Text.Json`?
 
