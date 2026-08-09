@@ -11,6 +11,8 @@ __JsonSubTypes__ is a discriminated Json sub-type Converter implementation for .
 
 ## System.Text.Json support (JsonSubTypes.Text.Json)
 
+> **Status: Release Candidate.** The `JsonSubTypes.Text.Json` package is currently a **release candidate** (`1.0.0-rc.x`). The API and behavior are complete and tested (see below), but the stable `1.0.0` release will follow once the candidate has been validated by real-world usage.
+
 A variant of the library for `System.Text.Json` (.NET 8+) is available in the `JsonSubTypes.Text.Json` namespace and package. It supports the same attribute-driven and builder-driven API, adapted to `System.Text.Json` idioms.
 
 ### Attribute based discriminator

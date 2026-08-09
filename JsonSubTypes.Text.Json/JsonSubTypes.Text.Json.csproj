@@ -12,23 +12,14 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Company>manuc66</Company>
-    <Copyright>manuc66</Copyright>
     <Description>Discriminated Json Subtypes Converter implementation for System.Text.Json</Description>
-    <RepositoryUrl>https://github.com/manuc66/JsonSubTypes</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/manuc66/JsonSubTypes</PackageProjectUrl>
-    <Authors>Emmanuel Counasse</Authors>
-    <Version>1.0.0</Version>
+    <Version>1.0.0-rc.1</Version>
     <PackageTags>json converter subtype inheritance deserializeobject polymorphism System.Text.Json</PackageTags>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <RepositoryType>git</RepositoryType>
-    <PackageReleaseNotes>See in https://github.com/manuc66/JsonSubTypes/releases</PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>JsonSubTypes.Key.snk</AssemblyOriginatorKeyFile>
     <DelaySign>false</DelaySign>
     <FileVersion>1.0.0.0</FileVersion>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
