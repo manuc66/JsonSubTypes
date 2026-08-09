@@ -282,7 +282,8 @@ namespace JsonSubTypes.Text.Json
         {
             PropertyInfo[] properties = type
                 .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Where(p => p.GetMethod != null && !p.GetMethod.IsAbstract)
+                .Where(p => p.GetMethod != null && !p.GetMethod.IsAbstract &&
+                            p.GetCustomAttribute<JsonIgnoreAttribute>() == null)
                 .ToArray();
 
             return (writer, value, serializer) =>
@@ -307,7 +308,17 @@ namespace JsonSubTypes.Text.Json
         private static T? ReadPlainObject(ref Utf8JsonReader reader, Type targetType, JsonSerializerOptions serializer)
         {
             JsonDocument jObject = JsonDocument.ParseValue(ref reader);
-            object instance = Activator.CreateInstance(targetType)!;
+            object instance;
+            try
+            {
+                instance = Activator.CreateInstance(targetType)!;
+            }
+            catch (MissingMethodException)
+            {
+                throw new JsonException(
+                    $"Could not create an instance of type {targetType.FullName}: a parameterless constructor is required to fall back to the base type. Position: {reader.Position.GetInteger()}.");
+            }
+
             Action<object, JsonElement, JsonSerializerOptions> readerFn =
                 BaseTypeObjectReaderCache.GetOrAdd(targetType, static type => BuildBaseTypeObjectReader(type));
             readerFn(instance, jObject.RootElement, serializer);
