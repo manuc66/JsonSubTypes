@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Text.Json;
 using JsonSubTypes.Text.Json;
-using NewApi;
 using NUnit.Framework;
 
 namespace JsonSubTypes.Tests
@@ -59,7 +58,6 @@ namespace JsonSubTypes.Tests
         }
 
         [Test]
-        [Ignore("Not supported")]
         public void FallBackToPArentWhenNotFound()
         {
             string json = "[{\"Skl.\":\"Painter\",\"FirstName\":\"FirstName1\",\"LastName\":\"LastName1\"}]";

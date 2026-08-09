@@ -1,4 +1,6 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
+using JsonSubTypes.Text.Json;
 using NUnit.Framework;
 
 namespace JsonSubTypes.Tests
@@ -6,21 +8,19 @@ namespace JsonSubTypes.Tests
     [TestFixture]
     public class MultipleHierarchyLevelsDynamicRegistrationTests
     {
-        JsonSerializerSettings settings;
+        private JsonSerializerOptions _options;
 
         [SetUp]
         public void Init()
         {
-            settings = new JsonSerializerSettings();
-            JsonConvert.DefaultSettings = () => settings;
-
-            settings.Converters.Add(JsonSubtypesConverterBuilder
+            _options = new JsonSerializerOptions();
+            _options.Converters.Add(JsonSubtypesConverterBuilder
                 .Of(typeof(Payload), Payload.PAYLOAD_KIND)
                 .RegisterSubtype(typeof(Game), PayloadDiscriminator.GAME)
                 .RegisterSubtype(typeof(Com), PayloadDiscriminator.COM)
                 .Build());
 
-            settings.Converters.Add(JsonSubtypesConverterBuilder
+            _options.Converters.Add(JsonSubtypesConverterBuilder
                 .Of(typeof(Game), Game.GAME_KIND)
                 .RegisterSubtype(typeof(Walk), GameDiscriminator.WALK)
                 .RegisterSubtype(typeof(Run), GameDiscriminator.RUN)
@@ -31,14 +31,14 @@ namespace JsonSubTypes.Tests
         public void ShouldDeserializeNestedLevel()
         {
             var data = "{\"$GameKind\":0,\"$PayloadKind\":1}";
-            Assert.IsInstanceOf<Run>(JsonConvert.DeserializeObject<Payload>(data, settings));
+            Assert.IsInstanceOf<Run>(JsonSerializer.Deserialize<Payload>(data, _options));
         }
 
         [Test]
         public void ShouldSerializeNestedLevel()
         {
             Payload run = new Run();
-            var data = JsonConvert.SerializeObject(run, settings);
+            var data = JsonSerializer.Serialize(run, _options);
             Assert.AreEqual("{\"$GameKind\":0,\"$PayloadKind\":1}", data);
         }
 
@@ -58,31 +58,36 @@ namespace JsonSubTypes.Tests
         {
             public const string PAYLOAD_KIND = "$PayloadKind";
 
-            [JsonProperty(PAYLOAD_KIND)] public abstract PayloadDiscriminator PayloadKind { get; }
+            [JsonPropertyName("$PayloadKind")]
+            public PayloadDiscriminator PayloadKind { get; set; } = PayloadDiscriminator.GAME;
         }
 
         public abstract class Game : Payload
         {
-            public override PayloadDiscriminator PayloadKind => PayloadDiscriminator.GAME;
-
             public const string GAME_KIND = "$GameKind";
 
-            [JsonProperty(GAME_KIND)] public abstract GameDiscriminator GameKind { get; }
+            [JsonPropertyName("$GameKind")]
+            public GameDiscriminator GameKind { get; set; } = GameDiscriminator.WALK;
         }
 
         public class Com : Payload
         {
-            public override PayloadDiscriminator PayloadKind => PayloadDiscriminator.COM;
+            public Com()
+            {
+                PayloadKind = PayloadDiscriminator.COM;
+            }
         }
 
         public class Walk : Game
         {
-            public override GameDiscriminator GameKind => GameDiscriminator.WALK;
         }
 
         public class Run : Game
         {
-            public override GameDiscriminator GameKind => GameDiscriminator.RUN;
+            public Run()
+            {
+                GameKind = GameDiscriminator.RUN;
+            }
         }
     }
 }

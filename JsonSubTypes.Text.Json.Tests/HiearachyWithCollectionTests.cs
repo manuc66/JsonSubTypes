@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using JsonSubTypes.Text.Json;
-using NewApi;
 using NUnit.Framework;
 #if NET35
 #else   
@@ -394,7 +393,6 @@ namespace JsonSubTypes.Tests
             }
 
             [Test]
-            [Ignore("Comment not supported")]
             public void DeserializeHierachyDeeperTestWithComments()
             {
                 var input = "/* foo bar */{/* foo bar */\"Root\":" +
@@ -406,7 +404,11 @@ namespace JsonSubTypes.Tests
                             "/* foo bar */{/* foo bar */\"NodeType\":2,\"Size\":13}/* foo bar */]" +
                             "/* foo bar */}/* foo bar */]/* foo bar */}/* foo bar */]/* foo bar */}/* foo bar */}/* foo bar */";
 
-                var deserialized = JsonSerializer.Deserialize<Hierachy>(input);
+                var options = new JsonSerializerOptions
+                {
+                    ReadCommentHandling = JsonCommentHandling.Skip
+                };
+                var deserialized = JsonSerializer.Deserialize<Hierachy>(input, options);
 
                 Assert.NotNull(deserialized);
 

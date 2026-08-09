@@ -1,7 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using JsonSubTypes.Text.Json;
-using NewApi;
 using NUnit.Framework;
 
 namespace JsonSubTypes.Tests.JsonPath

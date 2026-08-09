@@ -1,6 +1,5 @@
 ﻿using System.Text.Json;
 using JsonSubTypes.Text.Json;
-using NewApi;
 using NUnit.Framework;
 
 namespace JsonSubTypes.Tests
@@ -83,7 +82,6 @@ namespace JsonSubTypes.Tests
             }
 
             [Test]
-            [Ignore("Not supported fallback to basetype")]
             public void DemoBaseWhenNull()
             {
                 var animal =

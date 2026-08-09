@@ -1,21 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-      <OutputType>Exe</OutputType>
-      <TargetFramework>net6.0</TargetFramework>
-
+    <TargetFramework>net8.0</TargetFramework>
     <IsPackable>false</IsPackable>
-
-    <OutputType>Exe</OutputType>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Remove="DiscriminatorIsAnEnumStringValue.cs" />
-    <Compile Remove="DiscriminatorLocationTests.cs" />
-    <Compile Remove="DynamicRegisterTests.cs" />
-    <Compile Remove="MultipleHierarchyLevelsDynamicRegistrationTests.cs" />
-    <Compile Remove="MultipleHierarchyLevelsTests.cs" />
-    <Compile Remove="NamingStrategyTests.cs" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="nunit" Version="3.13.3" />

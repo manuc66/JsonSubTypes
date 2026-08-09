@@ -1,6 +1,5 @@
 ﻿using System.Text.Json;
 using JsonSubTypes.Text.Json;
-using NewApi;
 using NUnit.Framework;
 
 namespace JsonSubTypes.Tests
@@ -84,16 +83,15 @@ namespace JsonSubTypes.Tests
             }
             
             [Test]
-            [Ignore("Not supported")]
             public void DiscriminatorValueCanBeANumberFallBackDefault()
             {
-                //var root3 = JsonSerializer.Deserialize<Parent>("{\"child\":{\"ChildType\":8}}");
-                // var root4 = JsonSerializer.Deserialize<Parent>("{\"child\":{\"ChildType\":null}}");
-//                var root5 = JsonSerializer.Deserialize<Parent>("{\"child\":{}}");
+                var root3 = JsonSerializer.Deserialize<Parent>("{\"child\":{\"ChildType\":8}}");
+                var root4 = JsonSerializer.Deserialize<Parent>("{\"child\":{\"ChildType\":null}}");
+                var root5 = JsonSerializer.Deserialize<Parent>("{\"child\":{}}");
 
-                // Assert.AreEqual(typeof(Child), root3.child.GetType());
-                // Assert.AreEqual(typeof(Child), root4.child.GetType());
-                //    Assert.AreEqual(typeof(Child), root5.child.GetType());
+                Assert.AreEqual(typeof(Child), root3.child.GetType());
+                Assert.AreEqual(typeof(Child), root4.child.GetType());
+                Assert.AreEqual(typeof(Child), root5.child.GetType());
             }
         }
 

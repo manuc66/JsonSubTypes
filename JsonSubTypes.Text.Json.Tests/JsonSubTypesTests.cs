@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using JsonSubTypes.Text.Json;
-using NewApi;
 using NUnit.Framework;
 
 namespace JsonSubTypes.Tests
@@ -203,7 +202,6 @@ namespace JsonSubTypes.Tests
         }
 
         [Test]
-        [Ignore("Not supported fallback to base type")]
         public void WhenDiscriminatorValueIsNullDeserializeToBaseType()
         {
             var expected = new Root
@@ -217,7 +215,6 @@ namespace JsonSubTypes.Tests
         }
 
         [Test]
-        [Ignore("Not supported fallback to base type")]
         public void WhenDiscriminatorValueIsUnknownDeserializeToBaseType()
         {
             var expected = new Root
@@ -231,7 +228,6 @@ namespace JsonSubTypes.Tests
         }
 
         [Test]
-        [Ignore("Not supported fallback to base type")]
         public void WorkWithSubList()
         {
             var expected = new Root

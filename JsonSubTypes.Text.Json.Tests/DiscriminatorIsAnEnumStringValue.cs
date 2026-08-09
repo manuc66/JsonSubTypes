@@ -1,5 +1,6 @@
-﻿using System.Runtime.Serialization;
-using NewApi;
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
+using JsonSubTypes.Text.Json;
 using NUnit.Framework;
 
 namespace JsonSubTypes.Tests
@@ -30,18 +31,21 @@ namespace JsonSubTypes.Tests
             public string ZzzField { get; set; }
         }
 
-        [JsonSubTypeConverter(typeof(StringEnumConverter))]
         public enum SubType
         {
             WithAaaField,
-            [EnumMember(Value = "zzzField")]
             WithZzzField
         }
 
         [Test]
         public void Deserialize()
         {
-            var obj = JsonConvert.DeserializeObject<MainClass>("{\"SubTypeData\":{\"ZzzField\":\"zzz\",\"SubTypeType\":\"zzzField\"}}");
+            var options = new JsonSerializerOptions();
+            options.Converters.Add(new JsonStringEnumConverter());
+
+            var obj = JsonSerializer.Deserialize<MainClass>(
+                "{\"SubTypeData\":{\"ZzzField\":\"zzz\",\"SubTypeType\":\"WithZzzField\"}}", options);
+
             Assert.AreEqual("zzz", (obj.SubTypeData as SubTypeClass2)?.ZzzField);
         }
     }
