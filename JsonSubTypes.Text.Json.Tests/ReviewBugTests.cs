@@ -173,5 +173,34 @@ namespace JsonSubTypes.Tests
             var artist = JsonSerializer.Deserialize<BuilderPerson>("{\"Skill\":\"Painter\"}", options);
             Assert.IsInstanceOf<BuilderArtist>(artist);
         }
+
+        [JsonSubTypeConverter(typeof(JsonSubtypes<OpenAnimal>), "ClassName")]
+        public class OpenAnimal
+        {
+            public string ClassName { get; set; }
+        }
+
+        public class OpenDog : OpenAnimal
+        {
+        }
+
+        public class UnrelatedType
+        {
+            public static bool CtorCalled;
+
+            public UnrelatedType()
+            {
+                CtorCalled = true;
+            }
+        }
+
+        [Test]
+        public void NameBasedResolutionRejectsNonSubtypes()
+        {
+            var animal = JsonSerializer.Deserialize<OpenAnimal>("{\"ClassName\":\"UnrelatedType\"}");
+
+            Assert.IsInstanceOf<OpenAnimal>(animal);
+            Assert.IsFalse(UnrelatedType.CtorCalled);
+        }
     }
 }
