@@ -9,6 +9,80 @@ __JsonSubTypes__ is a discriminated Json sub-type Converter implementation for .
 [![CodeFactor](https://www.codefactor.io/repository/github/manuc66/JsonSubTypes/badge)](https://www.codefactor.io/repository/github/manuc66/JsonSubTypes)
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fmanuc66%2FJsonSubTypes.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fmanuc66%2FJsonSubTypes?ref=badge_shield)
 
+## System.Text.Json support (JsonSubTypes.Text.Json)
+
+A variant of the library for `System.Text.Json` (.NET 8+) is available in the `JsonSubTypes.Text.Json` namespace and package. It supports the same attribute-driven and builder-driven API, adapted to `System.Text.Json` idioms.
+
+### Attribute based discriminator
+
+```csharp
+using JsonSubTypes.Text.Json;
+
+[JsonSubTypeConverter(typeof(JsonSubtypes<Animal>), "Sound")]
+[KnownSubType(typeof(Dog), "Bark")]
+[KnownSubType(typeof(Cat), "Meow")]
+public class Animal
+{
+    public virtual string Sound { get; }
+    public string Color { get; set; }
+}
+
+public class Dog : Animal
+{
+    public override string Sound { get; } = "Bark";
+    public string Breed { get; set; }
+}
+
+public class Cat : Animal
+{
+    public override string Sound { get; } = "Meow";
+    public bool Declawed { get; set; }
+}
+```
+
+```csharp
+var animal = JsonSerializer.Deserialize<Animal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
+Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed);
+```
+
+### Builder based dynamic registration
+
+```csharp
+var options = new JsonSerializerOptions();
+options.Converters.Add(JsonSubtypesConverterBuilder
+    .Of(typeof(Animal), "type")
+    .RegisterSubtype(typeof(Cat), AnimalType.Cat)
+    .RegisterSubtype(typeof(Dog), AnimalType.Dog)
+    .Build());
+
+var result = JsonSerializer.Deserialize<Animal>("{\"catLives\":6,\"type\":2,\"age\":11}", options);
+Assert.AreEqual(typeof(Cat), result.GetType());
+```
+
+### Mapping by property presence
+
+```csharp
+[JsonSubTypeConverter(typeof(JsonSubtypes<Person>))]
+[KnownSubTypeWithProperty(typeof(Employee), "JobTitle")]
+[KnownSubTypeWithProperty(typeof(Artist), "Skill")]
+public class Person { }
+```
+
+### Fallback subtype
+
+```csharp
+[JsonSubTypeConverter(typeof(JsonSubtypes<IExpression>), "Type")]
+[KnownSubType(typeof(ConstantExpression), "Constant")]
+[FallBackSubType(typeof(UnknownExpression))]
+public interface IExpression { }
+```
+
+### Differences with the Newtonsoft.Json version
+
+- The discriminator property is **not** written during serialization: serialization delegates to `System.Text.Json` using the runtime type. `SerializeDiscriminatorProperty()` is therefore not provided.
+- `JsonNamingPolicy` and `PropertyNameCaseInsensitive` are respected when matching the discriminator property, and `JsonStringEnumConverter` is respected when mapping discriminator values.
+- Dotted or nested discriminator property paths (e.g. `"nested.property"`) are supported.
+
 ## DeserializeObject with custom type property name
 
 ```csharp
