@@ -45,6 +45,17 @@ var animal = JsonSerializer.Deserialize<Animal>("{\"Sound\":\"Bark\",\"Breed\":\
 Assert.AreEqual("Jack Russell Terrier", (animal as Dog)?.Breed);
 ```
 
+Like the native `[JsonDerivedType]` polymorphism, the attribute-based converter handles **both directions**: serializing through the base type writes the discriminator, and deserialization reads it back, so round-trips work out of the box:
+
+```csharp
+var json = JsonSerializer.Serialize<Animal>(new Dog { Breed = "Jack Russell Terrier" });
+// {"Sound":"Bark","Breed":"Jack Russell Terrier"}
+var back = JsonSerializer.Deserialize<Animal>(json);
+Assert.IsInstanceOf<Dog>(back);
+```
+
+When the runtime type is not declared in the `[KnownSubType]` mappings (e.g. a multi-level hierarchy where the leaf is registered on an intermediate base), serialization falls back to the plain runtime-type contract without a discriminator.
+
 ### Builder based dynamic registration
 
 ```csharp
@@ -61,7 +72,7 @@ Assert.AreEqual(typeof(Cat), result.GetType());
 
 ### Serializing the discriminator
 
-Like the Newtonsoft version, the discriminator is written only when explicitly requested:
+The attribute-based converter writes the discriminator by default. For the builder, writing the discriminator is opt-in, like the Newtonsoft version:
 
 ```csharp
 options.Converters.Add(JsonSubtypesConverterBuilder
@@ -98,7 +109,7 @@ public interface IExpression { }
 
 ### Differences with the Newtonsoft.Json version
 
-- The discriminator is written only with `SerializeDiscriminatorProperty()`: otherwise serialization delegates to `System.Text.Json` using the runtime type, and the discriminator is not written (same default as the Newtonsoft version).
+- The attribute-based converter writes the discriminator by default (like the native `[JsonDerivedType]` polymorphism), whereas the Newtonsoft version never writes it from attributes (`CanWrite = false`). With the builder, writing is opt-in via `SerializeDiscriminatorProperty()`.
 - With `System.Text.Json`, the converter is only applied when the static type is the polymorphic base type (or a base-typed property/collection), matching the native `[JsonDerivedType]` behavior. The Newtonsoft version also applies converters when serializing a value whose static type is a concrete subtype.
 - `JsonNamingPolicy` and `PropertyNameCaseInsensitive` are respected when matching the discriminator property, and `JsonStringEnumConverter` is respected when mapping discriminator values.
 - Dotted or nested discriminator property paths (e.g. `"nested.property"`) are supported.

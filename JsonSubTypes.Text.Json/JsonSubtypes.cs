@@ -87,6 +87,9 @@ namespace JsonSubTypes.Text.Json
         private static readonly ConcurrentDictionary<Type, Action<object, JsonElement, JsonSerializerOptions>>
             BaseTypeObjectReaderCache = new ConcurrentDictionary<Type, Action<object, JsonElement, JsonSerializerOptions>>();
 
+        private static readonly ConcurrentDictionary<Type, Dictionary<Type, object?>?>
+            AttributeReverseMapCache = new ConcurrentDictionary<Type, Dictionary<Type, object?>?>();
+
         protected readonly string? JsonDiscriminatorPropertyName;
 
         private readonly NullableDictionary<object, Type>? _subTypeMapping;
@@ -103,6 +106,8 @@ namespace JsonSubTypes.Text.Json
         public JsonSubtypes(string? jsonDiscriminatorPropertyName)
         {
             JsonDiscriminatorPropertyName = jsonDiscriminatorPropertyName;
+            _serializeDiscriminatorProperty = jsonDiscriminatorPropertyName != null;
+            _addDiscriminatorFirst = true;
         }
 
         internal JsonSubtypes(string? jsonDiscriminatorPropertyName,
@@ -147,31 +152,32 @@ namespace JsonSubTypes.Text.Json
 
             Type runtimeType = value.GetType();
 
+            if (JsonDiscriminatorPropertyName == null)
+            {
+                WritePlain(writer, value, runtimeType, serializer);
+                return;
+            }
+
             if (runtimeType != typeof(T))
             {
-                if (_serializeDiscriminatorProperty)
+                if (_serializeDiscriminatorProperty && TryGetDiscriminatorValue(runtimeType, out object? discriminatorValue))
                 {
-                    if (!TryGetDiscriminatorValue(runtimeType, out object? discriminatorValue))
-                    {
-                        ThrowImpossibleToSerialize(runtimeType);
-                    }
-
                     string json = JsonSerializer.Serialize(value, runtimeType, serializer);
                     WriteObjectWithDiscriminator(writer, json, discriminatorValue, serializer);
                     return;
+                }
+
+                if (_serializeDiscriminatorProperty && _subTypeMapping != null)
+                {
+                    ThrowImpossibleToSerialize(runtimeType);
                 }
 
                 JsonSerializer.Serialize<object>(writer, value, serializer);
                 return;
             }
 
-            if (_serializeDiscriminatorProperty)
+            if (_serializeDiscriminatorProperty && TryGetDiscriminatorValue(runtimeType, out object? baseDiscriminatorValue))
             {
-                if (!TryGetDiscriminatorValue(runtimeType, out object? discriminatorValue))
-                {
-                    ThrowImpossibleToSerialize(runtimeType);
-                }
-
                 Action<Utf8JsonWriter, object, JsonSerializerOptions> baseWriter =
                     BaseTypeWriterCache.GetOrAdd(typeof(T), static type => BuildBaseTypeWriter(type));
                 using MemoryStream stream = new MemoryStream();
@@ -179,19 +185,42 @@ namespace JsonSubTypes.Text.Json
                 {
                     baseWriter(bufferWriter, value, serializer);
                 }
-                WriteObjectWithDiscriminator(writer, Encoding.UTF8.GetString(stream.ToArray()), discriminatorValue,
+                WriteObjectWithDiscriminator(writer, Encoding.UTF8.GetString(stream.ToArray()), baseDiscriminatorValue,
                     serializer);
+                return;
+            }
+
+            if (_serializeDiscriminatorProperty && _subTypeMapping != null)
+            {
+                ThrowImpossibleToSerialize(runtimeType);
+            }
+
+            WritePlain(writer, value, runtimeType, serializer);
+        }
+
+        private static void WritePlain(Utf8JsonWriter writer, T value, Type runtimeType, JsonSerializerOptions serializer)
+        {
+            if (runtimeType != typeof(T))
+            {
+                JsonSerializer.Serialize<object>(writer, value!, serializer);
                 return;
             }
 
             Action<Utf8JsonWriter, object, JsonSerializerOptions> baseTypeWriter =
                 BaseTypeWriterCache.GetOrAdd(typeof(T), static type => BuildBaseTypeWriter(type));
-            baseTypeWriter(writer, value, serializer);
+            baseTypeWriter(writer, value!, serializer);
         }
 
         private bool TryGetDiscriminatorValue(Type runtimeType, out object? discriminatorValue)
         {
             if (_runtimeTypeToDiscriminator != null && _runtimeTypeToDiscriminator.TryGetValue(runtimeType, out discriminatorValue))
+            {
+                return true;
+            }
+
+            Dictionary<Type, object?>? attributeReverseMap =
+                AttributeReverseMapCache.GetOrAdd(typeof(T), static type => BuildAttributeReverseMap(type));
+            if (attributeReverseMap != null && attributeReverseMap.TryGetValue(runtimeType, out discriminatorValue))
             {
                 return true;
             }
@@ -669,6 +698,11 @@ namespace JsonSubTypes.Text.Json
                 return _subTypeMapping;
             }
 
+            return BuildAttributeSubTypeMapping(type);
+        }
+
+        private static NullableDictionary<object, Type> BuildAttributeSubTypeMapping(Type type)
+        {
             NullableDictionary<object, Type> dictionary = new NullableDictionary<object, Type>();
 
             foreach (KnownSubTypeAttribute x in GetAttributes<KnownSubTypeAttribute>(ToTypeInfo(type)!))
@@ -677,6 +711,23 @@ namespace JsonSubTypes.Text.Json
             }
 
             return dictionary;
+        }
+
+        private static Dictionary<Type, object?>? BuildAttributeReverseMap(Type type)
+        {
+            NullableDictionary<object, Type> mapping = BuildAttributeSubTypeMapping(type);
+            if (!mapping.Entries().Any())
+            {
+                return null;
+            }
+
+            Dictionary<Type, object?> reverse = new Dictionary<Type, object?>();
+            foreach (KeyValuePair<object?, Type?> entry in mapping.Entries())
+            {
+                reverse[entry.Value!] = entry.Key;
+            }
+
+            return reverse;
         }
 
         internal virtual Type? GetFallbackSubType(Type type)

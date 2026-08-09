@@ -154,6 +154,24 @@ namespace JsonSubTypes.Tests
         }
 
         [Test]
+        public void SerializeThenDeserialize()
+        {
+            var root = new Root
+            {
+                Content = new SubB
+                {
+                    Index = 1,
+                    _4You = 2
+                }
+            };
+
+            string str = JsonSerializer.Serialize(root);
+            var back = JsonSerializer.Deserialize<Root>(str);
+
+            Assert.AreEqual(root, back);
+        }
+
+        [Test]
         public void DeserializeSubType()
         {
             var expected = new Root
