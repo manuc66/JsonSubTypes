@@ -60,10 +60,12 @@ namespace JsonSubTypes.Text.Json
                     typeof(string),
                     typeof(NullableDictionary<object, Type>),
                     typeof(List<TypeWithPropertyMatchingAttributes>),
-                    typeof(Type)
+                    typeof(Type),
+                    typeof(bool),
+                    typeof(bool)
                 }, null)!;
             return (JsonConverter)constructor.Invoke(
-                new object?[] { null, null, _types, _fallbackType })!;
+                new object?[] { null, null, _types, _fallbackType, false, false })!;
         }
     }
 }

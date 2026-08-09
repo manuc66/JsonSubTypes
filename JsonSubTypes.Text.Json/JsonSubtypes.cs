@@ -2,8 +2,10 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -90,6 +92,9 @@ namespace JsonSubTypes.Text.Json
         private readonly NullableDictionary<object, Type>? _subTypeMapping;
         private readonly List<TypeWithPropertyMatchingAttributes>? _typesByPropertyPresence;
         private readonly Type? _fallbackType;
+        private readonly bool _serializeDiscriminatorProperty;
+        private readonly bool _addDiscriminatorFirst;
+        private readonly Dictionary<Type, object?>? _runtimeTypeToDiscriminator;
 
         public JsonSubtypes()
         {
@@ -103,11 +108,23 @@ namespace JsonSubTypes.Text.Json
         internal JsonSubtypes(string? jsonDiscriminatorPropertyName,
             NullableDictionary<object, Type>? subTypeMapping,
             List<TypeWithPropertyMatchingAttributes>? typesByPropertyPresence,
-            Type? fallbackType) : this(jsonDiscriminatorPropertyName)
+            Type? fallbackType,
+            bool serializeDiscriminatorProperty,
+            bool addDiscriminatorFirst) : this(jsonDiscriminatorPropertyName)
         {
             _subTypeMapping = subTypeMapping;
             _typesByPropertyPresence = typesByPropertyPresence;
             _fallbackType = fallbackType;
+            _serializeDiscriminatorProperty = serializeDiscriminatorProperty;
+            _addDiscriminatorFirst = addDiscriminatorFirst;
+            if (subTypeMapping != null)
+            {
+                _runtimeTypeToDiscriminator = new Dictionary<Type, object?>();
+                foreach (KeyValuePair<object?, Type?> entry in subTypeMapping.Entries())
+                {
+                    _runtimeTypeToDiscriminator[entry.Value!] = entry.Key;
+                }
+            }
         }
 
         public override bool CanConvert(Type objectType)
@@ -128,15 +145,108 @@ namespace JsonSubTypes.Text.Json
                 return;
             }
 
-            if (value.GetType() != typeof(T))
+            Type runtimeType = value.GetType();
+
+            if (runtimeType != typeof(T))
             {
+                if (_serializeDiscriminatorProperty)
+                {
+                    if (!TryGetDiscriminatorValue(runtimeType, out object? discriminatorValue))
+                    {
+                        ThrowImpossibleToSerialize(runtimeType);
+                    }
+
+                    string json = JsonSerializer.Serialize(value, runtimeType, serializer);
+                    WriteObjectWithDiscriminator(writer, json, discriminatorValue, serializer);
+                    return;
+                }
+
                 JsonSerializer.Serialize<object>(writer, value, serializer);
                 return;
             }
 
-            Action<Utf8JsonWriter, object, JsonSerializerOptions> baseWriter =
+            if (_serializeDiscriminatorProperty)
+            {
+                if (!TryGetDiscriminatorValue(runtimeType, out object? discriminatorValue))
+                {
+                    ThrowImpossibleToSerialize(runtimeType);
+                }
+
+                Action<Utf8JsonWriter, object, JsonSerializerOptions> baseWriter =
+                    BaseTypeWriterCache.GetOrAdd(typeof(T), static type => BuildBaseTypeWriter(type));
+                using MemoryStream stream = new MemoryStream();
+                using (Utf8JsonWriter bufferWriter = new Utf8JsonWriter(stream))
+                {
+                    baseWriter(bufferWriter, value, serializer);
+                }
+                WriteObjectWithDiscriminator(writer, Encoding.UTF8.GetString(stream.ToArray()), discriminatorValue,
+                    serializer);
+                return;
+            }
+
+            Action<Utf8JsonWriter, object, JsonSerializerOptions> baseTypeWriter =
                 BaseTypeWriterCache.GetOrAdd(typeof(T), static type => BuildBaseTypeWriter(type));
-            baseWriter(writer, value, serializer);
+            baseTypeWriter(writer, value, serializer);
+        }
+
+        private bool TryGetDiscriminatorValue(Type runtimeType, out object? discriminatorValue)
+        {
+            if (_runtimeTypeToDiscriminator != null && _runtimeTypeToDiscriminator.TryGetValue(runtimeType, out discriminatorValue))
+            {
+                return true;
+            }
+
+            discriminatorValue = null;
+            return false;
+        }
+
+        private static void ThrowImpossibleToSerialize(Type runtimeType)
+        {
+            throw new JsonException(
+                $"Impossible to serialize type: {runtimeType.FullName} because there is no registered mapping for the discriminator property");
+        }
+
+        private void WriteObjectWithDiscriminator(Utf8JsonWriter writer, string json, object? discriminatorValue,
+            JsonSerializerOptions serializer)
+        {
+            string discriminatorName = JsonDiscriminatorPropertyName!;
+            if (serializer.PropertyNamingPolicy != null)
+            {
+                discriminatorName = serializer.PropertyNamingPolicy.ConvertName(discriminatorName);
+            }
+
+            string discriminatorJson = JsonSerializer.Serialize(discriminatorValue, serializer);
+
+            using JsonDocument document = JsonDocument.Parse(json);
+
+            if (_addDiscriminatorFirst)
+            {
+                writer.WriteStartObject();
+                writer.WritePropertyName(discriminatorName);
+                writer.WriteRawValue(discriminatorJson, skipInputValidation: true);
+                foreach (JsonProperty property in document.RootElement.EnumerateObject())
+                {
+                    if (!property.NameEquals(discriminatorName))
+                    {
+                        property.WriteTo(writer);
+                    }
+                }
+                writer.WriteEndObject();
+            }
+            else
+            {
+                writer.WriteStartObject();
+                foreach (JsonProperty property in document.RootElement.EnumerateObject())
+                {
+                    if (!property.NameEquals(discriminatorName))
+                    {
+                        property.WriteTo(writer);
+                    }
+                }
+                writer.WritePropertyName(discriminatorName);
+                writer.WriteRawValue(discriminatorJson, skipInputValidation: true);
+                writer.WriteEndObject();
+            }
         }
 
         private static Action<Utf8JsonWriter, object, JsonSerializerOptions> BuildBaseTypeWriter(Type type)
