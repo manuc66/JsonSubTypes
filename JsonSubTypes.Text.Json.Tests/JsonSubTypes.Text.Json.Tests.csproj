@@ -12,6 +12,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\JsonSubTypes.Text.Json\JsonSubTypes.Text.Json.csproj" />
+    <ProjectReference Include="..\JsonSubTypes.Text.Json.Tests.Shared\JsonSubTypes.Text.Json.Tests.Shared.csproj" />
+    <ProjectReference Include="..\JsonSubTypes.Text.Json.Tests.Plugin\JsonSubTypes.Text.Json.Tests.Plugin.csproj" />
   </ItemGroup>
 
 </Project>

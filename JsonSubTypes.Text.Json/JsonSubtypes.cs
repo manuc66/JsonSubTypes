@@ -646,22 +646,24 @@ namespace JsonSubTypes.Text.Json
                 return null;
             }
 
-            Assembly insideAssembly = parentType.Assembly;
-
             string? parentTypeFullName = parentType.FullName;
+            string? searchLocation = parentTypeFullName == null
+                ? null
+                : parentTypeFullName.Substring(0, parentTypeFullName.Length - parentType.Name.Length);
 
-            Type? typeByName = insideAssembly.GetType(typeName);
-            if (parentTypeFullName != null && typeByName == null)
+            foreach (Assembly assembly in JsonSubTypesTypeResolution.GetSearchAssemblies(parentType.Assembly))
             {
-                string searchLocation =
-                    parentTypeFullName.Substring(0, parentTypeFullName.Length - parentType.Name.Length);
-                typeByName = insideAssembly.GetType(searchLocation + typeName, false, true);
-            }
+                Type? typeByName = assembly.GetType(typeName);
+                if (typeByName == null && searchLocation != null)
+                {
+                    typeByName = assembly.GetType(searchLocation + typeName, false, true);
+                }
 
-            TypeInfo? typeByNameInfo = typeByName?.GetTypeInfo();
-            if (typeByNameInfo != null && parentType.IsAssignableFrom(typeByNameInfo))
-            {
-                return typeByName;
+                TypeInfo? typeByNameInfo = typeByName?.GetTypeInfo();
+                if (typeByNameInfo != null && parentType.IsAssignableFrom(typeByNameInfo))
+                {
+                    return typeByName;
+                }
             }
 
             return null;

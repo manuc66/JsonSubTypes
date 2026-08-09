@@ -1,5 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using JsonSubTypes.Tests.Plugin;
+using JsonSubTypes.Tests.Shared;
 using JsonSubTypes.Text.Json;
 using NUnit.Framework;
 
@@ -201,6 +203,42 @@ namespace JsonSubTypes.Tests
 
             Assert.IsInstanceOf<OpenAnimal>(animal);
             Assert.IsFalse(UnrelatedType.CtorCalled);
+        }
+
+        [Test]
+        public void CrossAssemblyResolvedWhenAssemblyRegistered()
+        {
+            JsonSubTypesTypeResolution.ClearAssemblies();
+            JsonSubTypesTypeResolution.AddAssembly(typeof(PluginDog).Assembly);
+            try
+            {
+                var dog = JsonSerializer.Deserialize<SharedAnimal>(
+                    "{\"Kind\":\"JsonSubTypes.Tests.Plugin.PluginDog\",\"CanBark\":true}");
+
+                Assert.IsInstanceOf<PluginDog>(dog);
+                Assert.IsTrue((dog as PluginDog)?.CanBark == true);
+            }
+            finally
+            {
+                JsonSubTypesTypeResolution.ClearAssemblies();
+            }
+        }
+
+        [Test]
+        public void CrossAssemblyNotResolvedByDefault()
+        {
+            JsonSubTypesTypeResolution.ClearAssemblies();
+            try
+            {
+                var animal = JsonSerializer.Deserialize<SharedAnimal>(
+                    "{\"Kind\":\"JsonSubTypes.Tests.Plugin.PluginDog\",\"CanBark\":true}");
+
+                Assert.IsInstanceOf<SharedAnimal>(animal);
+            }
+            finally
+            {
+                JsonSubTypesTypeResolution.ClearAssemblies();
+            }
         }
     }
 }
