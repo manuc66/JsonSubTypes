@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -65,6 +66,8 @@ namespace JsonSubTypes.Text.Json
             return this;
         }
 
+        [RequiresUnreferencedCode("JsonSubTypes.Text.Json uses reflection to create the subtype converter.")]
+        [RequiresDynamicCode("JsonSubTypes.Text.Json uses reflection to create the subtype converter.")]
         public JsonConverter Build()
         {
             if (_serializeDiscriminatorProperty)

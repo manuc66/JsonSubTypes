@@ -121,6 +121,18 @@ public interface IExpression { }
 - Dotted or nested discriminator property paths (e.g. `"nested.property"`) are supported.
 - **AOT / trimming**: like the Newtonsoft version, this library relies on runtime reflection (`Activator.CreateInstance`, `MakeGenericType`) and reflection-based `System.Text.Json` serialization, so it is not compatible with strict trimming or Native AOT.
 
+### Native `[JsonDerivedType]` or `JsonSubTypes.Text.Json`?
+
+| Use case | Recommended |
+|---|---|
+| Closed hierarchy, all subtypes known at compile time, string/int discriminator, round-trip serialization, Native AOT | Native `[JsonDerivedType]` / `[JsonPolymorphic]` (source-gen friendly) |
+| Discriminator by property presence (no discriminator field in the JSON) | `JsonSubTypes.Text.Json` |
+| Open hierarchies / subtypes registered at runtime | `JsonSubTypes.Text.Json` |
+| Non string/int discriminator values (enums, `null`, several values mapping to one type) | `JsonSubTypes.Text.Json` |
+| Nested or dotted discriminator paths (e.g. `"nested.property"`) | `JsonSubTypes.Text.Json` |
+| Resolution by .NET type name, or cross-assembly plugin subtypes | `JsonSubTypes.Text.Json` |
+| Migrating an existing JsonSubTypes/Newtonsoft code base | `JsonSubTypes.Text.Json` (same API) |
+
 ## DeserializeObject with custom type property name
 
 ```csharp

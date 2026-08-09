@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -27,6 +28,8 @@ namespace JsonSubTypes.Text.Json
         {
         }
 
+        [RequiresUnreferencedCode("JsonSubTypes.Text.Json uses reflection to create and invoke subtype converters.")]
+        [RequiresDynamicCode("JsonSubTypes.Text.Json uses reflection to create subtype converters.")]
         public override JsonConverter? CreateConverter(Type typeToConvert)
         {
             return DiscriminatorPropertyName == null
