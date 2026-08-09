@@ -384,13 +384,17 @@ namespace JsonSubTypes.Text.Json
             return value == null || defaultValue != null && value.Equals(defaultValue);
         }
 
+        private static readonly ConcurrentDictionary<Type, Func<object>>
+            BaseTypeFactoryCache = new ConcurrentDictionary<Type, Func<object>>();
+
         private static T? ReadPlainObject(ref Utf8JsonReader reader, Type targetType, JsonSerializerOptions serializer)
         {
             JsonDocument jObject = JsonDocument.ParseValue(ref reader);
             object instance;
             try
             {
-                instance = Activator.CreateInstance(targetType)!;
+                Func<object> factory = BaseTypeFactoryCache.GetOrAdd(targetType, static type => () => Activator.CreateInstance(type)!);
+                instance = factory();
             }
             catch (MissingMethodException)
             {
