@@ -293,29 +293,65 @@ namespace JsonSubTypes.Text.Json
 
         private static Action<Utf8JsonWriter, object, JsonSerializerOptions> BuildBaseTypeWriter(Type type)
         {
-            PropertyInfo[] properties = type
+            var properties = type
                 .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Where(p => p.GetMethod != null && !p.GetMethod.IsAbstract &&
-                            p.GetCustomAttribute<JsonIgnoreAttribute>() == null)
+                .Where(p => p.GetMethod != null && !p.GetMethod.IsAbstract)
+                .Select(p => new { Property = p, JsonIgnore = p.GetCustomAttribute<JsonIgnoreAttribute>() })
                 .ToArray();
 
             return (writer, value, serializer) =>
             {
                 writer.WriteStartObject();
-                foreach (PropertyInfo property in properties)
+                foreach (var item in properties)
                 {
+                    PropertyInfo property = item.Property;
+                    object? propertyValue = property.GetValue(value);
+                    if (ShouldIgnore(property.PropertyType, item.JsonIgnore, propertyValue))
+                    {
+                        continue;
+                    }
+
                     string name = property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name ?? property.Name;
                     if (serializer.PropertyNamingPolicy != null && property.GetCustomAttribute<JsonPropertyNameAttribute>() == null)
                     {
                         name = serializer.PropertyNamingPolicy.ConvertName(name);
                     }
 
-                    object? propertyValue = property.GetValue(value);
                     writer.WritePropertyName(name);
                     JsonSerializer.Serialize(writer, propertyValue, serializer);
                 }
                 writer.WriteEndObject();
             };
+        }
+
+        private static bool IsIgnoredOnRead(JsonIgnoreAttribute? jsonIgnore)
+        {
+            return jsonIgnore != null && jsonIgnore.Condition == JsonIgnoreCondition.Always;
+        }
+
+        private static bool ShouldIgnore(Type propertyType, JsonIgnoreAttribute? jsonIgnore, object? value)
+        {
+            if (jsonIgnore == null)
+            {
+                return false;
+            }
+
+            switch (jsonIgnore.Condition)
+            {
+                case JsonIgnoreCondition.Never:
+                    return false;
+                case JsonIgnoreCondition.WhenWritingNull:
+                    return value == null;
+                case JsonIgnoreCondition.WhenWritingDefault:
+                    if (value == null)
+                    {
+                        return true;
+                    }
+
+                    return propertyType.IsValueType && value.Equals(Activator.CreateInstance(propertyType));
+                default:
+                    return true;
+            }
         }
 
         private static T? ReadPlainObject(ref Utf8JsonReader reader, Type targetType, JsonSerializerOptions serializer)
@@ -343,7 +379,7 @@ namespace JsonSubTypes.Text.Json
             List<PropertyInfo> properties = type
                 .GetProperties(BindingFlags.Instance | BindingFlags.Public)
                 .Where(p => p.SetMethod != null && !p.SetMethod.IsStatic &&
-                            p.GetCustomAttribute<JsonIgnoreAttribute>() == null)
+                            !IsIgnoredOnRead(p.GetCustomAttribute<JsonIgnoreAttribute>()))
                 .ToList();
 
             return (instance, element, options) =>

@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Discriminator mapping by property presence (`KnownSubTypeWithProperty`).
   - Fallback subtype support (`FallBackSubType`).
   - Opt-in cross-assembly subtype resolution (`JsonSubTypesTypeResolution.AddAssembly`).
-  - Comprehensive unit test suite with 125 test cases.
+  - Comprehensive unit test suite with 129 test cases.
 
 ## [2.0.1] - 2022-05-09
 
