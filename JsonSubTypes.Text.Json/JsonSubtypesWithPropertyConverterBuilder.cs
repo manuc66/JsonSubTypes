@@ -60,6 +60,8 @@ namespace JsonSubTypes.Text.Json
             return SetFallbackSubtype(typeof(T));
         }
 
+        [RequiresUnreferencedCode("JsonSubTypes.Text.Json uses reflection to create the subtype converter.")]
+        [RequiresDynamicCode("JsonSubTypes.Text.Json uses reflection to create the subtype converter.")]
         public JsonConverter Build()
         {
             Type converterType = typeof(JsonSubtypes<>).MakeGenericType(_baseType);

@@ -139,6 +139,18 @@ public interface IExpression { }
 - **Parameterless Constructor Requirement for Fallback**: When deserializing into a base type that falls back to a concrete type without explicit discriminator mapping (or during base fallback), the target type currently requires a parameterless constructor. Immutable types (`record`, primary constructors) are supported when matched via discriminator mapping, but fallback deserialization requires parameterless instantiation.
 - **Native AOT**: Uses runtime reflection to map sub-types and properties; annotated with `[RequiresUnreferencedCode]` and `[RequiresDynamicCode]`.
 
+### Native `[JsonDerivedType]` or `JsonSubTypes.Text.Json`?
+
+| Use case | Recommended |
+|---|---|
+| Closed hierarchy, all subtypes known at compile time, string/int discriminator, round-trip serialization, Native AOT | Native `[JsonDerivedType]` / `[JsonPolymorphic]` (source-gen friendly) |
+| Discriminator by property presence (no discriminator field in the JSON) | `JsonSubTypes.Text.Json` |
+| Open hierarchies / subtypes registered at runtime | `JsonSubTypes.Text.Json` |
+| Non string/int discriminator values (enums, `null`, several values mapping to one type) | `JsonSubTypes.Text.Json` |
+| Nested or dotted discriminator paths (e.g. `"nested.property"`) | `JsonSubTypes.Text.Json` |
+| Resolution by .NET type name, or cross-assembly plugin subtypes | `JsonSubTypes.Text.Json` |
+| Migrating an existing JsonSubTypes/Newtonsoft code base | `JsonSubTypes.Text.Json` (same API) |
+
 ## DeserializeObject with custom type property name
 
 ```csharp

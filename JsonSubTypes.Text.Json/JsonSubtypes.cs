@@ -30,6 +30,8 @@ namespace JsonSubTypes.Text.Json
         {
         }
 
+        [RequiresUnreferencedCode("JsonSubTypes.Text.Json uses reflection to create and invoke subtype converters.")]
+        [RequiresDynamicCode("JsonSubTypes.Text.Json uses reflection to create subtype converters.")]
         public override JsonConverter? CreateConverter(Type typeToConvert)
         {
             return DiscriminatorPropertyName == null
