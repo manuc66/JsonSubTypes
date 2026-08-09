@@ -59,6 +59,25 @@ var result = JsonSerializer.Deserialize<Animal>("{\"catLives\":6,\"type\":2,\"ag
 Assert.AreEqual(typeof(Cat), result.GetType());
 ```
 
+### Serializing the discriminator
+
+Like the Newtonsoft version, the discriminator is written only when explicitly requested:
+
+```csharp
+options.Converters.Add(JsonSubtypesConverterBuilder
+    .Of(typeof(Animal), "type")
+    .SerializeDiscriminatorProperty()                 // discriminator first (default)
+    // or .SerializeDiscriminatorProperty(false)      // discriminator last
+    .RegisterSubtype(typeof(Cat), AnimalType.Cat)
+    .RegisterSubtype(typeof(Dog), AnimalType.Dog)
+    .Build());
+
+var json = JsonSerializer.Serialize<Animal>(new Cat { Age = 11, Lives = 6 }, options);
+// {"type":2,"catLives":6,"age":11}
+```
+
+As with the native `[JsonDerivedType]` polymorphism, serialization must go through the **base type** (or a base-typed property/collection) for the converter and the discriminator to apply. Serializing a value with a concrete subtype as its static type bypasses the converter, and serializing an unregistered type throws when `SerializeDiscriminatorProperty()` is used.
+
 ### Mapping by property presence
 
 ```csharp
@@ -79,7 +98,8 @@ public interface IExpression { }
 
 ### Differences with the Newtonsoft.Json version
 
-- The discriminator property is **not** written during serialization: serialization delegates to `System.Text.Json` using the runtime type. `SerializeDiscriminatorProperty()` is therefore not provided.
+- The discriminator is written only with `SerializeDiscriminatorProperty()`: otherwise serialization delegates to `System.Text.Json` using the runtime type, and the discriminator is not written (same default as the Newtonsoft version).
+- With `System.Text.Json`, the converter is only applied when the static type is the polymorphic base type (or a base-typed property/collection), matching the native `[JsonDerivedType]` behavior. The Newtonsoft version also applies converters when serializing a value whose static type is a concrete subtype.
 - `JsonNamingPolicy` and `PropertyNameCaseInsensitive` are respected when matching the discriminator property, and `JsonStringEnumConverter` is respected when mapping discriminator values.
 - Dotted or nested discriminator property paths (e.g. `"nested.property"`) are supported.
 
