@@ -119,6 +119,7 @@ public interface IExpression { }
 - Name-based type resolution stays scoped to the base type's assembly by default. Cross-assembly subtypes require an explicit opt-in: `JsonSubTypesTypeResolution.AddAssembly(...)`, a capability the Newtonsoft version does not have.
 - `JsonNamingPolicy` and `PropertyNameCaseInsensitive` are respected when matching the discriminator property, and `JsonStringEnumConverter` is respected when mapping discriminator values. Note that `JsonStringEnumConverter` (.NET 8) does **not** honor `[EnumMember(Value = ...)]` — use enum names or `[JsonStringEnumMemberName]` (.NET 9+).
 - Dotted or nested discriminator property paths (e.g. `"nested.property"`) are supported.
+- **Fallback paths**: serializing the base type itself (rather than a subtype) and deserializing an unknown discriminator back to the base use a reflection-based writer/reader, because the base type's contract is owned by the converter (`System.Text.Json` exposes no property metadata for converter-owned types). `[JsonPropertyName]`, `[JsonIgnore]` (including `JsonIgnoreCondition`) and the naming policy are honored; per-property `[JsonConverter]`, `[JsonInclude]` fields, `required` members and parameterized constructors are not supported on these two paths.
 
 ### Native `[JsonDerivedType]` vs `JsonSubTypes.Text.Json`
 

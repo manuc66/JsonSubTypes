@@ -67,5 +67,41 @@ namespace JsonSubTypes.Tests
             Assert.IsInstanceOf<DerivedWithCustomPropConverter>(deserialized);
             Assert.That(deserialized.Label, Is.EqualTo("WORLD"));
         }
+
+        [JsonSubTypeConverter(typeof(JsonSubtypes<AnimalWithConditionalIgnore>), "Kind")]
+        [KnownSubType(typeof(DogWithConditionalIgnore), "Dog")]
+        public class AnimalWithConditionalIgnore
+        {
+            public string Kind { get; set; }
+
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public string? Nickname { get; set; }
+
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public string? Missing { get; set; }
+        }
+
+        public class DogWithConditionalIgnore : AnimalWithConditionalIgnore
+        {
+        }
+
+        [Test]
+        public void FallbackWriteHonorsJsonIgnoreCondition()
+        {
+            var json = JsonSerializer.Serialize<AnimalWithConditionalIgnore>(
+                new AnimalWithConditionalIgnore { Kind = "Animal", Nickname = "Buddy" });
+
+            Assert.That(json, Does.Contain("\"Nickname\":\"Buddy\""));
+            Assert.That(json, Does.Not.Contain("\"Missing\""));
+        }
+
+        [Test]
+        public void FallbackReadHonorsWhenWritingNullIgnoreAsReadable()
+        {
+            var animal = JsonSerializer.Deserialize<AnimalWithConditionalIgnore>(
+                "{\"Kind\":\"Animal\",\"Nickname\":\"Buddy\",\"Missing\":null}");
+
+            Assert.That(animal.Nickname, Is.EqualTo("Buddy"));
+        }
     }
 }

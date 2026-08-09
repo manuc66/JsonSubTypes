@@ -295,8 +295,7 @@ namespace JsonSubTypes.Text.Json
         {
             PropertyInfo[] properties = type
                 .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Where(p => p.GetMethod != null && !p.GetMethod.IsAbstract &&
-                            p.GetCustomAttribute<JsonIgnoreAttribute>() == null)
+                .Where(p => p.GetMethod != null && !p.GetMethod.IsAbstract)
                 .ToArray();
 
             return (writer, value, serializer) =>
@@ -304,6 +303,12 @@ namespace JsonSubTypes.Text.Json
                 writer.WriteStartObject();
                 foreach (PropertyInfo property in properties)
                 {
+                    JsonIgnoreAttribute? ignore = property.GetCustomAttribute<JsonIgnoreAttribute>();
+                    if (ignore != null && ignore.Condition == JsonIgnoreCondition.Always)
+                    {
+                        continue;
+                    }
+
                     string name = property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name ?? property.Name;
                     if (serializer.PropertyNamingPolicy != null && property.GetCustomAttribute<JsonPropertyNameAttribute>() == null)
                     {
@@ -311,11 +316,34 @@ namespace JsonSubTypes.Text.Json
                     }
 
                     object? propertyValue = property.GetValue(value);
+                    if (ignore != null)
+                    {
+                        if (ignore.Condition == JsonIgnoreCondition.WhenWritingNull && propertyValue is null)
+                        {
+                            continue;
+                        }
+
+                        if (ignore.Condition == JsonIgnoreCondition.WhenWritingDefault && IsDefaultValue(propertyValue, property.PropertyType))
+                        {
+                            continue;
+                        }
+                    }
+
                     writer.WritePropertyName(name);
                     JsonSerializer.Serialize(writer, propertyValue, serializer);
                 }
                 writer.WriteEndObject();
             };
+        }
+
+        private static bool IsDefaultValue(object? value, Type type)
+        {
+            if (value is null)
+            {
+                return true;
+            }
+
+            return type.IsValueType && value.Equals(Activator.CreateInstance(type));
         }
 
         private static T? ReadPlainObject(ref Utf8JsonReader reader, Type targetType, JsonSerializerOptions serializer)
@@ -343,7 +371,7 @@ namespace JsonSubTypes.Text.Json
             List<PropertyInfo> properties = type
                 .GetProperties(BindingFlags.Instance | BindingFlags.Public)
                 .Where(p => p.SetMethod != null && !p.SetMethod.IsStatic &&
-                            p.GetCustomAttribute<JsonIgnoreAttribute>() == null)
+                            p.GetCustomAttribute<JsonIgnoreAttribute>()?.Condition != JsonIgnoreCondition.Always)
                 .ToList();
 
             return (instance, element, options) =>
