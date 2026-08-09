@@ -138,5 +138,44 @@ namespace JsonSubTypes.Tests
             Assert.IsInstanceOf<DerivedWithConditionalIgnores>(back);
             Assert.That(((DerivedWithConditionalIgnores)back).Barks, Is.True);
         }
+
+        [JsonSubTypeConverter(typeof(JsonSubtypes<BaseWithPlainProps>), "Kind")]
+        public class BaseWithPlainProps
+        {
+            public string Kind { get; set; }
+
+            public string Optional { get; set; } = null!;
+
+            public int Count { get; set; }
+        }
+
+        [Test]
+        public void FallbackWriteHonorsDefaultIgnoreCondition()
+        {
+            var options = new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
+            var json = JsonSerializer.Serialize<BaseWithPlainProps>(
+                new BaseWithPlainProps { Kind = "Base", Optional = null, Count = 5 }, options);
+
+            Assert.That(json, Does.Not.Contain("Optional"));
+            Assert.That(json, Does.Contain("\"Count\":5"));
+        }
+
+        [JsonSubTypeConverter(typeof(JsonSubtypes<BaseWithPropConverterLeaf>), "Kind")]
+        public class BaseWithPropConverterLeaf
+        {
+            public string Kind { get; set; }
+
+            [JsonConverter(typeof(UpperStringConverter))]
+            public string Label { get; set; }
+        }
+
+        [Test]
+        public void PropertyLevelJsonConverterNotHonoredOnBaseAsLeaf()
+        {
+            var json = JsonSerializer.Serialize<BaseWithPropConverterLeaf>(
+                new BaseWithPropConverterLeaf { Kind = "Base", Label = "hello" });
+
+            Assert.That(json, Does.Contain("\"Label\":\"hello\""));
+        }
     }
 }

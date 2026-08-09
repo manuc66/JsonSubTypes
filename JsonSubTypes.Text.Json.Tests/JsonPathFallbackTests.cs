@@ -3,6 +3,8 @@ using System.Text.Json.Serialization;
 using JsonSubTypes.Text.Json;
 using NUnit.Framework;
 
+#pragma warning disable 0649, 0414
+
 namespace JsonSubTypes.Tests.JsonPath
 {
     class Nested : Main
