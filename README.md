@@ -111,7 +111,11 @@ public interface IExpression { }
 
 - The attribute-based converter writes the discriminator by default (like the native `[JsonDerivedType]` polymorphism), whereas the Newtonsoft version never writes it from attributes (`CanWrite = false`). With the builder, writing is opt-in via `SerializeDiscriminatorProperty()`.
 - With `System.Text.Json`, the converter is only applied when the static type is the polymorphic base type (or a base-typed property/collection), matching the native `[JsonDerivedType]` behavior. The Newtonsoft version also applies converters when serializing a value whose static type is a concrete subtype.
-- `JsonNamingPolicy` and `PropertyNameCaseInsensitive` are respected when matching the discriminator property, and `JsonStringEnumConverter` is respected when mapping discriminator values.
+- A property declared with a base class or interface type is serialized using the **declared type's contract**: subtype members are omitted unless a converter that claims the declared type is applied (attribute on the type, or builder registered in `JsonSerializerOptions`). The Newtonsoft version serialized the runtime type by default.
+- Property order differs: `System.Text.Json` emits properties most-derived-first, while the Newtonsoft version honored `[JsonProperty(Order = N)]`. There is no `Order` support in `System.Text.Json`.
+- Deeply nested graphs need `MaxDepth` about one level higher than with the Newtonsoft/plain serialization: the discriminator write path round-trips through a `JsonDocument`, which consumes one depth level. (A 64-level chain requires `MaxDepth = 66` instead of 65.)
+- Name-based type resolution stays scoped to the base type's assembly by default. Cross-assembly subtypes require an explicit opt-in: `JsonSubTypesTypeResolution.AddAssembly(...)`, a capability the Newtonsoft version does not have.
+- `JsonNamingPolicy` and `PropertyNameCaseInsensitive` are respected when matching the discriminator property, and `JsonStringEnumConverter` is respected when mapping discriminator values. Note that `JsonStringEnumConverter` (.NET 8) does **not** honor `[EnumMember(Value = ...)]` — use enum names or `[JsonStringEnumMemberName]` (.NET 9+).
 - Dotted or nested discriminator property paths (e.g. `"nested.property"`) are supported.
 
 ## DeserializeObject with custom type property name
