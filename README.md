@@ -119,7 +119,25 @@ public interface IExpression { }
 - Name-based type resolution stays scoped to the base type's assembly by default. Cross-assembly subtypes require an explicit opt-in: `JsonSubTypesTypeResolution.AddAssembly(...)`, a capability the Newtonsoft version does not have.
 - `JsonNamingPolicy` and `PropertyNameCaseInsensitive` are respected when matching the discriminator property, and `JsonStringEnumConverter` is respected when mapping discriminator values. Note that `JsonStringEnumConverter` (.NET 8) does **not** honor `[EnumMember(Value = ...)]` — use enum names or `[JsonStringEnumMemberName]` (.NET 9+).
 - Dotted or nested discriminator property paths (e.g. `"nested.property"`) are supported.
-- **AOT / trimming**: like the Newtonsoft version, this library relies on runtime reflection (`Activator.CreateInstance`, `MakeGenericType`) and reflection-based `System.Text.Json` serialization, so it is not compatible with strict trimming or Native AOT.
+
+### Native `[JsonDerivedType]` vs `JsonSubTypes.Text.Json`
+
+| Feature / Capability | Native STJ (`[JsonDerivedType]`) | `JsonSubTypes.Text.Json` |
+| :--- | :---: | :---: |
+| Type discriminator mapping | ✅ | ✅ |
+| Custom discriminator property name | ✅ | ✅ |
+| Property presence matching (`KnownSubTypeWithProperty`) | ❌ | ✅ |
+| Fallback subtype (`FallBackSubType`) | ❌ | ✅ |
+| Cross-assembly / Plugin type resolution | ❌ | ✅ |
+| Dotted / nested discriminator path (`"nested.type"`) | ❌ | ✅ |
+| Opt-in discriminator writing (`SerializeDiscriminatorProperty`) | ❌ | ✅ |
+| Seamless migration from `Newtonsoft.Json` `JsonSubTypes` | ❌ | ✅ |
+| Native AOT / Trimming support | ✅ | ⚠️ (Requires reflection) |
+
+### Current Limitations
+
+- **Parameterless Constructor Requirement for Fallback**: When deserializing into a base type that falls back to a concrete type without explicit discriminator mapping (or during base fallback), the target type currently requires a parameterless constructor. Immutable types (`record`, primary constructors) are supported when matched via discriminator mapping, but fallback deserialization requires parameterless instantiation.
+- **Native AOT**: Uses runtime reflection to map sub-types and properties; annotated with `[RequiresUnreferencedCode]` and `[RequiresDynamicCode]`.
 
 ## DeserializeObject with custom type property name
 

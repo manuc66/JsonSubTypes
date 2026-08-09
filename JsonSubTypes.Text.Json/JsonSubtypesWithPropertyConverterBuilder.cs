@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
@@ -7,6 +8,8 @@ using System.Text.Json.Serialization;
 
 namespace JsonSubTypes.Text.Json
 {
+    [RequiresUnreferencedCode("JsonSubtypesWithPropertyConverterBuilder uses reflection to instantiate converters.")]
+    [RequiresDynamicCode("JsonSubtypesWithPropertyConverterBuilder requires dynamic code to construct generic converter types.")]
     public class JsonSubtypesWithPropertyConverterBuilder
     {
         private readonly Type _baseType;

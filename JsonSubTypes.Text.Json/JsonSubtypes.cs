@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -11,6 +12,8 @@ using System.Text.Json.Serialization;
 
 namespace JsonSubTypes.Text.Json
 {
+    [RequiresUnreferencedCode("JsonSubTypeConverterAttribute uses reflection to instantiate converters.")]
+    [RequiresDynamicCode("JsonSubTypeConverterAttribute requires dynamic code to instantiate converters.")]
     [AttributeUsage(
         AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Struct | AttributeTargets.Enum |
         AttributeTargets.Property, AllowMultiple = false)]
@@ -79,6 +82,8 @@ namespace JsonSubTypes.Text.Json
         bool CanConvert(Type toType);
     }
 
+    [RequiresUnreferencedCode("JsonSubtypes uses reflection to discover sub-types and properties.")]
+    [RequiresDynamicCode("JsonSubtypes requires dynamic code for runtime type creation.")]
     public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
     {
         private static readonly ConcurrentDictionary<Type, Action<Utf8JsonWriter, object, JsonSerializerOptions>>
