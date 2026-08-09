@@ -506,7 +506,10 @@ namespace JsonSubTypes.Text.Json
                 ConverterAttributeCache.GetOrAdd(target, static type =>
                     GetAttribute<JsonSubTypeConverterAttribute>(type.GetTypeInfo()));
             if (jsonConverterAttribute != null &&
-                typeof(T).IsAssignableFrom(jsonConverterAttribute.ConverterType!.GenericTypeArguments[0]))
+                jsonConverterAttribute.ConverterType != null &&
+                jsonConverterAttribute.ConverterType.IsGenericType &&
+                jsonConverterAttribute.ConverterType.GenericTypeArguments.Length > 0 &&
+                typeof(T).IsAssignableFrom(jsonConverterAttribute.ConverterType.GenericTypeArguments[0]))
             {
                 return AttributeResolverCache.GetOrAdd((typeof(T), target),
                     static key => CreateTypeResolver(key.Item2));

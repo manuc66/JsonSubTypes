@@ -11,3 +11,5 @@ obj
 
 # Local History for Visual Studio
 .localhistory/
+.junie/
+*.DotSettings
