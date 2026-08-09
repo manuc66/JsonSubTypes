@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 
 namespace JsonSubTypes
@@ -7,7 +8,7 @@ namespace JsonSubTypes
     public class JsonSubtypesWithPropertyConverterBuilder
     {
         private readonly Type _baseType;
-        private readonly Dictionary<string, Type> _subTypeMapping = new Dictionary<string, Type>();
+        private readonly Dictionary<string, TypeWithPropertyMatchingAttributes> _subTypeMapping = new Dictionary<string, TypeWithPropertyMatchingAttributes>();
         private Type _fallbackSubtype;
 
         private JsonSubtypesWithPropertyConverterBuilder(Type baseType)
@@ -25,10 +26,15 @@ namespace JsonSubTypes
             return Of(typeof(T));
         }
 
+        public JsonSubtypesWithPropertyConverterBuilder RegisterSubtypeWithProperty(Type subtype, string jsonPropertyName, bool stopLookupOnMatch)
+        {
+            _subTypeMapping.Add(jsonPropertyName, new TypeWithPropertyMatchingAttributes(subtype, jsonPropertyName, stopLookupOnMatch));
+            return this;
+        }
+
         public JsonSubtypesWithPropertyConverterBuilder RegisterSubtypeWithProperty(Type subtype, string jsonPropertyName)
         {
-            _subTypeMapping.Add(jsonPropertyName, subtype);
-            return this;
+            return RegisterSubtypeWithProperty(subtype, jsonPropertyName, false);
         }
 
         public JsonSubtypesWithPropertyConverterBuilder RegisterSubtypeWithProperty<T>(string jsonPropertyName)
@@ -49,7 +55,7 @@ namespace JsonSubTypes
 
         public JsonConverter Build()
         {
-            return new JsonSubtypesByPropertyPresenceConverter(_baseType, _subTypeMapping, _fallbackSubtype);
+            return new JsonSubtypesByPropertyPresenceConverter(_baseType, _subTypeMapping.Values.ToList(), _fallbackSubtype);
         }
     }
 }

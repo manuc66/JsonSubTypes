@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>netstandard1.3;netstandard2.0;net35;net40;net45;net46;net47</TargetFrameworks>
     <DebugType>full</DebugType>
@@ -14,26 +14,24 @@
     <RepositoryUrl>https://github.com/manuc66/JsonSubTypes</RepositoryUrl>
     <PackageProjectUrl>https://github.com/manuc66/JsonSubTypes</PackageProjectUrl>
     <Authors>Emmanuel Counasse</Authors>
-    <PackageLicenseUrl></PackageLicenseUrl>
-    <Version>1.8.0</Version>
+    <Version>2.0.1</Version>
     <PackageTags>json converter subtype inheritance deserializeobject polymorphism</PackageTags>
-    <AssemblyVersion>1.8.0.0</AssemblyVersion>
+    <AssemblyVersion>2.0.1.0</AssemblyVersion>
     <RepositoryType>git</RepositoryType>
     <PackageReleaseNotes>See in https://github.com/manuc66/JsonSubTypes/releases</PackageReleaseNotes>
     <LangVersion>7</LangVersion>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>JsonSubTypes.Key.snk</AssemblyOriginatorKeyFile>
     <DelaySign>false</DelaySign>
-    <FileVersion>1.8.0.0</FileVersion>
+    <FileVersion>2.0.1.0</FileVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\LICENSE">
-      <Pack>True</Pack>
-      <PackagePath></PackagePath>
-    </Content>
+    <None Include="..\README.md" Pack="true" PackagePath="\"/>
+    <None Include="..\LICENSE" Pack="true" PackagePath="\"/>
   </ItemGroup>
 </Project>
