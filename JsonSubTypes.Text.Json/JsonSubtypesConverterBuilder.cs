@@ -70,9 +70,9 @@ namespace JsonSubTypes.Text.Json
             if (_serializeDiscriminatorProperty)
             {
                 HashSet<Type> seenTypes = new HashSet<Type>();
-                foreach (KeyValuePair<object?, Type?> entry in _subTypeMapping.Entries())
+                foreach (KeyValuePair<object?, Type> entry in _subTypeMapping.Entries())
                 {
-                    if (!seenTypes.Add(entry.Value!))
+                    if (!seenTypes.Add(entry.Value))
                     {
                         throw new InvalidOperationException(
                             "Multiple discriminators on single type are not supported when discriminator serialization is enabled");

@@ -79,7 +79,7 @@ namespace JsonSubTypes.Text.Json
         bool CanConvert(Type toType);
     }
 
-    public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes
+    public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
     {
         private static readonly ConcurrentDictionary<Type, Action<Utf8JsonWriter, object, JsonSerializerOptions>>
             BaseTypeWriterCache = new ConcurrentDictionary<Type, Action<Utf8JsonWriter, object, JsonSerializerOptions>>();
@@ -125,9 +125,9 @@ namespace JsonSubTypes.Text.Json
             if (subTypeMapping != null)
             {
                 _runtimeTypeToDiscriminator = new Dictionary<Type, object?>();
-                foreach (KeyValuePair<object?, Type?> entry in subTypeMapping.Entries())
+                foreach (KeyValuePair<object?, Type> entry in subTypeMapping.Entries())
                 {
-                    _runtimeTypeToDiscriminator[entry.Value!] = entry.Key;
+                    _runtimeTypeToDiscriminator[entry.Value] = entry.Key;
                 }
             }
         }
@@ -202,13 +202,13 @@ namespace JsonSubTypes.Text.Json
         {
             if (runtimeType != typeof(T))
             {
-                JsonSerializer.Serialize<object>(writer, value!, serializer);
+                JsonSerializer.Serialize<object>(writer, value, serializer);
                 return;
             }
 
             Action<Utf8JsonWriter, object, JsonSerializerOptions> baseTypeWriter =
                 BaseTypeWriterCache.GetOrAdd(typeof(T), static type => BuildBaseTypeWriter(type));
-            baseTypeWriter(writer, value!, serializer);
+            baseTypeWriter(writer, value, serializer);
         }
 
         private bool TryGetDiscriminatorValue(Type runtimeType, out object? discriminatorValue)
@@ -401,7 +401,7 @@ namespace JsonSubTypes.Text.Json
 
         private static IList CreateCompatibleList(Type targetContainerType, Type elementType)
         {
-            TypeInfo typeInfo = ToTypeInfo(targetContainerType)!;
+            TypeInfo typeInfo = targetContainerType.GetTypeInfo();
             if (typeInfo.IsArray || typeInfo.IsAbstract)
             {
                 return (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType))!;
@@ -462,7 +462,7 @@ namespace JsonSubTypes.Text.Json
             Type targetType = parentType;
             IJsonSubtypes? lastTypeResolver = null;
             List<IJsonSubtypes> converters = serializer.Converters.OfType<IJsonSubtypes>().ToList();
-            IJsonSubtypes? currentTypeResolver = GetTypeResolver(ToTypeInfo(targetType), converters);
+            IJsonSubtypes? currentTypeResolver = GetTypeResolver(targetType.GetTypeInfo(), converters);
             HashSet<Type> visitedTypes = new HashSet<Type> { targetType };
 
             while (currentTypeResolver != null && currentTypeResolver != lastTypeResolver)
@@ -475,7 +475,7 @@ namespace JsonSubTypes.Text.Json
 
                 lastTypeResolver = currentTypeResolver;
                 converters = converters.Where(c => c != currentTypeResolver).ToList();
-                currentTypeResolver = GetTypeResolver(ToTypeInfo(targetType), converters);
+                currentTypeResolver = GetTypeResolver(targetType.GetTypeInfo(), converters);
             }
 
             return targetType;
@@ -497,7 +497,7 @@ namespace JsonSubTypes.Text.Json
                     jsonConverterAttribute.DiscriminatorPropertyName)!;
             }
 
-            return jsonConverterCollection.FirstOrDefault(c => c.CanConvert(ToType(targetType)));
+            return jsonConverterCollection.FirstOrDefault(c => c.CanConvert(targetType.AsType()));
         }
 
         private Type? GetTypeByPropertyPresence(JsonDocument jObject, Type parentType,
@@ -544,7 +544,7 @@ namespace JsonSubTypes.Text.Json
                 return _typesByPropertyPresence;
             }
 
-            return GetAttributes<KnownSubTypeWithPropertyAttribute>(ToTypeInfo(parentType)!)
+            return GetAttributes<KnownSubTypeWithPropertyAttribute>(parentType.GetTypeInfo())
                 .Select(a => new TypeWithPropertyMatchingAttributes(a.SubType, a.PropertyName, a.StopLookupOnMatch))
                 .ToList();
         }
@@ -571,7 +571,7 @@ namespace JsonSubTypes.Text.Json
                 JsonValueKind.String => discriminatorValue.GetString(),
                 _ => discriminatorValue.ToString()
             };
-            return GetTypeByName(discriminatorStringValue, ToTypeInfo(parentType)!);
+            return GetTypeByName(discriminatorStringValue, parentType.GetTypeInfo());
         }
 
         private static bool TryGetValueInJson(JsonElement root, string propertyName,
@@ -617,8 +617,7 @@ namespace JsonSubTypes.Text.Json
             }
 
             string? convertedName = jsonSerializerOptions.PropertyNamingPolicy?.ConvertName(name);
-            bool hasConvertedName = convertedName != null && convertedName != name;
-            if (hasConvertedName && obj.TryGetProperty(convertedName!, out value))
+            if (convertedName != null && convertedName != name && obj.TryGetProperty(convertedName, out value))
             {
                 return true;
             }
@@ -628,7 +627,7 @@ namespace JsonSubTypes.Text.Json
                 foreach (JsonProperty jsonProperty in obj.EnumerateObject())
                 {
                     if (string.Equals(jsonProperty.Name, name, StringComparison.OrdinalIgnoreCase) ||
-                        (hasConvertedName &&
+                        (convertedName != null && convertedName != name &&
                          string.Equals(jsonProperty.Name, convertedName, StringComparison.OrdinalIgnoreCase)))
                     {
                         value = jsonProperty.Value;
@@ -659,7 +658,7 @@ namespace JsonSubTypes.Text.Json
                 typeByName = insideAssembly.GetType(searchLocation + typeName, false, true);
             }
 
-            TypeInfo? typeByNameInfo = ToTypeInfo(typeByName);
+            TypeInfo? typeByNameInfo = typeByName?.GetTypeInfo();
             if (typeByNameInfo != null && parentType.IsAssignableFrom(typeByNameInfo))
             {
                 return typeByName;
@@ -673,7 +672,7 @@ namespace JsonSubTypes.Text.Json
         {
             if (discriminatorToken.ValueKind == JsonValueKind.Null)
             {
-                typeMapping.TryGetValue(null!, out Type? targetType);
+                typeMapping.TryGetValue(null, out Type? targetType);
 
                 return targetType;
             }
@@ -716,7 +715,7 @@ namespace JsonSubTypes.Text.Json
         {
             NullableDictionary<object, Type> dictionary = new NullableDictionary<object, Type>();
 
-            foreach (KnownSubTypeAttribute x in GetAttributes<KnownSubTypeAttribute>(ToTypeInfo(type)!))
+            foreach (KnownSubTypeAttribute x in GetAttributes<KnownSubTypeAttribute>(type.GetTypeInfo()))
             {
                 dictionary.Add(x.AssociatedValue, x.SubType);
             }
@@ -733,9 +732,9 @@ namespace JsonSubTypes.Text.Json
             }
 
             Dictionary<Type, object?> reverse = new Dictionary<Type, object?>();
-            foreach (KeyValuePair<object?, Type?> entry in mapping.Entries())
+            foreach (KeyValuePair<object?, Type> entry in mapping.Entries())
             {
-                reverse[entry.Value!] = entry.Key;
+                reverse[entry.Value] = entry.Key;
             }
 
             return reverse;
@@ -743,7 +742,7 @@ namespace JsonSubTypes.Text.Json
 
         internal virtual Type? GetFallbackSubType(Type type)
         {
-            return _fallbackType ?? GetAttribute<FallBackSubTypeAttribute>(ToTypeInfo(type)!)?.SubType;
+            return _fallbackType ?? GetAttribute<FallBackSubTypeAttribute>(type.GetTypeInfo())?.SubType;
         }
 
         private static IEnumerable<TAttribute> GetAttributes<TAttribute>(TypeInfo typeInfo) where TAttribute : Attribute
@@ -759,16 +758,6 @@ namespace JsonSubTypes.Text.Json
         private static IEnumerable<Type> GetGenericTypeArguments(Type type)
         {
             return type.GenericTypeArguments;
-        }
-
-        internal static TypeInfo? ToTypeInfo(Type? type)
-        {
-            return type?.GetTypeInfo();
-        }
-
-        internal static Type ToType(TypeInfo typeInfo)
-        {
-            return typeInfo.AsType();
         }
     }
 }

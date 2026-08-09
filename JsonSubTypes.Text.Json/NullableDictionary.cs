@@ -49,16 +49,16 @@ namespace JsonSubTypes.Text.Json
             return _dictionary.Keys;
         }
 
-        public IEnumerable<KeyValuePair<TKey?, TValue?>> Entries()
+        public IEnumerable<KeyValuePair<TKey?, TValue>> Entries()
         {
             if (_hasNullKey)
             {
-                yield return new KeyValuePair<TKey?, TValue?>(default, _nullKeyValue);
+                yield return new KeyValuePair<TKey?, TValue>(default, _nullKeyValue!);
             }
 
             foreach (KeyValuePair<TKey, TValue> value in _dictionary)
             {
-                yield return new KeyValuePair<TKey?, TValue?>(value.Key, value.Value);
+                yield return new KeyValuePair<TKey?, TValue>(value.Key, value.Value);
             }
         }
     }
