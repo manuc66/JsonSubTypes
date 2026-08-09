@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using JsonSubTypes.Text.Json;
@@ -147,6 +148,102 @@ namespace JsonSubTypes.Tests
                 .RegisterSubtype(typeof(Cat), null);
 
             Assert.Throws<ArgumentException>(() => jsonSubtypesConverterBuilder.RegisterSubtype(typeof(Dog), null));
+        }
+
+        [Test]
+        public void SerializeTest()
+        {
+            var options = new JsonSerializerOptions();
+            options.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(Animal), "type")
+                .SerializeDiscriminatorProperty()
+                .RegisterSubtype(typeof(Cat), AnimalType.Cat)
+                .RegisterSubtype(typeof(Dog), AnimalType.Dog)
+                .Build());
+
+            var json = "{\"type\":2,\"catLives\":6,\"age\":11}";
+
+            var result = JsonSerializer.Serialize<Animal>(new Cat { Age = 11, Lives = 6 }, options);
+
+            Assert.AreEqual(json, result);
+        }
+
+        [Test]
+        public void SerializeTestDiscriminatorLast()
+        {
+            var options = new JsonSerializerOptions();
+            options.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(Animal), "type")
+                .SerializeDiscriminatorProperty(false)
+                .RegisterSubtype(typeof(Cat), AnimalType.Cat)
+                .RegisterSubtype(typeof(Dog), AnimalType.Dog)
+                .Build());
+
+            var json = "{\"catLives\":6,\"age\":11,\"type\":2}";
+
+            var result = JsonSerializer.Serialize<Animal>(new Cat { Age = 11, Lives = 6 }, options);
+
+            Assert.AreEqual(json, result);
+        }
+
+        [Test]
+        public void MultipleRegistrationNotAllowedWithSerializeDiscriminatorProperty()
+        {
+            var exception = Assert.Throws<InvalidOperationException>(() => JsonSubtypesConverterBuilder
+                .Of(typeof(Animal), "type")
+                .SerializeDiscriminatorProperty()
+                .RegisterSubtype(typeof(Shark), AnimalType.Shark)
+                .RegisterSubtype(typeof(Shark), AnimalType.HammerheadShark)
+                .Build());
+
+            Assert.AreEqual("Multiple discriminators on single type are not supported when discriminator serialization is enabled", exception.Message);
+        }
+
+        [Test]
+        public void UnregisteredTypeSerializeTest()
+        {
+            var options = new JsonSerializerOptions();
+            options.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(Animal), "type")
+                .RegisterSubtype(typeof(Cat), AnimalType.Cat)
+                .RegisterSubtype(typeof(Dog), AnimalType.Dog)
+                .RegisterSubtype(typeof(Shark), AnimalType.Shark)
+                .Build());
+
+            var json = "{\"hammerSize\":42.1,\"teethRows\":4,\"fins\":4,\"age\":11}";
+
+            var result = JsonSerializer.Serialize<Animal>(new HammerheadShark
+            {
+                Age = 11,
+                FinCount = 4,
+                HammerSize = 42.1f,
+                TeethRows = 4
+            }, options);
+
+            Assert.AreEqual(json, result);
+        }
+
+        public class Cat2 : Animal2
+        {
+        }
+
+        public class Animal2
+        {
+        }
+
+        [Test]
+        public void ExplicitExceptionWhenMappingNotRegistered()
+        {
+            var options = new JsonSerializerOptions();
+            options.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(Animal2), "Type")
+                .SerializeDiscriminatorProperty()
+                .Build());
+
+            var e1 = Assert.Throws<JsonException>(() => JsonSerializer.Serialize<Animal2>(new Animal2(), options));
+            Assert.AreEqual("Impossible to serialize type: JsonSubTypes.Tests.DynamicRegisterTests+Animal2 because there is no registered mapping for the discriminator property", e1.Message);
+            var e2 = Assert.Throws<JsonException>(() => JsonSerializer.Serialize<Animal2>(new Cat2(), options));
+            Assert.AreEqual("Impossible to serialize type: JsonSubTypes.Tests.DynamicRegisterTests+Cat2 because there is no registered mapping for the discriminator property", e2.Message);
         }
 
         public interface IExpression
@@ -318,6 +415,11 @@ namespace JsonSubTypes.Tests
             public IExpression2 SubExpressionB { get; set; }
         }
 
+        public class ManyOrExpression2 : IExpression2
+        {
+            public List<IExpression2> OrExpr { get; set; }
+        }
+
         public class ConstantExpression2 : IExpression2
         {
             public string Value { get; set; }
@@ -347,20 +449,71 @@ namespace JsonSubTypes.Tests
             var options = new JsonSerializerOptions();
             options.Converters.Add(JsonSubtypesConverterBuilder
                 .Of(typeof(IExpression2), "Type")
+                .SerializeDiscriminatorProperty()
                 .RegisterSubtype(typeof(ConstantExpression2), "Constant")
                 .RegisterSubtype(typeof(BinaryExpression2), "Binary")
                 .Build());
 
-            var json = JsonSerializer.Serialize(new BinaryExpression2
+            var json = JsonSerializer.Serialize<IExpression2>(new BinaryExpression2
             {
                 SubExpressionA = new ConstantExpression2 { Value = "A" },
                 SubExpressionB = new ConstantExpression2 { Value = "B" }
             }, options);
 
             Assert.AreEqual("{" +
-                            "\"SubExpressionA\":{\"Value\":\"A\"}," +
-                            "\"SubExpressionB\":{\"Value\":\"B\"}" +
+                            "\"Type\":\"Binary\"," +
+                            "\"SubExpressionA\":{\"Type\":\"Constant\",\"Value\":\"A\"}," +
+                            "\"SubExpressionB\":{\"Type\":\"Constant\",\"Value\":\"B\"}" +
                             "}", json);
+        }
+
+        [Test]
+        public void TestNestedObjectInBothWay()
+        {
+            var options = new JsonSerializerOptions();
+            options.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(IExpression2), "Type")
+                .SerializeDiscriminatorProperty()
+                .RegisterSubtype(typeof(ConstantExpression2), "Constant")
+                .RegisterSubtype(typeof(BinaryExpression2), "Binary")
+                .RegisterSubtype(typeof(ManyOrExpression2), "ManyOr")
+                .Build());
+
+            var target = JsonSerializer.Serialize<IExpression2>(new BinaryExpression2
+            {
+                SubExpressionA = new ManyOrExpression2
+                {
+                    OrExpr = new List<IExpression2>
+                    {
+                        new ConstantExpression2 { Value = "A" },
+                        new ConstantExpression2 { Value = "B" }
+                    }
+                },
+                SubExpressionB = new ManyOrExpression2
+                {
+                    OrExpr = new List<IExpression2>
+                    {
+                        new ConstantExpression2 { Value = "A" },
+                        new ManyOrExpression2
+                        {
+                            OrExpr = new List<IExpression2>
+                            {
+                                new ConstantExpression2 { Value = "A" },
+                                new ConstantExpression2 { Value = "B" }
+                            }
+                        }
+                    }
+                }
+            }, options);
+
+            var json = "{" +
+                       "\"Type\":\"Binary\"," +
+                       "\"SubExpressionA\":{\"Type\":\"ManyOr\",\"OrExpr\":[{\"Type\":\"Constant\",\"Value\":\"A\"},{\"Type\":\"Constant\",\"Value\":\"B\"}]}," +
+                       "\"SubExpressionB\":{\"Type\":\"ManyOr\",\"OrExpr\":[{\"Type\":\"Constant\",\"Value\":\"A\"},{\"Type\":\"ManyOr\",\"OrExpr\":[{\"Type\":\"Constant\",\"Value\":\"A\"},{\"Type\":\"Constant\",\"Value\":\"B\"}]}]}" +
+                       "}";
+            Assert.AreEqual(json, target);
+
+            Assert.AreEqual(json, JsonSerializer.Serialize(JsonSerializer.Deserialize<IExpression2>(json, options), options));
         }
     }
 }
