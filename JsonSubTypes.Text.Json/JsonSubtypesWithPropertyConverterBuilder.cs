@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -9,8 +10,8 @@ namespace JsonSubTypes.Text.Json
     public class JsonSubtypesWithPropertyConverterBuilder
     {
         private readonly Type _baseType;
-        private readonly List<TypeWithPropertyMatchingAttributes> _types =
-            new List<TypeWithPropertyMatchingAttributes>();
+        private readonly Dictionary<string, TypeWithPropertyMatchingAttributes> _types =
+            new Dictionary<string, TypeWithPropertyMatchingAttributes>();
         private Type? _fallbackType;
 
         private JsonSubtypesWithPropertyConverterBuilder(Type baseType)
@@ -28,10 +29,16 @@ namespace JsonSubTypes.Text.Json
             return new JsonSubtypesWithPropertyConverterBuilder(typeof(T));
         }
 
+        public JsonSubtypesWithPropertyConverterBuilder RegisterSubtypeWithProperty(Type subtype, string propertyName,
+            bool stopLookupOnMatch)
+        {
+            _types.Add(propertyName, new TypeWithPropertyMatchingAttributes(subtype, propertyName, stopLookupOnMatch));
+            return this;
+        }
+
         public JsonSubtypesWithPropertyConverterBuilder RegisterSubtypeWithProperty(Type subtype, string propertyName)
         {
-            _types.Add(new TypeWithPropertyMatchingAttributes(subtype, propertyName, false));
-            return this;
+            return RegisterSubtypeWithProperty(subtype, propertyName, false);
         }
 
         public JsonSubtypesWithPropertyConverterBuilder RegisterSubtypeWithProperty<T>(string propertyName)
@@ -65,7 +72,7 @@ namespace JsonSubTypes.Text.Json
                     typeof(bool)
                 }, null)!;
             return (JsonConverter)constructor.Invoke(
-                new object?[] { null, null, _types, _fallbackType, false, false })!;
+                new object?[] { null, null, _types.Values.ToList(), _fallbackType, false, false })!;
         }
     }
 }

@@ -259,5 +259,13 @@ namespace JsonSubTypes.Tests
 
             Assert.AreEqual(expected, root);
         }
+
+        [Test]
+        public void CouldNotBeUsedAsRegisteredConverter()
+        {
+            var converter = new JsonSubtypes<Base>();
+            Assert.False(converter.CanConvert(typeof(SubB)));
+            Assert.True(converter.CanConvert(typeof(Base)));
+        }
     }
 }
