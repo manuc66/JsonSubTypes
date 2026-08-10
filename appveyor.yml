@@ -31,9 +31,10 @@ configuration: Release
 nuget:
   disable_publish_on_pr: true
 
-build:
-  project: JsonSubTypes.sln
-  verbosity: minimal
+build: off
+
+build_script:
+  - dotnet build JsonSubTypes.sln -c Release
 
 test_script:
   - dir /S JsonSubTypes\bin\Release
