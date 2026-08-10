@@ -6,9 +6,6 @@ on:
 
 jobs:
   publish:
-    # Publish only stable version tags (vX.Y.Z); prerelease tags such as
-    # v1.0.0-rc.1 are ignored.
-    if: ${{ !contains(github.ref, '-') }}
     runs-on: ubuntu-latest
     permissions:
       id-token: write
