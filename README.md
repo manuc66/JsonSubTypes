@@ -2,7 +2,7 @@
 __JsonSubTypes__ is a discriminated Json sub-type Converter implementation for .NET
 
 [![CI](https://github.com/manuc66/JsonSubTypes/actions/workflows/ci.yml/badge.svg)](https://github.com/manuc66/JsonSubTypes/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/manuc66/JsonSubTypes/actions/workflows/codeql.yml/badge.svg)](https://github.com/manuc66/JsonSubTypes/actions/workflows/codeql.yml)
+[![CodeQL](https://github.com/manuc66/JsonSubTypes/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/manuc66/JsonSubTypes/security/code-scanning)
 [![Code Coverage](https://codecov.io/gh/manuc66/JsonSubTypes/branch/master/graph/badge.svg)](https://codecov.io/gh/manuc66/JsonSubTypes)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=manuc66_JsonSubTypes&metric=alert_status)](https://sonarcloud.io/dashboard?id=manuc66_JsonSubTypes)
 [![NuGet](https://img.shields.io/nuget/v/JsonSubTypes.svg)](https://www.nuget.org/packages/JsonSubTypes/)
