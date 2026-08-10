@@ -40,7 +40,7 @@ jobs:
           user: manuc66
 
       - name: Publish JsonSubTypes
-        run: dotnet nuget push JsonSubTypes/bin/Release/*.nupkg --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        run: dotnet nuget push "JsonSubTypes/bin/Release/*.nupkg" "JsonSubTypes/bin/Release/*.snupkg" --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
 
       - name: Publish JsonSubTypes.Text.Json
-        run: dotnet nuget push JsonSubTypes.Text.Json/bin/Release/*.nupkg --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        run: dotnet nuget push "JsonSubTypes.Text.Json/bin/Release/*.nupkg" "JsonSubTypes.Text.Json/bin/Release/*.snupkg" --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
