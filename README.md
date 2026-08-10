@@ -9,8 +9,7 @@ __JsonSubTypes__ is a discriminated Json sub-type Converter implementation for .
 [![CodeFactor](https://www.codefactor.io/repository/github/manuc66/JsonSubTypes/badge)](https://www.codefactor.io/repository/github/manuc66/JsonSubTypes)
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fmanuc66%2FJsonSubTypes.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fmanuc66%2FJsonSubTypes?ref=badge_shield)
 
-> **Looking for the `System.Text.Json` variant?**
-> A port of this library for `System.Text.Json` is available as the `JsonSubTypes.Text.Json` package (`.NET 8+`), with the same attribute-driven and builder-driven API. Full documentation, differences with the Newtonsoft version and known limitations are in the dedicated section at the bottom: [System.Text.Json variant](#systemtextjson-variant).
+> **Note:** this library is built around `Json.NET`/`Newtonsoft.Json` — that is where its API and reputation come from, and the `JsonSubTypes` NuGet package targets it. A `System.Text.Json` port exists as the `JsonSubTypes.Text.Json` package (`.NET 8+`): it shares the same API but is **experimental**. Full documentation, differences and known limitations are in the dedicated section at the bottom: [System.Text.Json variant](#systemtextjson-variant).
 
 
 ## DeserializeObject with custom type property name
@@ -229,7 +228,7 @@ settings.Converters.Add(JsonSubtypesWithPropertyConverterBuilder
 
 ## System.Text.Json variant
 
-> **Status: Release Candidate.** The `JsonSubTypes.Text.Json` package is currently a **release candidate** (`1.0.0-rc.x`). The API and behavior are complete and tested (see below), but the stable `1.0.0` release will follow once the candidate has been validated by real-world usage.
+> **Status: experimental.** The `JsonSubTypes.Text.Json` package is a **release candidate** (`1.0.0-rc.x`) and not yet part of the project's stable offering: the API and behavior are complete and tested (see below), but the stable `1.0.0` release will only follow once the candidate has been validated by real-world usage.
 
 A variant of the library for `System.Text.Json` (.NET 8+) is available in the `JsonSubTypes.Text.Json` namespace and package. It supports the same attribute-driven and builder-driven API, adapted to `System.Text.Json` idioms.
 
