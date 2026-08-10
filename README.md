@@ -3,7 +3,7 @@ __JsonSubTypes__ is a discriminated Json sub-type Converter implementation for .
 
 [![Build status](https://ci.appveyor.com/api/projects/status/g11crbl037en6rkq/branch/master?svg=true)](https://ci.appveyor.com/project/manuc66/jsonsubtypes/branch/master)
 [![Code Coverage](https://codecov.io/gh/manuc66/JsonSubTypes/branch/master/graph/badge.svg)](https://codecov.io/gh/manuc66/JsonSubTypes)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=manuc66%3AJsonSubtypes&metric=alert_status)](https://sonarcloud.io/dashboard?id=manuc66%3AJsonSubtypes)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=manuc66_JsonSubTypes&metric=alert_status)](https://sonarcloud.io/dashboard?id=manuc66_JsonSubTypes)
 [![NuGet](https://img.shields.io/nuget/v/JsonSubTypes.svg)](https://www.nuget.org/packages/JsonSubTypes/)
 [![NuGet](https://img.shields.io/nuget/dt/JsonSubTypes.svg)](https://www.nuget.org/packages/JsonSubTypes)
 [![CodeFactor](https://www.codefactor.io/repository/github/manuc66/JsonSubTypes/badge)](https://www.codefactor.io/repository/github/manuc66/JsonSubTypes)
