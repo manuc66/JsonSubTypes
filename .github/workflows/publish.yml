@@ -6,25 +6,31 @@ on:
 
 jobs:
   publish:
+    # Publish only stable version tags (vX.Y.Z); prerelease tags such as
+    # v1.0.0-rc.1 are ignored.
+    if: ${{ !contains(github.ref, '-') }}
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: |
             8.0.x
             10.0.x
 
-      - name: Pack JsonSubTypes (Newtonsoft)
-        run: dotnet pack JsonSubTypes/JsonSubTypes.csproj -c Release
+      # dotnet build triggers GeneratePackageOnBuild in Release, which packs
+      # only after every TFM is built (dotnet pack alone hits NU5026 because
+      # the pack target runs before some TFM outputs exist).
+      - name: Build + pack JsonSubTypes (Newtonsoft)
+        run: dotnet build JsonSubTypes/JsonSubTypes.csproj -c Release
 
-      - name: Pack JsonSubTypes.Text.Json
-        run: dotnet pack JsonSubTypes.Text.Json/JsonSubTypes.Text.Json.csproj -c Release
+      - name: Build + pack JsonSubTypes.Text.Json
+        run: dotnet build JsonSubTypes.Text.Json/JsonSubTypes.Text.Json.csproj -c Release
 
       # Trusted publishing: exchange the GitHub OIDC token for a short-lived
       # NuGet API key (no long-lived secret). Requires a trusted publishing
