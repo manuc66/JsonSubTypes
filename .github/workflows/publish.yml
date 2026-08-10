@@ -1,0 +1,43 @@
+name: Publish NuGet
+
+on:
+  push:
+    tags: [ 'v*' ]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Pack JsonSubTypes (Newtonsoft)
+        run: dotnet pack JsonSubTypes/JsonSubTypes.csproj -c Release
+
+      - name: Pack JsonSubTypes.Text.Json
+        run: dotnet pack JsonSubTypes.Text.Json/JsonSubTypes.Text.Json.csproj -c Release
+
+      # Trusted publishing: exchange the GitHub OIDC token for a short-lived
+      # NuGet API key (no long-lived secret). Requires a trusted publishing
+      # policy on nuget.org for owner manuc66, repository JsonSubTypes and
+      # workflow .github/workflows/publish.yml.
+      - name: NuGet login (OIDC -> temp API key)
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841
+        id: nuget-login
+        with:
+          user: manuc66
+
+      - name: Publish JsonSubTypes
+        run: dotnet nuget push JsonSubTypes/bin/Release/*.nupkg --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Publish JsonSubTypes.Text.Json
+        run: dotnet nuget push JsonSubTypes.Text.Json/bin/Release/*.nupkg --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

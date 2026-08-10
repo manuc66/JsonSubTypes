@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  ci:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Install SonarScanner
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && secrets.SONAR_TOKEN != ''
+        run: dotnet tool install --global dotnet-sonarscanner
+
+      - name: Begin SonarCloud scan
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && secrets.SONAR_TOKEN != ''
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: dotnet sonarscanner begin /k:manuc66_JsonSubTypes /o:manuc66-github /d:sonar.token="$env:SONAR_TOKEN" /d:sonar.host.url=https://sonarcloud.io
+
+      - name: Build JsonSubTypes (Newtonsoft)
+        run: dotnet build JsonSubTypes/JsonSubTypes.csproj -c Release
+
+      - name: Build JsonSubTypes.Text.Json
+        run: dotnet build JsonSubTypes.Text.Json/JsonSubTypes.Text.Json.csproj -c Release
+
+      - name: Test Text.Json (net8 + net10)
+        run: dotnet test JsonSubTypes.Text.Json.Tests/JsonSubTypes.Text.Json.Tests.csproj -c Release
+
+      - name: Test Newtonsoft (net46)
+        run: dotnet test JsonSubTypes.Tests/JsonSubTypes.Tests.csproj -c Release
+
+      - name: End SonarCloud scan
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/master' && secrets.SONAR_TOKEN != ''
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: dotnet sonarscanner end /d:sonar.token="$env:SONAR_TOKEN"
