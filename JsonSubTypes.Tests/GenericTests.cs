@@ -3,7 +3,8 @@ using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace JsonSubTypes.Tests
-{[JsonConverter(typeof(JsonSubtypes), "Type")]	
+{
+    [JsonConverter(typeof(JsonSubtypes), "Type")]	
     [JsonSubtypes.KnownSubType(typeof(Some<>), "Some")]												
     public interface IResult
     {
@@ -49,4 +50,77 @@ namespace JsonSubTypes.Tests
             Console.WriteLine(result);
         }
     }
+    
+
+    
+    [TestFixture]
+    public class GenericBaseTests
+    {
+        interface IShape<T>
+        {
+            T Value { get; set; }
+
+            string Kind { get; }
+        }
+
+        abstract class ShapeBase<T> : IShape<T>
+        {
+            public T Value { get; set; }
+
+            public abstract string Kind { get; }
+        }
+
+        class Square<T> : ShapeBase<T>
+        {
+            public override string Kind => "square";
+        }
+
+        class Circle<T> : ShapeBase<T>
+        {
+            public override string Kind => "circle";
+        }
+
+        [Test]
+        public void Deserialize_BaseConcreteSubtype_WithJsonSubtypes_OnAbstractBase_ReturnsSquare()
+        {
+            var settings = new JsonSerializerSettings();
+            settings.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(ShapeBase<>), "Kind")
+                .RegisterSubtype(typeof(Square<>), "square")
+                .RegisterSubtype(typeof(Circle<>), "circle")
+                .Build());
+
+            var json = JsonConvert.SerializeObject(new Square<int>
+            {
+                Value = 42,
+            }, settings);
+
+            var shape = JsonConvert.DeserializeObject<ShapeBase<int>>(json, settings);
+
+            Assert.IsInstanceOf<Square<int>>(shape);
+            Assert.AreEqual(42, shape.Value);
+        }
+
+        [Test]
+        public void Deserialize_InterfaceConcreteSubtype_WithJsonSubtypes_OnInterface_ReturnsSquare()
+        {
+            var settings = new JsonSerializerSettings();
+            settings.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(IShape<>), "Kind")
+                .RegisterSubtype(typeof(Square<>), "square")
+                .RegisterSubtype(typeof(Circle<>), "circle")
+                .Build());
+
+            var json = JsonConvert.SerializeObject(new Square<int>
+            {
+                Value = 42,
+            }, settings);
+
+            var shape = JsonConvert.DeserializeObject<IShape<int>>(json, settings);
+
+            Assert.IsInstanceOf<Square<int>>(shape);
+            Assert.AreEqual(42, shape.Value);
+        }
+    }
+
 }

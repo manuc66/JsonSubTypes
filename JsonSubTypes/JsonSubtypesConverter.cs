@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Reflection;
 
 namespace JsonSubTypes
 {
@@ -48,7 +47,42 @@ namespace JsonSubTypes
 
         public override bool CanConvert(Type objectType)
         {
-            return objectType == _baseType || ToTypeInfo(_baseType).IsAssignableFrom(ToTypeInfo(objectType));
+            return objectType == _baseType ||
+                   ToTypeInfo(_baseType).IsAssignableFrom(ToTypeInfo(objectType)) ||
+                   IsClosedGenericFormOf(objectType, _baseType);
+        }
+
+        /// <summary>
+        /// Returns true when <paramref name="objectType"/> is a constructed form of the
+        /// open generic <paramref name="genericType"/> (e.g. Base&lt;int&gt; for Base&lt;&gt;),
+        /// or inherits one (e.g. Square&lt;int&gt; : ShapeBase&lt;int&gt;). Interfaces are
+        /// intentionally not matched: registering an interface as a subtype cannot work
+        /// end-to-end (deserialization would resolve to a non-instantiable interface).
+        /// </summary>
+        protected static bool IsClosedGenericFormOf(Type objectType, Type genericType)
+        {
+            if (!ToTypeInfo(genericType).IsGenericTypeDefinition || !ToTypeInfo(objectType).IsGenericType)
+            {
+                return false;
+            }
+
+            if (objectType.GetGenericTypeDefinition() == genericType)
+            {
+                return true;
+            }
+
+            var current = ToTypeInfo(objectType).BaseType;
+            while (current != null)
+            {
+                if (ToTypeInfo(current).IsGenericType && current.GetGenericTypeDefinition() == genericType)
+                {
+                    return true;
+                }
+
+                current = ToTypeInfo(current).BaseType;
+            }
+
+            return false;
         }
     }
 }

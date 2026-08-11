@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -69,7 +70,25 @@ namespace JsonSubTypes
 
         public override bool CanConvert(Type objectType)
         {
-            return base.CanConvert(objectType) || _supportedTypes.ContainsKey(objectType);
+            if (base.CanConvert(objectType) || _supportedTypes.ContainsKey(objectType))
+            {
+                return true;
+            }
+
+            // Claim closed forms of registered generic subtypes only, e.g.
+            // Nested1<int> when Nested1<> is registered. Matching against the
+            // base type would also claim unrelated types that merely implement
+            // the generic base interface.
+            foreach (Type registeredType in _supportedTypes.Keys)
+            {
+                if (ToTypeInfo(registeredType).IsGenericTypeDefinition &&
+                    IsClosedGenericFormOf(objectType, registeredType))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public override bool CanWrite
@@ -109,7 +128,15 @@ namespace JsonSubTypes
 
             if (!_supportedTypes.TryGetValue(value.GetType(), out object supportedType))
             {
-                throw new JsonSerializationException("Impossible to serialize type: " + value.GetType().FullName + " because there is no registered mapping for the discriminator property");
+                var matchingGenericSupportedType = _supportedTypes.Keys
+                    .FirstOrDefault(x => IsClosedGenericFormOf(value.GetType(), x));
+
+                if (matchingGenericSupportedType == null ||
+                    !_supportedTypes.TryGetValue(matchingGenericSupportedType, out supportedType))
+                {
+                    throw new JsonSerializationException("Impossible to serialize type: " + value.GetType().FullName +
+                                                         " because there is no registered mapping for the discriminator property");
+                }
             }
             JToken typeMappingPropertyValue = JToken.FromObject(supportedType, serializer);
             if (_addDiscriminatorFirst)
