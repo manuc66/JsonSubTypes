@@ -42,7 +42,7 @@ namespace JsonSubTypes.Aot
                 .ForAttributeWithMetadataName(
                     $"{AttributeNamespace}.{JsonSubTypesAotConverterAttributeName}",
                     predicate: static (node, _) => true,
-                    transform: static (ctx, _) => (INamedTypeSymbol)ctx.TargetSymbol);
+                    transform: static (ctx, _) => (INamedTypeSymbol)ctx.TargetSymbol!);
 
             context.RegisterSourceOutput(baseTypes.Collect(), static (spc, types) =>
             {
@@ -51,14 +51,10 @@ namespace JsonSubTypes.Aot
                     return;
                 }
 
-                HashSet<ISymbol> visitedBases = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
                 List<BaseTypeInfo> bases = new List<BaseTypeInfo>();
                 foreach (INamedTypeSymbol baseType in types.Distinct(SymbolEqualityComparer.Default))
                 {
-                    if (visitedBases.Add(baseType))
-                    {
-                        bases.Add(BuildBaseTypeInfo(baseType, spc));
-                    }
+                    bases.Add(BuildBaseTypeInfo(baseType, spc));
                 }
 
                 List<BaseTypeInfo> generated = bases
@@ -151,6 +147,16 @@ namespace JsonSubTypes.Aot
             };
             info.AllTypes.Add(baseType);
 
+            ReadMarkerAttribute(baseType, info);
+            ProcessRegistrationAttributes(baseType, info, spc);
+            ReportDuplicateDiscriminators(baseType, info, spc);
+            CollectBaseProperties(baseType, info);
+
+            return info;
+        }
+
+        private static void ReadMarkerAttribute(INamedTypeSymbol baseType, BaseTypeInfo info)
+        {
             foreach (AttributeData attr in baseType.GetAttributes())
             {
                 if (attr.AttributeClass?.Name != JsonSubTypesAotConverterAttributeName)
@@ -171,84 +177,99 @@ namespace JsonSubTypes.Aot
                     }
                 }
             }
+        }
 
+        private static void ProcessRegistrationAttributes(INamedTypeSymbol baseType, BaseTypeInfo info,
+            SourceProductionContext spc)
+        {
             foreach (AttributeData attr in baseType.GetAttributes())
             {
                 switch (attr.AttributeClass?.Name)
                 {
                     case KnownSubTypeAttributeName:
-                    {
-                        ITypeSymbol? subtype = attr.ConstructorArguments[0].Value as ITypeSymbol;
-                        if (subtype == null)
-                        {
-                            break;
-                        }
-
-                        info.AllTypes.Add(subtype);
-                        if (info.DiscriminatorPropertyName == null)
-                        {
-                            continue; // presence mode ignores value registrations
-                        }
-
-                        SubtypeRegistration registration = new SubtypeRegistration
-                        {
-                            FullyQualifiedName = subtype.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
-                        };
-                        if (TryGetDiscriminator(attr.ConstructorArguments[1], registration))
-                        {
-                            info.Subtypes.Add(registration);
-                        }
-                        else
-                        {
-                            spc.ReportDiagnostic(Diagnostic.Create(UnsupportedDiscriminator,
-                                attr.ApplicationSyntaxReference?.GetSyntax().GetLocation(),
-                                attr.ConstructorArguments[1].Type?.Name ?? "null",
-                                subtype.Name));
-                        }
-
+                        ProcessKnownSubType(attr, info, spc);
                         break;
-                    }
                     case KnownSubTypeWithPropertyAttributeName:
-                    {
-                        ITypeSymbol? subtype = attr.ConstructorArguments[0].Value as ITypeSymbol;
-                        string? propertyName = attr.ConstructorArguments[1].Value as string;
-                        if (subtype == null || propertyName == null)
-                        {
-                            break;
-                        }
-
-                        bool stopLookup = false;
-                        foreach (KeyValuePair<string, TypedConstant> namedArg in attr.NamedArguments)
-                        {
-                            if (namedArg.Key == "StopLookupOnMatch" && namedArg.Value.Value is bool b)
-                            {
-                                stopLookup = b;
-                            }
-                        }
-
-                        info.AllTypes.Add(subtype);
-                        info.HasPropertyPresence = true;
-                        info.PropertyPresences.Add(new PropertyPresenceRegistration
-                        {
-                            FullyQualifiedName = subtype.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                            PropertyName = propertyName,
-                            StopLookupOnMatch = stopLookup
-                        });
+                        ProcessKnownSubTypeWithProperty(attr, info);
                         break;
-                    }
                     case FallBackSubTypeAttributeName:
-                    {
-                        if (attr.ConstructorArguments[0].Value is ITypeSymbol fallback)
-                        {
-                            info.AllTypes.Add(fallback);
-                            info.FallbackFullyQualifiedName = fallback.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                        }
-
+                        ProcessFallBackSubType(attr, info);
                         break;
-                    }
+                }
+            }
+        }
+
+        private static void ProcessKnownSubType(AttributeData attr, BaseTypeInfo info, SourceProductionContext spc)
+        {
+            ITypeSymbol? subtype = attr.ConstructorArguments[0].Value as ITypeSymbol;
+            if (subtype == null)
+            {
+                return;
+            }
+
+            info.AllTypes.Add(subtype);
+            if (info.DiscriminatorPropertyName == null)
+            {
+                return; // presence mode ignores value registrations
+            }
+
+            SubtypeRegistration registration = new SubtypeRegistration
+            {
+                FullyQualifiedName = subtype.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+            };
+            if (TryGetDiscriminator(attr.ConstructorArguments[1], registration))
+            {
+                info.Subtypes.Add(registration);
+            }
+            else
+            {
+                spc.ReportDiagnostic(Diagnostic.Create(UnsupportedDiscriminator,
+                    attr.ApplicationSyntaxReference?.GetSyntax().GetLocation(),
+                    attr.ConstructorArguments[1].Type?.Name ?? "null",
+                    subtype.Name));
+            }
+        }
+
+        private static void ProcessKnownSubTypeWithProperty(AttributeData attr, BaseTypeInfo info)
+        {
+            ITypeSymbol? subtype = attr.ConstructorArguments[0].Value as ITypeSymbol;
+            string? propertyName = attr.ConstructorArguments[1].Value as string;
+            if (subtype == null || propertyName == null)
+            {
+                return;
+            }
+
+            bool stopLookup = false;
+            foreach (KeyValuePair<string, TypedConstant> namedArg in attr.NamedArguments)
+            {
+                if (namedArg.Key == "StopLookupOnMatch" && namedArg.Value.Value is bool b)
+                {
+                    stopLookup = b;
                 }
             }
 
+            info.AllTypes.Add(subtype);
+            info.HasPropertyPresence = true;
+            info.PropertyPresences.Add(new PropertyPresenceRegistration
+            {
+                FullyQualifiedName = subtype.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                PropertyName = propertyName,
+                StopLookupOnMatch = stopLookup
+            });
+        }
+
+        private static void ProcessFallBackSubType(AttributeData attr, BaseTypeInfo info)
+        {
+            if (attr.ConstructorArguments[0].Value is ITypeSymbol fallback)
+            {
+                info.AllTypes.Add(fallback);
+                info.FallbackFullyQualifiedName = fallback.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            }
+        }
+
+        private static void ReportDuplicateDiscriminators(INamedTypeSymbol baseType, BaseTypeInfo info,
+            SourceProductionContext spc)
+        {
             foreach (IGrouping<string, SubtypeRegistration> duplicates in info.Subtypes.GroupBy(s => s.FullyQualifiedName))
             {
                 if (duplicates.Count() > 1)
@@ -258,7 +279,10 @@ namespace JsonSubTypes.Aot
                         duplicates.Key));
                 }
             }
+        }
 
+        private static void CollectBaseProperties(INamedTypeSymbol baseType, BaseTypeInfo info)
+        {
             foreach (ISymbol member in baseType.GetMembers())
             {
                 if (member is not IPropertySymbol property ||
@@ -299,8 +323,6 @@ namespace JsonSubTypes.Aot
                     });
                 }
             }
-
-            return info;
         }
 
         private static bool TryGetDiscriminator(TypedConstant value, SubtypeRegistration registration)
@@ -360,6 +382,37 @@ namespace JsonSubTypes.Aot
                 .Where(b => b.IsValueMode)
                 .ToDictionary(b => b.FullyQualifiedName, b => b, StringComparer.Ordinal);
 
+            Dictionary<string, List<BaseTypeInfo>> parents = BuildParentMap(bases);
+            Dictionary<string, List<string>> ancestorCache = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+
+            foreach (BaseTypeInfo b in bases)
+            {
+                if (!b.IsValueMode)
+                {
+                    continue;
+                }
+
+                HashSet<string> direct = new HashSet<string>(b.Subtypes.Select(s => s.FullyQualifiedName), StringComparer.Ordinal);
+                foreach ((string type, _) in BuildDescendants(b, baseByType))
+                {
+                    if (direct.Contains(type))
+                    {
+                        continue; // handled by the normal discriminator path
+                    }
+
+                    List<ChainEntry> chain = ComputeChain(b, type, baseByType, parents, ancestorCache);
+                    if (chain.Count > 0)
+                    {
+                        NestedChain nested = new NestedChain { RuntimeTypeName = type };
+                        nested.Chain.AddRange(chain);
+                        b.NestedTypes.Add(nested);
+                    }
+                }
+            }
+        }
+
+        private static Dictionary<string, List<BaseTypeInfo>> BuildParentMap(List<BaseTypeInfo> bases)
+        {
             // subtype -> hierarchy bases where it is a direct subtype
             Dictionary<string, List<BaseTypeInfo>> parents = new Dictionary<string, List<BaseTypeInfo>>(StringComparer.Ordinal);
             foreach (BaseTypeInfo b in bases)
@@ -374,120 +427,111 @@ namespace JsonSubTypes.Aot
                 }
             }
 
-            Dictionary<string, List<string>> ancestorCache = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            return parents;
+        }
+
+        private static List<string> TypeAncestors(string type, Dictionary<string, List<BaseTypeInfo>> parents,
+            Dictionary<string, List<string>> cache)
+        {
+            if (cache.TryGetValue(type, out List<string>? cached))
+            {
+                return cached;
+            }
+
             // ordered [T, parent bases, grandparent bases, ...]
-            List<string> TypeAncestors(string type)
+            List<string> result = new List<string> { type };
+            HashSet<string> seen = new HashSet<string> { type };
+            List<string> frontier = new List<string> { type };
+            while (frontier.Count > 0)
             {
-                if (ancestorCache.TryGetValue(type, out List<string>? cached))
+                List<string> next = new List<string>();
+                foreach (string f in frontier)
                 {
-                    return cached;
-                }
-
-                List<string> result = new List<string> { type };
-                HashSet<string> seen = new HashSet<string> { type };
-                List<string> frontier = new List<string> { type };
-                while (frontier.Count > 0)
-                {
-                    List<string> next = new List<string>();
-                    foreach (string f in frontier)
+                    if (parents.TryGetValue(f, out List<BaseTypeInfo>? hs))
                     {
-                        if (parents.TryGetValue(f, out List<BaseTypeInfo>? hs))
+                        foreach (BaseTypeInfo h in hs)
                         {
-                            foreach (BaseTypeInfo h in hs)
+                            if (seen.Add(h.FullyQualifiedName))
                             {
-                                if (seen.Add(h.FullyQualifiedName))
-                                {
-                                    result.Add(h.FullyQualifiedName);
-                                    next.Add(h.FullyQualifiedName);
-                                }
-                            }
-                        }
-                    }
-                    frontier = next;
-                }
-
-                ancestorCache[type] = result;
-                return result;
-            }
-
-            foreach (BaseTypeInfo b in bases)
-            {
-                if (!b.IsValueMode)
-                {
-                    continue;
-                }
-
-                // BFS over descendant types (direct subtypes and their subtypes)
-                List<(string Type, int Depth)> descendants = new List<(string, int)>();
-                Queue<(string Type, int Depth)> queue = new Queue<(string, int)>();
-                HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
-                foreach (SubtypeRegistration s in b.Subtypes)
-                {
-                    if (seen.Add(s.FullyQualifiedName))
-                    {
-                        queue.Enqueue((s.FullyQualifiedName, 1));
-                    }
-                }
-
-                while (queue.Count > 0)
-                {
-                    (string type, int depth) = queue.Dequeue();
-                    descendants.Add((type, depth));
-                    if (baseByType.TryGetValue(type, out BaseTypeInfo? intermediate))
-                    {
-                        foreach (SubtypeRegistration s in intermediate.Subtypes)
-                        {
-                            if (seen.Add(s.FullyQualifiedName))
-                            {
-                                queue.Enqueue((s.FullyQualifiedName, depth + 1));
+                                result.Add(h.FullyQualifiedName);
+                                next.Add(h.FullyQualifiedName);
                             }
                         }
                     }
                 }
 
-                HashSet<string> direct = new HashSet<string>(b.Subtypes.Select(s => s.FullyQualifiedName), StringComparer.Ordinal);
-                foreach ((string type, int depth) in descendants)
+                frontier = next;
+            }
+
+            cache[type] = result;
+            return result;
+        }
+
+        private static List<(string Type, int Depth)> BuildDescendants(BaseTypeInfo b,
+            Dictionary<string, BaseTypeInfo> baseByType)
+        {
+            List<(string Type, int Depth)> descendants = new List<(string, int)>();
+            Queue<(string Type, int Depth)> queue = new Queue<(string, int)>();
+            HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (SubtypeRegistration s in b.Subtypes)
+            {
+                if (seen.Add(s.FullyQualifiedName))
                 {
-                    if (direct.Contains(type))
-                    {
-                        continue; // handled by the normal discriminator path
-                    }
+                    queue.Enqueue((s.FullyQualifiedName, 1));
+                }
+            }
 
-                    List<string> ancestors = TypeAncestors(type);
-                    // hierarchy bases on the path strictly below-or-at the declared base, ordered
-                    // outer-first (declared base first, innermost last)
-                    List<string> pathBases = ancestors
-                        .Where(t => baseByType.ContainsKey(t))
-                        .Where(t => t == b.FullyQualifiedName ||
-                                    TypeAncestors(t).Contains(b.FullyQualifiedName))
-                        .ToList();
-                    pathBases.Reverse();
-
-                    List<ChainEntry> chain = new List<ChainEntry>();
-                    foreach (string hName in pathBases)
+            while (queue.Count > 0)
+            {
+                (string type, int depth) = queue.Dequeue();
+                descendants.Add((type, depth));
+                if (baseByType.TryGetValue(type, out BaseTypeInfo? intermediate))
+                {
+                    foreach (SubtypeRegistration s in intermediate.Subtypes)
                     {
-                        BaseTypeInfo h = baseByType[hName];
-                        SubtypeRegistration? nearest = ancestors
-                            .Select(a => h.Subtypes.FirstOrDefault(s => s.FullyQualifiedName == a))
-                            .FirstOrDefault(s => s != null);
-                        if (nearest != null)
+                        if (seen.Add(s.FullyQualifiedName))
                         {
-                            chain.Add(new ChainEntry
-                            {
-                                DiscriminatorName = h.DiscriminatorPropertyName!,
-                                Discriminator = nearest
-                            });
+                            queue.Enqueue((s.FullyQualifiedName, depth + 1));
                         }
-                    }
-
-                    if (chain.Count > 0)
-                    {
-                        NestedChain nested = new NestedChain { RuntimeTypeName = type };
-                        nested.Chain.AddRange(chain);
-                        b.NestedTypes.Add(nested);
                     }
                 }
             }
+
+            return descendants;
+        }
+
+        private static List<ChainEntry> ComputeChain(BaseTypeInfo declaredBase, string type,
+            Dictionary<string, BaseTypeInfo> baseByType, Dictionary<string, List<BaseTypeInfo>> parents,
+            Dictionary<string, List<string>> ancestorCache)
+        {
+            List<string> ancestors = TypeAncestors(type, parents, ancestorCache);
+            // hierarchy bases on the path strictly below-or-at the declared base, ordered
+            // outer-first (declared base first, innermost last)
+            List<string> pathBases = ancestors
+                .Where(t => baseByType.ContainsKey(t))
+                .Where(t => t == declaredBase.FullyQualifiedName ||
+                            TypeAncestors(t, parents, ancestorCache).Contains(declaredBase.FullyQualifiedName))
+                .ToList();
+            pathBases.Reverse();
+
+            List<ChainEntry> chain = new List<ChainEntry>();
+            foreach (string hName in pathBases)
+            {
+                BaseTypeInfo h = baseByType[hName];
+                SubtypeRegistration? nearest = ancestors
+                    .Select(a => h.Subtypes.FirstOrDefault(s => s.FullyQualifiedName == a))
+                    .FirstOrDefault(s => s != null);
+                if (nearest != null)
+                {
+                    chain.Add(new ChainEntry
+                    {
+                        DiscriminatorName = h.DiscriminatorPropertyName!,
+                        Discriminator = nearest
+                    });
+                }
+            }
+
+            return chain;
         }
 
         // ---------------------------------------------------------------- emit
