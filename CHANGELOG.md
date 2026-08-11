@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Opt-in cross-assembly subtype resolution (`JsonSubTypesTypeResolution.AddAssembly`).
   - Comprehensive unit test suite with 129 test cases.
 
+### Fixed
+- Deserialization with an open generic base type (e.g. `Base<>`) now closes the generic subtype correctly (e.g. `Nested1<int>` for `Base<int>`) instead of failing. #177
+
 ## [2.1.0] - 2026-08-10
 
 ### Added
