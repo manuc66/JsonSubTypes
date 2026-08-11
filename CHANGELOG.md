@@ -14,6 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Opt-in cross-assembly subtype resolution (`JsonSubTypesTypeResolution.AddAssembly`).
   - Comprehensive unit test suite with 129 test cases.
 
+## [2.1.0] - 2026-08-10
+
+### Added
+- Make `JsonSubtypesConverter` and `JsonSubtypesByDiscriminatorValueConverter` public and subclassable: custom subtype converters can now be built with a custom discriminator mapping and control over discriminator serialization, instead of being limited to the fluent builder. #138
+
+### Fixed
+- Deserializing dates now matches stock Newtonsoft deserialization #166 #167
+
+### Changed
+- Bump Newtonsoft.Json dependency to 13.0.4
+- Deterministic builds, Source Link and .snupkg symbol packages
+
 ## [2.0.1] - 2022-05-09
 
 ### Fixed
