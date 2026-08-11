@@ -227,6 +227,34 @@ settings.Converters.Add(JsonSubtypesWithPropertyConverterBuilder
     .Build());
 ```
 
+## Detecting unregistered subtypes
+
+When deserializing a polymorphic tree, `OnUnresolvedSubtype` lets you collect every JSON
+object whose subtype could not be resolved (unknown or missing discriminator value, or no
+matching property in property-presence mode), instead of relying on a "trap" fallback type.
+
+```cs
+var notifications = new List<UnresolvedSubtypeInfo>();
+settings.Converters.Add(JsonSubtypesConverterBuilder
+    .Of(typeof(IStep), "Type")
+    .SetFallbackSubtype(typeof(UnknownStepsTrap))
+    .RegisterSubtype(typeof(RegisteredStep), "RegisteredStep")
+    .OnUnresolvedSubtype(notifications.Add)
+    .Build());
+
+var steps = JsonConvert.DeserializeObject<List<IStep>>(json, settings);
+```
+
+The callback is invoked once per unresolved element, on the thread performing the
+deserialization. `UnresolvedSubtypeInfo` carries the parent type, the discriminator property
+name, the discriminator value read from the JSON, a `HasDiscriminator` flag (to distinguish a
+missing discriminator from an unknown value), and the fallback subtype that will be used
+(`null` when none is configured). If you share a converter across threads, the callback is
+invoked from multiple threads and must be thread-safe. The same API is available on
+`JsonSubtypesWithPropertyConverterBuilder` and, for `System.Text.Json`, on
+`JsonSubtypesConverterBuilder`/`JsonSubtypesWithPropertyConverterBuilder` in the
+`JsonSubTypes.Text.Json` namespace.
+
 ## System.Text.Json variant
 
 > **Status: experimental.** The `JsonSubTypes.Text.Json` package is a **release candidate** (`1.0.0-rc.x`) and not yet part of the project's stable offering. The code is fully tested (133 unit tests) and the API is complete, but the stable `1.0.0` release will follow once the package has been exercised in more real-world projects.
