@@ -1,3 +1,6 @@
+// The sample uses the generic JsonSerializer overloads for brevity. The trimming/AOT
+// warnings are false positives here: the source-generated context supplies the metadata.
+#pragma warning disable IL2026, IL3050
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using JsonSubTypes.Aot.Generated;

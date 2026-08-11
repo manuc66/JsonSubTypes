@@ -39,18 +39,23 @@ namespace JsonSubTypes.Tests.JsonPath
     [JsonSubtypes.KnownSubType(typeof(OtherDiscriminator), "OtherNestedClass")]
     class MainDiscriminator
     {
+#pragma warning disable 0649 // assigned by the deserializer
         public NestedClass nested;
-
+#pragma warning restore 0649
     }
 
     class SubNestedClass: NestedClass
     {
-        string property = "SubNestedClass"; 
+#pragma warning disable 0414 // used only for serialization in tests
+        string property = "SubNestedClass";
+#pragma warning restore 0414
     }
 
     class OtherNestedClass: NestedClass
     {
+#pragma warning disable 0414
         string property = "OtherNestedClass";
+#pragma warning restore 0414
     }
 
     class SubDiscriminator : MainDiscriminator

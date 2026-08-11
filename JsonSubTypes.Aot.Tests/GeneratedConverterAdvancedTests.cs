@@ -382,6 +382,7 @@ public class GeneratedDuplicateDiscriminatorTests
     }
 }
 
+#pragma warning disable JSTAOT002 // intentional duplicate discriminators; the test pins the last-wins behavior
 [JsonSubTypesAotConverter("type")]
 [KnownSubType(typeof(DupCat), "cat")]
 [KnownSubType(typeof(DupCat), "feline")]
@@ -389,6 +390,7 @@ public class DupAnimal
 {
     public int Age { get; set; }
 }
+#pragma warning restore JSTAOT002
 
 public class DupCat : DupAnimal
 {

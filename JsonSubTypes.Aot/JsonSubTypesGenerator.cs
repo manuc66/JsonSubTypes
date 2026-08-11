@@ -52,9 +52,9 @@ namespace JsonSubTypes.Aot
                 }
 
                 List<BaseTypeInfo> bases = new List<BaseTypeInfo>();
-                foreach (INamedTypeSymbol baseType in types.Distinct(SymbolEqualityComparer.Default))
+                foreach (INamedTypeSymbol? baseType in types.Distinct(SymbolEqualityComparer.Default))
                 {
-                    bases.Add(BuildBaseTypeInfo(baseType, spc));
+                    bases.Add(BuildBaseTypeInfo(baseType!, spc));
                 }
 
                 List<BaseTypeInfo> generated = bases
@@ -786,9 +786,9 @@ namespace JsonSubTypes.Aot
                 {{nullBlock}}
                 {{stringBlock}}
                 {{numberBlock}}
-                        if (TryGetDynamicType(discriminator, out Type dynamicType))
+                        if (TryGetDynamicType(discriminator, out Type? dynamicType))
                         {
-                            return dynamicType;
+                            return dynamicType!;
                         }
                         if (CustomTypeNameResolver is not null)
                         {
@@ -920,7 +920,7 @@ namespace JsonSubTypes.Aot
                         }
                     }
 
-                    private bool TryGetDynamicType(JsonElement discriminator, out Type dynamicType)
+                    private bool TryGetDynamicType(JsonElement discriminator, out Type? dynamicType)
                     {
                         switch (discriminator.ValueKind)
                         {
@@ -973,7 +973,7 @@ namespace JsonSubTypes.Aot
         {
             if (info.NestedTypes.Count == 0)
             {
-                return "                        return false;";
+                return "";
             }
 
             List<string> blocks = new List<string>();
@@ -1005,7 +1005,6 @@ namespace JsonSubTypes.Aot
                 """);
             }
 
-            blocks.Add("                        return false;");
             return string.Join("\n", blocks);
         }
 

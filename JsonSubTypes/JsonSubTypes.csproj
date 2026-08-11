@@ -3,6 +3,8 @@
     <TargetFrameworks>netstandard1.3;netstandard2.0;net35;net40;net45;net46;net47</TargetFrameworks>
     <DebugType>full</DebugType>
     <DebugSymbols>true</DebugSymbols>
+    <!-- netstandard1.3 is a deliberate legacy target; the SDK recommendation to drop it is known -->
+    <NoWarn>$(NoWarn);NETSDK1215</NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
