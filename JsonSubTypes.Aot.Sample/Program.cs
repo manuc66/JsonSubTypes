@@ -67,6 +67,11 @@ string dynamicJson = JsonSerializer.Serialize<Gadget>(new ElectronicMouse { Age 
 Console.WriteLine($"dynamic serialize: {dynamicJson}");
 Console.WriteLine($"dynamic deserialize: {JsonSerializer.Deserialize<Gadget>(dynamicJson, dynamicOpts)?.GetType().Name}");
 
+JsonSubTypesAotConverters.Gadget.CustomTypeNameResolver = name =>
+    name as string == "mouse-by-name" ? typeof(ElectronicMouse) : null;
+string byNameJson = JsonSerializer.Serialize<Gadget>(new ElectronicCat { Age = 2, Lives = 9 }, dynamicOpts);
+Console.WriteLine($"name-based deserialize: {JsonSerializer.Deserialize<Gadget>("{\"kind\":\"mouse-by-name\",\"Buttons\":2,\"Age\":1}", dynamicOpts)?.GetType().Name}");
+
 [JsonSubTypesAotConverter("type")]
 [KnownSubType(typeof(Cat), "cat")]
 [KnownSubType(typeof(Dog), 2)]

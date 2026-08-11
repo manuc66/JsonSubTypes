@@ -316,6 +316,23 @@ public class GeneratedDynamicRegistrationTests
     }
 
     [Test]
+    public void Deserialize_CustomTypeNameResolver_ResolvesArbitraryName()
+    {
+        JsonSubTypesAotConverters.DynAnimal.CustomTypeNameResolver = name =>
+            name as string == "custom-dog" ? typeof(DynDog) : null;
+
+        try
+        {
+            var result = JsonSerializer.Deserialize<DynAnimal>("{\"type\":\"custom-dog\",\"CanHunt\":true,\"Age\":4}", Options());
+            Assert.IsInstanceOf<DynDog>(result);
+        }
+        finally
+        {
+            JsonSubTypesAotConverters.DynAnimal.CustomTypeNameResolver = null;
+        }
+    }
+
+    [Test]
     public void Deserialize_UnknownDiscriminator_StillFallsBack()
     {
         var result = JsonSerializer.Deserialize<DynAnimal>("{\"type\":\"fish\",\"Age\":4}", Options());

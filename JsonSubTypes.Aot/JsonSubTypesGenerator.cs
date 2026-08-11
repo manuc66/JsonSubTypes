@@ -724,6 +724,14 @@ namespace JsonSubTypes.Aot
                         {
                             return dynamicType;
                         }
+                        if (CustomTypeNameResolver is not null)
+                        {
+                            Type? customType = CustomTypeNameResolver(GetDiscriminatorKey(discriminator));
+                            if (customType != null)
+                            {
+                                return customType;
+                            }
+                        }
                         return typeof({{info.FallbackType}});
                     }
                     return typeof({{info.FallbackType}});
@@ -820,6 +828,28 @@ namespace JsonSubTypes.Aot
                     public void RegisterDynamicSubtype(object discriminator, Type type)
                     {
                         DynamicSubtypes[discriminator] = type;
+                    }
+
+                    /// <summary>
+                    /// Custom discriminator-to-type resolution hook, invoked after the static
+                    /// registrations and DynamicSubtypes. Assign it to implement your own
+                    /// name-based lookup (e.g. assembly scanning, a DI registry). The resolved
+                    /// type must be resolvable by the TypeInfoResolver (in the source-gen context
+                    /// for Native AOT).
+                    /// </summary>
+                    public Func<object?, Type?>? CustomTypeNameResolver { get; set; }
+
+                    private static object? GetDiscriminatorKey(JsonElement discriminator)
+                    {
+                        switch (discriminator.ValueKind)
+                        {
+                            case JsonValueKind.String:
+                                return discriminator.GetString();
+                            case JsonValueKind.Number when int.TryParse(discriminator.GetRawText(), out int keyInt):
+                                return keyInt;
+                            default:
+                                return discriminator.GetRawText();
+                        }
                     }
 
                     private bool TryGetDynamicType(JsonElement discriminator, out Type dynamicType)
