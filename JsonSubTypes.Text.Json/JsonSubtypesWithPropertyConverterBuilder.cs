@@ -61,11 +61,6 @@ namespace JsonSubTypes.Text.Json
             return SetFallbackSubtype(typeof(T));
         }
 
-        /// <summary>
-        /// Registers a callback invoked when a JSON object's subtype cannot be resolved
-        /// (no registered property matched the JSON object). The callback is invoked on
-        /// the thread performing the deserialization, once per unresolved element.
-        /// </summary>
         public JsonSubtypesWithPropertyConverterBuilder OnUnresolvedSubtype(Action<UnresolvedSubtypeInfo> onUnresolvedSubtype)
         {
             _onUnresolvedSubtype = onUnresolvedSubtype;
