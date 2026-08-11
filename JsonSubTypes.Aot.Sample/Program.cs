@@ -50,14 +50,8 @@ DottedGadget? dotted = JsonSerializer.Deserialize<DottedGadget>("{\"nested\":{\"
 });
 Console.WriteLine($"dotted nested deserialize: {dotted?.GetType().Name}");
 
-try
-{
-    JsonSerializer.Serialize<Animal>(new Animal { Age = 1 }, options);
-}
-catch (JsonException e)
-{
-    Console.WriteLine($"base-as-leaf without mapping throws: {e.Message.Split('\n')[0]}");
-}
+string plainBaseJson = JsonSerializer.Serialize<Animal>(new Animal { Age = 1 }, options);
+Console.WriteLine($"base-as-leaf without mapping (plain): {plainBaseJson}");
 
 [JsonSubTypesAotConverter("type")]
 [KnownSubType(typeof(Cat), "cat")]

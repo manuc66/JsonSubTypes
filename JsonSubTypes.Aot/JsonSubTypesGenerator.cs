@@ -82,6 +82,8 @@ namespace JsonSubTypes.Aot
 
             public string FallbackType => FallbackFullyQualifiedName ?? FullyQualifiedName;
             public bool IsValueMode => DiscriminatorPropertyName != null;
+            public bool BaseIsAbstractOrInterface { get; set; }
+            public bool BaseHasParameterlessConstructor { get; set; }
         }
 
         private sealed class SubtypeRegistration
@@ -117,7 +119,10 @@ namespace JsonSubTypes.Aot
             BaseTypeInfo info = new BaseTypeInfo
             {
                 FullyQualifiedName = baseType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                TypeName = baseType.Name
+                TypeName = baseType.Name,
+                BaseIsAbstractOrInterface = baseType.TypeKind == TypeKind.Interface || baseType.IsAbstract,
+                BaseHasParameterlessConstructor = baseType.InstanceConstructors.Any(
+                    c => c.Parameters.Length == 0 && c.DeclaredAccessibility == Accessibility.Public)
             };
             info.AllTypes.Add(baseType);
 
@@ -381,7 +386,15 @@ namespace JsonSubTypes.Aot
 
         private static string EmitWriteMethod(BaseTypeInfo info)
         {
-            string presenceLeaf = $$"""
+            if (!info.IsValueMode)
+            {
+                // presence mode is read-only: subtypes serialize through the resolver, base via WriteBaseObject
+                return $$"""
+                            if (value is null)
+                            {
+                                writer.WriteNullValue();
+                                return;
+                            }
                             Type runtimeType = value.GetType();
                             if (runtimeType == typeof({{info.FullyQualifiedName}}))
                             {
@@ -390,11 +403,33 @@ namespace JsonSubTypes.Aot
                             }
                             JsonSerializer.Serialize(writer, value, options.TypeInfoResolver!.GetTypeInfo(runtimeType, options)!);
                 """;
-            if (!info.IsValueMode)
-            {
-                return presenceLeaf;
             }
 
+            string payloadSelection = $$"""
+                            Type runtimeType = value.GetType();
+                            string payload;
+                            if (runtimeType == typeof({{info.FullyQualifiedName}}))
+                            {
+                                if (IsRegistered(runtimeType))
+                                {
+                                    payload = SerializeBasePayload(({{info.FullyQualifiedName}})value, options);
+                                }
+                                else
+                                {
+                                    WriteBaseObject(writer, ({{info.FullyQualifiedName}})value, options);
+                                    return;
+                                }
+                            }
+                            else if (IsRegistered(runtimeType))
+                            {
+                                payload = JsonSerializer.Serialize(value, options.TypeInfoResolver!.GetTypeInfo(runtimeType, options)!);
+                            }
+                            else
+                            {
+                                JsonSerializer.Serialize(writer, value, options.TypeInfoResolver!.GetTypeInfo(runtimeType, options)!);
+                                return;
+                            }
+                """;
             string order = info.AddDiscriminatorFirst
                 ? $$"""
                             writer.WritePropertyName(discriminatorName);
@@ -424,10 +459,7 @@ namespace JsonSubTypes.Aot
                                 writer.WriteNullValue();
                                 return;
                             }
-                            Type runtimeType = value.GetType();
-                            string payload = runtimeType == typeof({{info.FullyQualifiedName}})
-                                ? SerializeBasePayload(({{info.FullyQualifiedName}})value, options)
-                                : JsonSerializer.Serialize(value, options.TypeInfoResolver!.GetTypeInfo(runtimeType, options)!);
+                {{payloadSelection}}
                             using JsonDocument payloadDocument = JsonDocument.Parse(payload);
                             string discriminatorName = {{SymbolDisplay.FormatLiteral(info.DiscriminatorPropertyName!, quote: true)}};
                             if (options.PropertyNamingPolicy != null)
@@ -443,6 +475,14 @@ namespace JsonSubTypes.Aot
         private static string EmitReadMethod(BaseTypeInfo info)
         {
             return $$"""
+                            if (reader.TokenType == JsonTokenType.Null)
+                            {
+                                return null;
+                            }
+                            if (reader.TokenType != JsonTokenType.StartObject)
+                            {
+                                throw new JsonException("Unrecognized token: " + reader.TokenType);
+                            }
                             using JsonDocument document = JsonDocument.ParseValue(ref reader);
                             JsonElement root = document.RootElement;
                             Type target = SelectType(root, options);
@@ -552,11 +592,11 @@ namespace JsonSubTypes.Aot
 
             string presenceChecks = string.Join("\n", checks);
             return $$"""
-                    System.Collections.Generic.List<Type> matches = new System.Collections.Generic.List<Type>();
+                    System.Collections.Generic.HashSet<Type> matches = new System.Collections.Generic.HashSet<Type>();
                 {{presenceChecks}}
                     if (matches.Count == 1)
                     {
-                        return matches[0];
+                        return matches.First();
                     }
                     if (matches.Count > 1)
                     {
@@ -593,7 +633,17 @@ namespace JsonSubTypes.Aot
                     """);
             }
 
+            List<string> isRegisteredChecks = byType.Values
+                .Select(r => $"                    if (runtimeType == typeof({r.FullyQualifiedName})) return true;")
+                .ToList();
+
             return $$"""
+                    private static bool IsRegistered(Type runtimeType)
+                    {
+                {{string.Join("\n", isRegisteredChecks)}}
+                        return false;
+                    }
+
                     private static void WriteDiscriminatorValue(Utf8JsonWriter writer, Type runtimeType, JsonSerializerOptions options)
                     {
                 {{string.Join("\n", cases)}}
@@ -640,6 +690,37 @@ namespace JsonSubTypes.Aot
                     """);
             }
 
+            string deserializeBase;
+            if (info.BaseIsAbstractOrInterface)
+            {
+                deserializeBase = $$"""
+                    private static {{info.FullyQualifiedName}} DeserializeBase(JsonElement root, JsonSerializerOptions options)
+                    {
+                        throw new JsonException("Could not create an instance of type {{info.FullyQualifiedName}}. Type is an interface or abstract class and cannot be instantiated.");
+                    }
+                """;
+            }
+            else if (!info.BaseHasParameterlessConstructor)
+            {
+                deserializeBase = $$"""
+                    private static {{info.FullyQualifiedName}} DeserializeBase(JsonElement root, JsonSerializerOptions options)
+                    {
+                        throw new JsonException("Could not create an instance of type {{info.FullyQualifiedName}}: a parameterless constructor is required to fall back to the base type.");
+                    }
+                """;
+            }
+            else
+            {
+                deserializeBase = $$"""
+                    private static {{info.FullyQualifiedName}} DeserializeBase(JsonElement root, JsonSerializerOptions options)
+                    {
+                        {{info.FullyQualifiedName}} instance = new {{info.FullyQualifiedName}}();
+                {{string.Join("\n", readProperties)}}
+                        return instance;
+                    }
+                """;
+            }
+
             return $$"""
                     private static string SerializeBasePayload({{info.FullyQualifiedName}} value, JsonSerializerOptions options)
                     {
@@ -658,12 +739,7 @@ namespace JsonSubTypes.Aot
                         writer.WriteEndObject();
                     }
 
-                    private static {{info.FullyQualifiedName}} DeserializeBase(JsonElement root, JsonSerializerOptions options)
-                    {
-                        {{info.FullyQualifiedName}} instance = new {{info.FullyQualifiedName}}();
-                {{string.Join("\n", readProperties)}}
-                        return instance;
-                    }
+                {{deserializeBase}}
 
                     private static bool TryGetProperty(JsonElement root, string name, JsonSerializerOptions options, out JsonElement value)
                     {

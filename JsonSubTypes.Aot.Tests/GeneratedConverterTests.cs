@@ -62,10 +62,15 @@ namespace JsonSubTypes.Aot.Tests
         }
 
         [Test]
-        public void Serialize_BaseInstance_WithoutMapping_Throws()
+        public void Serialize_BaseInstance_WithoutMapping_WritesPlainObject()
         {
+            // matches the attribute-based runtime converter: an unregistered base is serialized
+            // without a discriminator instead of throwing
             var options = Options();
-            Assert.Throws<JsonException>(() => JsonSerializer.Serialize<Animal>(new Animal { Age = 1 }, options));
+
+            string json = JsonSerializer.Serialize<Animal>(new Animal { Age = 1 }, options);
+
+            Assert.AreEqual("{\"Age\":1}", json);
         }
 
         [Test]
