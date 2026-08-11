@@ -64,6 +64,32 @@ namespace JsonSubTypes.Text.Json
         }
     }
 
+    /// <summary>
+    /// Opts a base type into the JsonSubTypes.Aot source generator, which emits a compiled
+    /// <see cref="JsonConverter{T}"/> that routes subtypes without reflection (Native AOT friendly).
+    /// Unlike <see cref="JsonSubTypeConverterAttribute"/>, this attribute is not a
+    /// <see cref="JsonConverterAttribute"/> and does not interfere with the System.Text.Json source
+    /// generator. The discriminator property name is required for value-based discrimination; omit
+    /// it to use property-presence discrimination (<see cref="KnownSubTypeWithPropertyAttribute"/>).
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = false)]
+    public class JsonSubTypesAotConverterAttribute : Attribute
+    {
+        public string? DiscriminatorPropertyName { get; }
+
+        /// <summary>Whether the discriminator is written first. Defaults to <c>true</c>.</summary>
+        public bool AddDiscriminatorFirst { get; set; } = true;
+
+        public JsonSubTypesAotConverterAttribute()
+        {
+        }
+
+        public JsonSubTypesAotConverterAttribute(string discriminatorPropertyName)
+        {
+            DiscriminatorPropertyName = discriminatorPropertyName;
+        }
+    }
+
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
     public class KnownSubTypeWithPropertyAttribute : Attribute
     {

@@ -290,6 +290,30 @@ var result = JsonSerializer.Deserialize<Animal>("{\"catLives\":6,\"type\":2,\"ag
 Assert.AreEqual(typeof(Cat), result.GetType());
 ```
 
+### Native resolver via `BuildResolver()`
+
+`JsonSubtypesConverterBuilder` also exposes the native `System.Text.Json` polymorphic contract model (`JsonPolymorphismOptions`) as an alternative to `Build()`. Assign the result to `JsonSerializerOptions.TypeInfoResolver` instead of `Converters`:
+
+```csharp
+var options = new JsonSerializerOptions
+{
+    TypeInfoResolver = JsonSubtypesConverterBuilder
+        .Of(typeof(Animal), "type")
+        .RegisterSubtype(typeof(Cat), AnimalType.Cat)
+        .RegisterSubtype(typeof(Dog), AnimalType.Dog)
+        .SerializeDiscriminatorProperty()
+        .BuildResolver()
+};
+```
+
+The resolver delegates all serialization work to `System.Text.Json`, so it only supports a subset of the converter configuration and throws at build time otherwise: `string` or `int` discriminator values, a single level of hierarchy per base type, and the discriminator always written first. The following native behaviors are exposed as opt-in builder methods:
+
+- `FallBackToNearestAncestor()`: an unregistered derived type is serialized as its nearest registered ancestor instead of throwing.
+- `IgnoreUnrecognizedTypeDiscriminators()`: an unknown type discriminator falls back to the base type instead of throwing. `SetFallbackSubtype(baseType)` enables the same behavior.
+- When no subtype is registered explicitly, `[KnownSubType]` and `[FallBackSubType]` attributes on the base type are honored.
+
+For several base type hierarchies, combine builders with `JsonSubtypesConverterBuilder.BuildResolvers(...)`. Combining resolvers through `JsonSerializerOptions.TypeInfoResolverChain` does not work, because each resolver answers for every type and only the first one would be applied.
+
 ### Serializing the discriminator
 
 The attribute-based converter writes the discriminator by default. For the builder, writing the discriminator is opt-in, like the Newtonsoft version:
@@ -342,41 +366,75 @@ public interface IExpression { }
 - **Security**: name-based subtype resolution (`GetTypeByName`, used when no `[KnownSubType]` mapping is declared) resolves a type name from the JSON discriminator against the base type's assembly (and any assembly registered via `JsonSubTypesTypeResolution`). Only types assignable from the base can be resolved, but do **not** expose a name-based hierarchy to untrusted JSON without validating the payload upstream.
 - The property-presence builder (`JsonSubtypesWithPropertyConverterBuilder`) registers subtypes by property name, so two subtypes cannot share the same property name through the builder (use `[KnownSubTypeWithProperty]` attributes for that case).
 
-### Native `[JsonDerivedType]` vs `JsonSubTypes.Text.Json`
+### Choosing between the three engines
 
-| Feature / Capability | Native STJ (`[JsonDerivedType]`) | `JsonSubTypes.Text.Json` |
-| :--- | :---: | :---: |
-| Type discriminator mapping | ✅ | ✅ |
-| Custom discriminator property name | ✅ | ✅ |
-| Property presence matching (`KnownSubTypeWithProperty`) | ❌ | ✅ |
-| Fallback subtype (`FallBackSubType`) | ❌ | ✅ |
-| Cross-assembly / Plugin type resolution | ❌ | ✅ |
-| Dotted / nested discriminator path (`"nested.type"`) | ❌ | ✅ |
-| Opt-in discriminator writing (`SerializeDiscriminatorProperty`) | ❌ | ✅ |
-| Seamless migration from `Newtonsoft.Json` `JsonSubTypes` | ❌ | ✅ |
-| Native AOT / Trimming support | ✅ | ⚠️ (Requires reflection) |
+`JsonSubTypes.Text.Json` ships three engines that share the same configuration layer (the attributes and `JsonSubtypesConverterBuilder`), and a parity test battery keeps them aligned:
 
-### Known Scope & Fallback Path Behavior
+| Feature / Capability | Native STJ (`[JsonDerivedType]`) | Resolver (`BuildResolver()`) | Converter (`Build()`) | Generator (`JsonSubTypes.Aot`) |
+| :--- | :---: | :---: | :---: | :---: |
+| Type discriminator mapping (string/int) | ✅ | ✅ | ✅ | ✅ |
+| Enum / `null` discriminator values | ❌ | ❌ | ✅ | ✅ |
+| Custom discriminator property name | ✅ | ✅ | ✅ | ✅ |
+| Property presence matching (`KnownSubTypeWithProperty`) | ❌ | ❌ | ✅ | ✅ |
+| Fallback subtype (`FallBackSubType`) | ❌ | base only | ✅ | ✅ |
+| Discriminator written last | ❌ | ❌ | ✅ | ✅ |
+| Naming policy / case-insensitive on the discriminator name | ❌ | ⚠️ | ✅ | ✅ |
+| Dotted / nested discriminator path (`"nested.type"`) | ❌ | ❌ | ✅ | ✅ |
+| Nested (multi-level) hierarchies | ⚠️ | ❌ | ✅ | ✅ |
+| Dynamic subtype registration at runtime | ❌ | ❌ | ✅ | ✅ (runtime map) |
+| Custom type-name resolution hook | ❌ | ❌ | ✅ (built-in) | ✅ (hook) |
+| Cross-assembly / plugin types outside the compilation | ❌ | ❌ | ✅ | ⚠️ (must be in the source-gen context) |
+| Native AOT / Trimming support | ✅ | ❌ | ❌ | ✅ |
 
-To preserve full compatibility with advanced features (`KnownSubTypeWithProperty`, nested discriminator paths, enum/null discriminators, cross-assembly resolution) while delegating 99% of object serialization to `System.Text.Json`, the library isolates base-type serialization to two narrow paths (when serializing the base type directly or reading an unregistered fallback type):
+**The three niches:**
 
-1. **Subtypes (99% of cases)**: Full delegation to `System.Text.Json`. All STJ attributes (`[JsonIgnore]`, `[JsonInclude]`, property `[JsonConverter]`, `[JsonConstructor]`, `record` types, naming policies) are fully supported natively.
-2. **Base-as-leaf & Fallback path**: Handled via lightweight direct property mapping. Standard attributes (`[JsonIgnore]`, `[JsonPropertyName]`, `PropertyNamingPolicy`, `PropertyNameCaseInsensitive`) are honored. Advanced member-level STJ attributes (e.g. `[JsonInclude]` on fields, `[JsonConverter]` on individual base properties, parameterized constructors) on the fallback base type itself are intentionally not re-implemented to avoid duplicate serializer engine complexity.
+1. **Converter (`Build()`)** — the full-featured runtime engine. No generator setup, works with attributes directly, and is the only engine for runtime-by-nature scenarios (real cross-assembly plugins, arbitrary type names resolved by reflection). The right default for non-AOT applications.
+2. **Resolver (`BuildResolver()`)** — the thin native bridge. Supports only the subset the native contract model can express, but is the simplest and the fastest for that subset. A lightweight option for .NET 7+ apps that need string/int polymorphism without attributes on the domain and without a generator.
+3. **Generator (`JsonSubTypes.Aot`)** — a Roslyn source generator emitting compiled converters. Nearly feature-identical to the converter, and it is **the Native AOT answer**: the routing is compiled, so property presence, fallback, enums, nested hierarchies and dynamic registration all work without reflection in a trimmed/AOT binary. The generator reads the `[JsonSubTypesAotConverter]`, `[KnownSubType]` and `[FallBackSubType]` attributes, so a consumer still references the `JsonSubTypes.Text.Json` package for those attributes (the generator itself is referenced as an analyzer).
 
-- **Parameterless Constructor for Fallback**: The base fallback type requires a parameterless constructor. Subtypes resolved via discriminator mapping support all STJ constructor features (primary constructors, `record` types).
-- **Native AOT**: Relies on reflection to discover subtypes; annotated with `[RequiresUnreferencedCode]` and `[RequiresDynamicCode]`.
+### Converter known scope & fallback path
 
-### Native `[JsonDerivedType]` or `JsonSubTypes.Text.Json`?
+To preserve full compatibility with advanced features while delegating object serialization to `System.Text.Json`, the converter isolates base-type serialization to a narrow path (when serializing the base type directly or reading an unregistered fallback type):
+
+- **Subtypes (most cases)**: Full delegation to `System.Text.Json`. STJ attributes (`[JsonIgnore]`, `[JsonInclude]`, property `[JsonConverter]`, `[JsonConstructor]`, `record` types, naming policies) are fully supported natively.
+- **Base-as-leaf & Fallback path**: lightweight direct property mapping honoring `[JsonIgnore]`, `[JsonPropertyName]`, the naming policy and `PropertyNameCaseInsensitive`. Per-property `[JsonConverter]`, `[JsonInclude]` fields, `required` members and parameterized constructors are not re-implemented on this path.
+- **Parameterless constructor required** for the base fallback type. Subtypes resolved via the discriminator support all STJ constructor features (primary constructors, `record` types).
+
+### Decision matrix
 
 | Use case | Recommended |
 |---|---|
-| Closed hierarchy, all subtypes known at compile time, string/int discriminator, round-trip serialization, Native AOT | Native `[JsonDerivedType]` / `[JsonPolymorphic]` (source-gen friendly) |
-| Discriminator by property presence (no discriminator field in the JSON) | `JsonSubTypes.Text.Json` |
-| Open hierarchies / subtypes registered at runtime | `JsonSubTypes.Text.Json` |
-| Non string/int discriminator values (enums, `null`, several values mapping to one type) | `JsonSubTypes.Text.Json` |
-| Nested or dotted discriminator paths (e.g. `"nested.property"`) | `JsonSubTypes.Text.Json` |
-| Resolution by .NET type name, or cross-assembly plugin subtypes | `JsonSubTypes.Text.Json` |
-| Migrating an existing JsonSubTypes/Newtonsoft code base | `JsonSubTypes.Text.Json` (same API) |
+| Native AOT / trimming, hierarchy known at compile time | `JsonSubTypes.Aot` generator |
+| Non-AOT, full feature set with minimal setup | Converter (`Build()`) |
+| Non-AOT, string/int discriminators only, fastest and simplest | Resolver (`BuildResolver()`) |
+| Discriminator by property presence (no discriminator field in the JSON) | Converter or Generator |
+| Open hierarchies / subtypes registered at runtime | Converter, or Generator (`RegisterDynamicSubtype`) |
+| Non string/int discriminator values (enums, `null`) | Converter or Generator |
+| Nested or dotted discriminator paths (e.g. `"nested.property"`) | Converter or Generator |
+| Resolution by arbitrary .NET type name / cross-assembly plugins | Converter (built-in), or Generator (`CustomTypeNameResolver` hook) |
+| Migrating an existing JsonSubTypes/Newtonsoft code base | Converter (same API) |
+
+### Native AOT
+
+The resolver and the converter rely on reflection and are therefore **not compatible with trimming or Native AOT**. The polymorphic metadata that the resolver configures must be declared at compile time for AOT: `System.Text.Json` freezes it at build time, and a source-generated `JsonTypeInfo` is read-only at runtime. Assigning `PolymorphismOptions` to a source-generated `JsonTypeInfo` throws `InvalidOperationException` on both .NET 8 and .NET 10.
+
+For Native AOT, the `JsonSubTypes.Aot` generator compiles the routing into the converter (verified to run as a native binary with `dotnet publish -r linux-x64 -p:PublishAot=true`). Alternatively, declare the hierarchy with `[JsonDerivedType]` on the base type and use a plain source-generated context:
+
+```csharp
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
+[JsonDerivedType(typeof(Circle), "circle")]
+[JsonDerivedType(typeof(Square), "square")]
+public class Shape { }
+
+[JsonSerializable(typeof(Shape))]
+[JsonSerializable(typeof(Circle))]
+[JsonSerializable(typeof(Square))]
+public partial class ShapeJsonContext : JsonSerializerContext { }
+
+var options = new JsonSerializerOptions { TypeInfoResolver = ShapeJsonContext.Default };
+var json = JsonSerializer.Serialize<Shape>(new Circle { Radius = 2 }, options);
+// {"$type":"circle","Radius":2}
+```
 ## 💖 Support this project
 If this project helped you save money or time or simply makes your life also easier, you can give me a cup of coffee =)
 
