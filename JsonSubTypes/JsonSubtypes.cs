@@ -277,7 +277,7 @@ namespace JsonSubTypes
             if (targetType != null && ToTypeInfo(targetType).IsGenericTypeDefinition && !ToTypeInfo(parentType).IsGenericTypeDefinition)
             {
                 Type[] parentTypeArguments = GetGenericTypeArguments(parentType).ToArray();
-                if (targetType.GetGenericArguments().Length != parentTypeArguments.Length)
+                if (GetGenericTypeParameterCount(targetType) != parentTypeArguments.Length)
                 {
                     throw new JsonSerializationException(
                         "Could not close generic subtype " + targetType.FullName + " with the generic arguments of " +
@@ -533,6 +533,15 @@ namespace JsonSubTypes
             return type.GetGenericArguments();
 #else
             return type.GenericTypeArguments;
+#endif
+        }
+
+        private static int GetGenericTypeParameterCount(Type type)
+        {
+#if (NETSTANDARD1_3)
+            return type.GetTypeInfo().GenericTypeParameters.Length;
+#else
+            return type.GetGenericArguments().Length;
 #endif
         }
 
