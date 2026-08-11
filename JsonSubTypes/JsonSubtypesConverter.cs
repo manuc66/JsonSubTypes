@@ -28,16 +28,26 @@ namespace JsonSubTypes
         private readonly Type _baseType;
         private readonly Type _fallbackType;
 
-        internal JsonSubtypesConverter(Type baseType, Type fallbackType) : base()
+        internal JsonSubtypesConverter(Type baseType, Type fallbackType) : this(baseType, fallbackType, null)
         {
-            _baseType = baseType;
-            _fallbackType = fallbackType;
         }
 
-        internal JsonSubtypesConverter(Type baseType, string jsonDiscriminatorPropertyName, Type fallbackType) : base(jsonDiscriminatorPropertyName)
+        internal JsonSubtypesConverter(Type baseType, string jsonDiscriminatorPropertyName, Type fallbackType) : this(baseType, jsonDiscriminatorPropertyName, fallbackType, null)
+        {
+        }
+
+        internal JsonSubtypesConverter(Type baseType, Type fallbackType, Action<UnresolvedSubtypeInfo> onUnresolvedSubtype) : base()
         {
             _baseType = baseType;
             _fallbackType = fallbackType;
+            OnUnresolvedSubtype = onUnresolvedSubtype;
+        }
+
+        internal JsonSubtypesConverter(Type baseType, string jsonDiscriminatorPropertyName, Type fallbackType, Action<UnresolvedSubtypeInfo> onUnresolvedSubtype) : base(jsonDiscriminatorPropertyName)
+        {
+            _baseType = baseType;
+            _fallbackType = fallbackType;
+            OnUnresolvedSubtype = onUnresolvedSubtype;
         }
 
         internal override Type GetFallbackSubType(Type type)

@@ -7,9 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### JsonSubTypes
+#### Added
+- `OnUnresolvedSubtype` on `JsonSubtypesConverterBuilder` and `JsonSubtypesWithPropertyConverterBuilder`: a callback invoked once per JSON element whose subtype cannot be resolved (unknown or missing discriminator value, or no matching property). #112
 #### Fixed
 - Deserialization with an open generic base type (e.g. `Base<>`) now closes the generic subtype correctly (e.g. `Nested1<int>` for `Base<int>`) instead of failing. #177
 - Errors and exceptions raised while deserializing a subtype now carry the fully qualified JSON path (e.g. `Property2.Value` instead of `Value`), matching stock Newtonsoft.Json error handling. #182
+
+### JsonSubTypes.Text.Json
+#### Added
+- `OnUnresolvedSubtype` on `JsonSubtypesConverterBuilder` and `JsonSubtypesWithPropertyConverterBuilder`: the `System.Text.Json` equivalent of the Newtonsoft.Json callback above. #112
 
 ## [1.0.0-rc.2] - 2026-08-10
 ### Changed

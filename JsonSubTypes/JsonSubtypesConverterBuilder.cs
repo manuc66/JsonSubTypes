@@ -33,6 +33,7 @@ namespace JsonSubTypes
         private bool _serializeDiscriminatorProperty;
         private bool _addDiscriminatorFirst = true;
         private Type _fallbackSubtype;
+        private Action<UnresolvedSubtypeInfo> _onUnresolvedSubtype;
 
         public static JsonSubtypesConverterBuilder Of(Type baseType, string discriminatorProperty)
         {
@@ -83,9 +84,15 @@ namespace JsonSubTypes
             return SetFallbackSubtype(typeof(T));
         }
 
+        public JsonSubtypesConverterBuilder OnUnresolvedSubtype(Action<UnresolvedSubtypeInfo> onUnresolvedSubtype)
+        {
+            _onUnresolvedSubtype = onUnresolvedSubtype;
+            return this;
+        }
+
         public JsonConverter Build()
         {
-            return new JsonSubtypesByDiscriminatorValueConverter(_baseType, _discriminatorProperty, _subTypeMapping, _serializeDiscriminatorProperty, _addDiscriminatorFirst, _fallbackSubtype);
+            return new JsonSubtypesByDiscriminatorValueConverter(_baseType, _discriminatorProperty, _subTypeMapping, _serializeDiscriminatorProperty, _addDiscriminatorFirst, _fallbackSubtype, _onUnresolvedSubtype);
         }
     }
 }

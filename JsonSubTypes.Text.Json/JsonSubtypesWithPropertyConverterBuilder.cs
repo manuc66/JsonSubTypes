@@ -16,6 +16,7 @@ namespace JsonSubTypes.Text.Json
         private readonly Dictionary<string, TypeWithPropertyMatchingAttributes> _types =
             new Dictionary<string, TypeWithPropertyMatchingAttributes>();
         private Type? _fallbackType;
+        private Action<UnresolvedSubtypeInfo>? _onUnresolvedSubtype;
 
         private JsonSubtypesWithPropertyConverterBuilder(Type baseType)
         {
@@ -60,6 +61,12 @@ namespace JsonSubTypes.Text.Json
             return SetFallbackSubtype(typeof(T));
         }
 
+        public JsonSubtypesWithPropertyConverterBuilder OnUnresolvedSubtype(Action<UnresolvedSubtypeInfo> onUnresolvedSubtype)
+        {
+            _onUnresolvedSubtype = onUnresolvedSubtype;
+            return this;
+        }
+
         [RequiresUnreferencedCode("JsonSubTypes.Text.Json uses reflection to create the subtype converter.")]
         [RequiresDynamicCode("JsonSubTypes.Text.Json uses reflection to create the subtype converter.")]
         public JsonConverter Build()
@@ -74,10 +81,11 @@ namespace JsonSubTypes.Text.Json
                     typeof(List<TypeWithPropertyMatchingAttributes>),
                     typeof(Type),
                     typeof(bool),
-                    typeof(bool)
+                    typeof(bool),
+                    typeof(Action<UnresolvedSubtypeInfo>)
                 }, null)!;
             return (JsonConverter)constructor.Invoke(
-                new object?[] { null, null, _types.Values.ToList(), _fallbackType, false, false })!;
+                new object?[] { null, null, _types.Values.ToList(), _fallbackType, false, false, _onUnresolvedSubtype })!;
         }
     }
 }

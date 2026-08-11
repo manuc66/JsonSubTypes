@@ -111,6 +111,7 @@ namespace JsonSubTypes.Text.Json
         private readonly bool _serializeDiscriminatorProperty;
         private readonly bool _addDiscriminatorFirst;
         private readonly Dictionary<Type, object?>? _runtimeTypeToDiscriminator;
+        private readonly Action<UnresolvedSubtypeInfo>? _onUnresolvedSubtype;
 
         public JsonSubtypes()
         {
@@ -128,13 +129,15 @@ namespace JsonSubTypes.Text.Json
             List<TypeWithPropertyMatchingAttributes>? typesByPropertyPresence,
             Type? fallbackType,
             bool serializeDiscriminatorProperty,
-            bool addDiscriminatorFirst) : this(jsonDiscriminatorPropertyName)
+            bool addDiscriminatorFirst,
+            Action<UnresolvedSubtypeInfo>? onUnresolvedSubtype) : this(jsonDiscriminatorPropertyName)
         {
             _subTypeMapping = subTypeMapping;
             _typesByPropertyPresence = typesByPropertyPresence;
             _fallbackType = fallbackType;
             _serializeDiscriminatorProperty = serializeDiscriminatorProperty;
             _addDiscriminatorFirst = addDiscriminatorFirst;
+            _onUnresolvedSubtype = onUnresolvedSubtype;
             if (subTypeMapping != null)
             {
                 _runtimeTypeToDiscriminator = new Dictionary<Type, object?>();
@@ -537,7 +540,42 @@ namespace JsonSubTypes.Text.Json
                 resolvedType = GetTypeFromDiscriminatorValue(jObject, parentType, jsonSerializerOptions);
             }
 
-            return resolvedType ?? GetFallbackSubType(parentType) ?? parentType;
+            if (resolvedType != null)
+            {
+                return resolvedType;
+            }
+
+            Type? fallbackSubtype = GetFallbackSubType(parentType);
+            NotifyUnresolvedSubtype(jObject, parentType, jsonSerializerOptions, fallbackSubtype);
+            return fallbackSubtype ?? parentType;
+        }
+
+        private void NotifyUnresolvedSubtype(JsonDocument jObject, Type parentType,
+            JsonSerializerOptions jsonSerializerOptions, Type? fallbackSubtype)
+        {
+            Action<UnresolvedSubtypeInfo>? onUnresolvedSubtype = _onUnresolvedSubtype;
+            if (onUnresolvedSubtype == null)
+            {
+                return;
+            }
+
+            object? discriminatorValue = null;
+            bool hasDiscriminator = false;
+            if (JsonDiscriminatorPropertyName != null &&
+                TryGetValueInJson(jObject.RootElement, JsonDiscriminatorPropertyName, jsonSerializerOptions,
+                    out JsonElement discriminatorElement))
+            {
+                hasDiscriminator = true;
+                discriminatorValue = discriminatorElement.ValueKind switch
+                {
+                    JsonValueKind.Null => null,
+                    JsonValueKind.String => discriminatorElement.GetString(),
+                    _ => discriminatorElement.ToString()
+                };
+            }
+
+            onUnresolvedSubtype(new UnresolvedSubtypeInfo(parentType, JsonDiscriminatorPropertyName,
+                discriminatorValue, hasDiscriminator, fallbackSubtype));
         }
 
         private Type GetType(JsonDocument jObject, Type parentType, JsonSerializerOptions serializer)

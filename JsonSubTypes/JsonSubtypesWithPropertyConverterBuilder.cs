@@ -10,6 +10,7 @@ namespace JsonSubTypes
         private readonly Type _baseType;
         private readonly Dictionary<string, TypeWithPropertyMatchingAttributes> _subTypeMapping = new Dictionary<string, TypeWithPropertyMatchingAttributes>();
         private Type _fallbackSubtype;
+        private Action<UnresolvedSubtypeInfo> _onUnresolvedSubtype;
 
         private JsonSubtypesWithPropertyConverterBuilder(Type baseType)
         {
@@ -53,9 +54,15 @@ namespace JsonSubTypes
             return SetFallbackSubtype(typeof(T));
         }
 
+        public JsonSubtypesWithPropertyConverterBuilder OnUnresolvedSubtype(Action<UnresolvedSubtypeInfo> onUnresolvedSubtype)
+        {
+            _onUnresolvedSubtype = onUnresolvedSubtype;
+            return this;
+        }
+
         public JsonConverter Build()
         {
-            return new JsonSubtypesByPropertyPresenceConverter(_baseType, _subTypeMapping.Values.ToList(), _fallbackSubtype);
+            return new JsonSubtypesByPropertyPresenceConverter(_baseType, _subTypeMapping.Values.ToList(), _fallbackSubtype, _onUnresolvedSubtype);
         }
     }
 }
