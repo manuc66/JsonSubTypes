@@ -4,6 +4,7 @@ bin
 obj
 *.user
 /TestResults
+TestResults/
 *.ide
 /.idea
 /.vs
