@@ -60,6 +60,12 @@ namespace JsonSubTypes.Text.Json
     /// <see cref="JsonSubtypesConverterBuilder.BuildResolvers"/> to handle several
     /// hierarchies from a single resolver instead.
     /// </para>
+    /// <para>
+    /// The resolver delegates to a shared reflection-based
+    /// <c>DefaultJsonTypeInfoResolver</c> instance. Metadata customization applied to a
+    /// different <c>DefaultJsonTypeInfoResolver</c> instance (for example through
+    /// <c>Modifiers</c>) does not apply here.
+    /// </para>
     /// </remarks>
     [RequiresUnreferencedCode("JsonSubtypesResolver uses reflection to resolve type metadata.")]
     [RequiresDynamicCode("JsonSubtypesResolver requires dynamic code to construct type metadata.")]
@@ -68,35 +74,41 @@ namespace JsonSubTypes.Text.Json
         private static readonly IJsonTypeInfoResolver InnerResolver = new DefaultJsonTypeInfoResolver();
 
         private readonly IReadOnlyList<BaseTypeRegistration> _registrations;
+        private readonly Dictionary<Type, JsonPolymorphismOptions> _polymorphismOptions;
 
         internal JsonSubtypesResolver(IReadOnlyList<BaseTypeRegistration> registrations)
         {
             _registrations = registrations;
+            _polymorphismOptions = new Dictionary<Type, JsonPolymorphismOptions>();
+            foreach (BaseTypeRegistration registration in registrations)
+            {
+                JsonPolymorphismOptions options = new JsonPolymorphismOptions
+                {
+                    TypeDiscriminatorPropertyName = registration.DiscriminatorPropertyName,
+                    UnknownDerivedTypeHandling = registration.UnknownDerivedTypeHandling,
+                    IgnoreUnrecognizedTypeDiscriminators = registration.IgnoreUnrecognizedTypeDiscriminators
+                };
+                foreach (JsonDerivedType derivedType in registration.DerivedTypes)
+                {
+                    options.DerivedTypes.Add(derivedType);
+                }
+
+                _polymorphismOptions[registration.BaseType] = options;
+            }
         }
 
         public JsonTypeInfo? GetTypeInfo(Type type, JsonSerializerOptions options)
         {
             JsonTypeInfo? info = InnerResolver.GetTypeInfo(type, options);
-            if (info != null)
+            if (info != null && _polymorphismOptions.TryGetValue(info.Type, out JsonPolymorphismOptions? polymorphismOptions))
             {
-                foreach (BaseTypeRegistration registration in _registrations)
+                if (info.PolymorphismOptions != null)
                 {
-                    if (registration.BaseType == info.Type)
-                    {
-                        info.PolymorphismOptions = new JsonPolymorphismOptions
-                        {
-                            TypeDiscriminatorPropertyName = registration.DiscriminatorPropertyName,
-                            UnknownDerivedTypeHandling = registration.UnknownDerivedTypeHandling,
-                            IgnoreUnrecognizedTypeDiscriminators = registration.IgnoreUnrecognizedTypeDiscriminators
-                        };
-                        foreach (JsonDerivedType derivedType in registration.DerivedTypes)
-                        {
-                            info.PolymorphismOptions.DerivedTypes.Add(derivedType);
-                        }
-
-                        break;
-                    }
+                    throw new InvalidOperationException(
+                        $"Type {info.Type.FullName} already declares polymorphism through [JsonPolymorphic]/[JsonDerivedType] attributes. Remove those attributes or do not use the JsonSubtypesResolver for this type.");
                 }
+
+                info.PolymorphismOptions = polymorphismOptions;
             }
 
             return info;

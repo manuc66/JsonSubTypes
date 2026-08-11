@@ -16,12 +16,22 @@ namespace JsonSubTypes.Aot
         private const string KnownSubTypeWithPropertyAttributeName = "KnownSubTypeWithPropertyAttribute";
         private const string FallBackSubTypeAttributeName = "FallBackSubTypeAttribute";
         private const string DiagnosticId = "JSTAOT001";
+        private const string DuplicateDiscriminatorDiagnosticId = "JSTAOT002";
 
         private static readonly DiagnosticDescriptor UnsupportedDiscriminator =
             new DiagnosticDescriptor(
                 DiagnosticId,
                 "Discriminator value not supported by JsonSubTypes.Aot",
                 "The discriminator value of type '{0}' on subtype '{1}' is not supported by JsonSubTypes.Aot. The subtype is not generated. Use the runtime converter for this hierarchy.",
+                "JsonSubTypes.Aot",
+                DiagnosticSeverity.Warning,
+                isEnabledByDefault: true);
+
+        private static readonly DiagnosticDescriptor DuplicateDiscriminators =
+            new DiagnosticDescriptor(
+                DuplicateDiscriminatorDiagnosticId,
+                "Multiple discriminators on one type are not supported by JsonSubTypes.Aot",
+                "Type '{0}' is registered with several discriminator values; only the last one is used for writing. The runtime converter's Build() rejects this configuration.",
                 "JsonSubTypes.Aot",
                 DiagnosticSeverity.Warning,
                 isEnabledByDefault: true);
@@ -41,11 +51,11 @@ namespace JsonSubTypes.Aot
                     return;
                 }
 
-                HashSet<string> visitedBases = new HashSet<string>();
+                HashSet<ISymbol> visitedBases = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
                 List<BaseTypeInfo> bases = new List<BaseTypeInfo>();
                 foreach (INamedTypeSymbol baseType in types.Distinct(SymbolEqualityComparer.Default))
                 {
-                    if (visitedBases.Add(baseType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)))
+                    if (visitedBases.Add(baseType))
                     {
                         bases.Add(BuildBaseTypeInfo(baseType, spc));
                     }
@@ -236,6 +246,16 @@ namespace JsonSubTypes.Aot
 
                         break;
                     }
+                }
+            }
+
+            foreach (IGrouping<string, SubtypeRegistration> duplicates in info.Subtypes.GroupBy(s => s.FullyQualifiedName))
+            {
+                if (duplicates.Count() > 1)
+                {
+                    spc.ReportDiagnostic(Diagnostic.Create(DuplicateDiscriminators,
+                        baseType.Locations.FirstOrDefault(),
+                        duplicates.Key));
                 }
             }
 
@@ -666,8 +686,10 @@ namespace JsonSubTypes.Aot
             var nulls = info.Subtypes.Where(s => s.DiscriminatorKind == "null").ToList();
             if (nulls.Count > 0)
             {
+                // dedupe so consecutive null registrations do not emit unreachable returns
                 nullCases = "                    " + string.Join("\n" + "                    ",
-                    nulls.Select(r => $"return typeof({r.FullyQualifiedName});"));
+                    nulls.Select(r => r.FullyQualifiedName).Distinct()
+                        .Select(t => $"return typeof({t});"));
             }
 
             var strings = info.Subtypes.Where(s => s.DiscriminatorKind == "string").ToList();
@@ -787,7 +809,7 @@ namespace JsonSubTypes.Aot
                 byType[reg.FullyQualifiedName] = reg; // last registration wins for writing
             }
 
-            List<string> cases = new List<string>();
+            List<string> dictionaryEntries = new List<string>();
             foreach (SubtypeRegistration reg in byType.Values)
             {
                 string value = reg.DiscriminatorKind switch
@@ -797,37 +819,39 @@ namespace JsonSubTypes.Aot
                     "enum" => $"writer.WriteRawValue(JsonSerializer.Serialize({reg.EnumReference}, options.GetTypeInfo(typeof({reg.EnumTypeName}))));",
                     _ => "writer.WriteNullValue();"
                 };
-                cases.Add($$"""
-                        if (runtimeType == typeof({{reg.FullyQualifiedName}}))
-                        {
-                            {{value}}
-                            return;
-                        }
-                    """);
+                dictionaryEntries.Add($$"""
+                            [typeof({{reg.FullyQualifiedName}})] = static (writer, options) => {{value.TrimEnd(';')}}
+                """);
             }
 
-            List<string> isRegisteredChecks = byType.Values
-                .Select(r => $"                    if (runtimeType == typeof({r.FullyQualifiedName})) return true;")
-                .ToList();
-
             return $$"""
+                    private static readonly System.Collections.Generic.Dictionary<System.Type, System.Action<Utf8JsonWriter, JsonSerializerOptions>> DiscriminatorWriters = new System.Collections.Generic.Dictionary<System.Type, System.Action<Utf8JsonWriter, JsonSerializerOptions>>
+                    {
+                {{string.Join(",\n", dictionaryEntries)}}
+                    };
+
                     private static bool IsRegistered(Type runtimeType)
                     {
-                {{string.Join("\n", isRegisteredChecks)}}
-                        return false;
+                        return DiscriminatorWriters.ContainsKey(runtimeType);
                     }
 
                     private static void WriteDiscriminatorValue(Utf8JsonWriter writer, Type runtimeType, JsonSerializerOptions options)
                     {
-                {{string.Join("\n", cases)}}
+                        if (DiscriminatorWriters.TryGetValue(runtimeType, out System.Action<Utf8JsonWriter, JsonSerializerOptions>? write))
+                        {
+                            write(writer, options);
+                            return;
+                        }
                         throw new JsonException("Impossible to serialize type: " + runtimeType.FullName + " because there is no registered mapping for the discriminator property");
                     }
 
                     public readonly System.Collections.Concurrent.ConcurrentDictionary<object, Type> DynamicSubtypes = new System.Collections.Concurrent.ConcurrentDictionary<object, Type>();
+                    private readonly System.Collections.Concurrent.ConcurrentDictionary<Type, object> _dynamicReverse = new System.Collections.Concurrent.ConcurrentDictionary<Type, object>();
 
                     public void RegisterDynamicSubtype(object discriminator, Type type)
                     {
                         DynamicSubtypes[discriminator] = type;
+                        _dynamicReverse[type] = discriminator; // last registration wins, like the builder
                     }
 
                     /// <summary>
@@ -877,27 +901,24 @@ namespace JsonSubTypes.Aot
 
                     private bool TryWriteDynamic(Utf8JsonWriter writer, {{info.FullyQualifiedName}} value, Type runtimeType, JsonSerializerOptions options)
                     {
-                        foreach (System.Collections.Generic.KeyValuePair<object, Type> entry in DynamicSubtypes)
+                        if (_dynamicReverse.TryGetValue(runtimeType, out object? dynamicDiscriminator))
                         {
-                            if (entry.Value == runtimeType)
+                            writer.WriteStartObject();
+                            string dynamicDiscriminatorName = {{SymbolDisplay.FormatLiteral(info.DiscriminatorPropertyName!, quote: true)}};
+                            if (options.PropertyNamingPolicy != null)
                             {
-                                writer.WriteStartObject();
-                                string dynamicDiscriminatorName = {{SymbolDisplay.FormatLiteral(info.DiscriminatorPropertyName!, quote: true)}};
-                                if (options.PropertyNamingPolicy != null)
-                                {
-                                    dynamicDiscriminatorName = options.PropertyNamingPolicy.ConvertName(dynamicDiscriminatorName);
-                                }
-                                writer.WritePropertyName(dynamicDiscriminatorName);
-                                writer.WriteRawValue(JsonSerializer.Serialize(entry.Key, options.GetTypeInfo(entry.Key.GetType())));
-                                string payload = JsonSerializer.Serialize(value, options.GetTypeInfo(runtimeType));
-                                using JsonDocument payloadDocument = JsonDocument.Parse(payload);
-                                foreach (JsonProperty property in payloadDocument.RootElement.EnumerateObject())
-                                {
-                                    property.WriteTo(writer);
-                                }
-                                writer.WriteEndObject();
-                                return true;
+                                dynamicDiscriminatorName = options.PropertyNamingPolicy.ConvertName(dynamicDiscriminatorName);
                             }
+                            writer.WritePropertyName(dynamicDiscriminatorName);
+                            writer.WriteRawValue(JsonSerializer.Serialize(dynamicDiscriminator, options.GetTypeInfo(dynamicDiscriminator.GetType())));
+                            string payload = JsonSerializer.Serialize(value, options.GetTypeInfo(runtimeType));
+                            using JsonDocument payloadDocument = JsonDocument.Parse(payload);
+                            foreach (JsonProperty property in payloadDocument.RootElement.EnumerateObject())
+                            {
+                                property.WriteTo(writer);
+                            }
+                            writer.WriteEndObject();
+                            return true;
                         }
                         return false;
                     }

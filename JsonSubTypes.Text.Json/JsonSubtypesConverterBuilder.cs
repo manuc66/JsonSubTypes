@@ -216,11 +216,9 @@ namespace JsonSubTypes.Text.Json
 
         private JsonSubtypesResolver.BaseTypeRegistration BuildRegistration()
         {
-            NullableDictionary<object, Type> subTypeMapping = _subTypeMapping;
-            if (!subTypeMapping.Entries().Any())
-            {
-                subTypeMapping = BuildAttributeSubTypeMapping(_baseType);
-            }
+            NullableDictionary<object, Type> subTypeMapping = _subTypeMapping.Entries().Any()
+                ? _subTypeMapping
+                : BuildAttributeSubTypeMapping(_baseType);
 
             if (!subTypeMapping.Entries().Any())
             {

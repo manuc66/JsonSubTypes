@@ -390,7 +390,7 @@ public interface IExpression { }
 
 1. **Converter (`Build()`)** — the full-featured runtime engine. No generator setup, works with attributes directly, and is the only engine for runtime-by-nature scenarios (real cross-assembly plugins, arbitrary type names resolved by reflection). The right default for non-AOT applications.
 2. **Resolver (`BuildResolver()`)** — the thin native bridge. Supports only the subset the native contract model can express, but is the simplest and the fastest for that subset. A lightweight option for .NET 7+ apps that need string/int polymorphism without attributes on the domain and without a generator.
-3. **Generator (`JsonSubTypes.Aot`)** — a Roslyn source generator emitting compiled converters. Nearly feature-identical to the converter, and it is **the Native AOT answer**: the routing is compiled, so property presence, fallback, enums, nested hierarchies and dynamic registration all work without reflection in a trimmed/AOT binary.
+3. **Generator (`JsonSubTypes.Aot`)** — a Roslyn source generator emitting compiled converters. Nearly feature-identical to the converter, and it is **the Native AOT answer**: the routing is compiled, so property presence, fallback, enums, nested hierarchies and dynamic registration all work without reflection in a trimmed/AOT binary. The generator reads the `[JsonSubTypesAotConverter]`, `[KnownSubType]` and `[FallBackSubType]` attributes, so a consumer still references the `JsonSubTypes.Text.Json` package for those attributes (the generator itself is referenced as an analyzer).
 
 ### Converter known scope & fallback path
 

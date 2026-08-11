@@ -302,7 +302,7 @@ public class GeneratedDynamicRegistrationTests
     [Test]
     public void Serialize_DynamicSubtype_WritesDiscriminator()
     {
-        JsonSubTypesAotConverters.DynAnimal.DynamicSubtypes["dog"] = typeof(DynDog);
+        JsonSubTypesAotConverters.DynAnimal.RegisterDynamicSubtype("dog", typeof(DynDog));
 
         try
         {
@@ -356,4 +356,41 @@ public class DynCat : DynAnimal
 public class DynDog : DynAnimal
 {
     public bool CanHunt { get; set; }
+}
+
+[TestFixture]
+public class GeneratedDuplicateDiscriminatorTests
+{
+    private static JsonSerializerOptions Options()
+    {
+        return new JsonSerializerOptions { Converters = { JsonSubTypesAotConverters.DupAnimal } };
+    }
+
+    [Test]
+    public void Serialize_UsesLastRegisteredDiscriminator()
+    {
+        string json = JsonSerializer.Serialize<DupAnimal>(new DupCat { Age = 1, Lives = 9 }, Options());
+
+        Assert.AreEqual("{\"type\":\"feline\",\"Lives\":9,\"Age\":1}", json);
+    }
+
+    [Test]
+    public void Deserialize_AcceptsBothDiscriminators()
+    {
+        Assert.IsInstanceOf<DupCat>(JsonSerializer.Deserialize<DupAnimal>("{\"type\":\"cat\",\"Age\":1}", Options()));
+        Assert.IsInstanceOf<DupCat>(JsonSerializer.Deserialize<DupAnimal>("{\"type\":\"feline\",\"Age\":1}", Options()));
+    }
+}
+
+[JsonSubTypesAotConverter("type")]
+[KnownSubType(typeof(DupCat), "cat")]
+[KnownSubType(typeof(DupCat), "feline")]
+public class DupAnimal
+{
+    public int Age { get; set; }
+}
+
+public class DupCat : DupAnimal
+{
+    public int Lives { get; set; }
 }
