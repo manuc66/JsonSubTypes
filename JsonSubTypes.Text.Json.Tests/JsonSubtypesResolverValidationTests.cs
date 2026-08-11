@@ -148,5 +148,35 @@ namespace JsonSubTypes.Tests
             var converter = builder.Build();
             Assert.IsNotNull(converter);
         }
+
+        [Test]
+        public void TypeWithNativePolymorphismAttributes_ThrowsInsteadOfSilentlyOverriding()
+        {
+            var options = new System.Text.Json.JsonSerializerOptions
+            {
+                TypeInfoResolver = JsonSubtypesConverterBuilder.Of<NativePolymorphicBase>("$type")
+                    .RegisterSubtype<NativePolyCircle>("circle")
+                    .SerializeDiscriminatorProperty()
+                    .BuildResolver()
+            };
+
+            var exception = Assert.Throws<InvalidOperationException>(
+                () => System.Text.Json.JsonSerializer.Serialize<NativePolymorphicBase>(
+                    new NativePolyCircle { Radius = 1 }, options));
+
+            StringAssert.Contains("already declares polymorphism", exception?.Message);
+        }
+    }
+
+    [System.Text.Json.Serialization.JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
+    [System.Text.Json.Serialization.JsonDerivedType(typeof(NativePolyCircle), "circle")]
+    public class NativePolymorphicBase
+    {
+        public int Age { get; set; }
+    }
+
+    public class NativePolyCircle : NativePolymorphicBase
+    {
+        public double Radius { get; set; }
     }
 }
