@@ -1,0 +1,101 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="262298b0-dc7c-4a6e-89dc-b5f833dfd707" name="@emmanuel-ms7850 2026-08-11 23:19:03" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-08-11T23:19:03.9545925+02:00" queuing="2026-08-11T23:19:03.9545926+02:00" start="2026-08-11T23:19:02.8251933+02:00" finish="2026-08-11T23:19:04.0012583+02:00" />
+  <TestSettings name="default" id="d86bbee8-9316-4b2e-ba25-5be247da4127">
+    <Deployment runDeploymentRoot="_emmanuel-ms7850_2026-08-11_23_19_03" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="e01bd07b-6e2c-4c9f-b85c-8dcdedf51961" testId="b0a42cb0-1cf0-b267-59df-8a812ecf54b7" testName="Deserialize_ReturnsCorrectSubtype" computerName="emmanuel-ms7850" duration="00:00:00.0025550" startTime="2026-08-11T23:19:03.8031548+02:00" endTime="2026-08-11T23:19:03.8057099+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e01bd07b-6e2c-4c9f-b85c-8dcdedf51961" />
+    <UnitTestResult executionId="560b239f-ca27-4ac0-b2d6-3a218b9115e9" testId="5e984f0a-3f1f-da0a-9283-f185b8c0e01a" testName="Serialize_Collection_WritesDiscriminators" computerName="emmanuel-ms7850" duration="00:00:00.0044490" startTime="2026-08-11T23:19:03.8166822+02:00" endTime="2026-08-11T23:19:03.8211305+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="560b239f-ca27-4ac0-b2d6-3a218b9115e9" />
+    <UnitTestResult executionId="32196c98-d53a-482f-ba07-d918865d31e8" testId="b5553a02-0165-c7df-13d1-b032fc0772dc" testName="Serialize_BaseInstance_WithoutMapping_Throws" computerName="emmanuel-ms7850" duration="00:00:00.0044440" startTime="2026-08-11T23:19:03.8122102+02:00" endTime="2026-08-11T23:19:03.8166542+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="32196c98-d53a-482f-ba07-d918865d31e8" />
+    <UnitTestResult executionId="6f306a2f-12ed-4724-9653-bc9e51632723" testId="c37bf25d-8d17-c320-d228-957d802e8aee" testName="Serialize_DoesNotWriteDiscriminator" computerName="emmanuel-ms7850" duration="00:00:00.0472490" startTime="2026-08-11T23:19:03.7422770+02:00" endTime="2026-08-11T23:19:03.7895260+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6f306a2f-12ed-4724-9653-bc9e51632723">
+      <Output>
+        <ErrorInfo>
+          <Message>  String lengths are both 35. Strings differ at index 2.
+  Expected: "{"FirstName":"A","Skill":"Painter"}"
+  But was:  "{"Skill":"Painter","FirstName":"A"}"
+  -------------^
+</Message>
+          <StackTrace>   at JsonSubTypes.Aot.Tests.GeneratedPresenceModeTests.Serialize_DoesNotWriteDiscriminator() in /_/JsonSubTypes.Aot.Tests/GeneratedConverterTests.cs:line 119
+
+1)    at JsonSubTypes.Aot.Tests.GeneratedPresenceModeTests.Serialize_DoesNotWriteDiscriminator() in /_/JsonSubTypes.Aot.Tests/GeneratedConverterTests.cs:line 119
+
+</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="48dfc124-5421-4c5a-ade4-db91908584d0" testId="d5007a7d-c432-5322-9466-08ec1a5a30e6" testName="Serialize_Subtype_WritesDiscriminator" computerName="emmanuel-ms7850" duration="00:00:00.0003310" startTime="2026-08-11T23:19:03.8211678+02:00" endTime="2026-08-11T23:19:03.8214980+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="48dfc124-5421-4c5a-ade4-db91908584d0" />
+    <UnitTestResult executionId="0d3e0e69-6ee5-4308-8394-ba8a90a8170f" testId="2ed1b5ab-dfef-e2a3-1694-8e01cf016ab3" testName="Deserialize_ByPropertyPresence_ReturnsCorrectSubtype" computerName="emmanuel-ms7850" duration="00:00:00.0514450" startTime="2026-08-11T23:19:03.6866817+02:00" endTime="2026-08-11T23:19:03.7379558+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0d3e0e69-6ee5-4308-8394-ba8a90a8170f" />
+    <UnitTestResult executionId="0f2aa2a0-a975-4f6c-bfb7-bd5ed08f5e3a" testId="8c84caf8-7ca4-2242-dcbd-659a2b53e3e7" testName="Deserialize_IntDiscriminator_ReturnsCorrectSubtype" computerName="emmanuel-ms7850" duration="00:00:00.0097050" startTime="2026-08-11T23:19:03.7934021+02:00" endTime="2026-08-11T23:19:03.8031071+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0f2aa2a0-a975-4f6c-bfb7-bd5ed08f5e3a" />
+    <UnitTestResult executionId="d076a4c4-ad8d-4a84-9941-6ad14b756329" testId="4ec37286-939d-65d2-dbf6-28e99b284261" testName="Deserialize_NoMatchingProperty_FallsBackToBase" computerName="emmanuel-ms7850" duration="00:00:00.0011379" startTime="2026-08-11T23:19:03.7411007+02:00" endTime="2026-08-11T23:19:03.7422391+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d076a4c4-ad8d-4a84-9941-6ad14b756329" />
+    <UnitTestResult executionId="daa1c5ac-1fb8-4745-ae1e-bc488a867c02" testId="eb249d49-5e02-1764-ef5a-bc765db0f895" testName="Deserialize_UnknownDiscriminator_FallsBackToBase" computerName="emmanuel-ms7850" duration="00:00:00.0020140" startTime="2026-08-11T23:19:03.8057533+02:00" endTime="2026-08-11T23:19:03.8077671+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="daa1c5ac-1fb8-4745-ae1e-bc488a867c02" />
+    <UnitTestResult executionId="6b16456c-9239-4b3a-859c-ea8f6812a2f7" testId="3a074d74-3fa9-c440-6571-63edf5bd2ff6" testName="RoundTrip_PreservesSubtype" computerName="emmanuel-ms7850" duration="00:00:00.0043819" startTime="2026-08-11T23:19:03.8077939+02:00" endTime="2026-08-11T23:19:03.8121752+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6b16456c-9239-4b3a-859c-ea8f6812a2f7" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Deserialize_ReturnsCorrectSubtype" storage="/home/manu/sources/jsonsubtypes/jsonsubtypes-native-resolver/jsonsubtypes.aot.tests/bin/debug/net8.0/jsonsubtypes.aot.tests.dll" id="b0a42cb0-1cf0-b267-59df-8a812ecf54b7">
+      <Execution id="e01bd07b-6e2c-4c9f-b85c-8dcdedf51961" />
+      <TestMethod codeBase="/home/manu/sources/JsonSubTypes/JsonSubTypes-native-resolver/JsonSubTypes.Aot.Tests/bin/Debug/net8.0/JsonSubTypes.Aot.Tests.dll" adapterTypeName="executor://nunit3testexecutor/" className="JsonSubTypes.Aot.Tests.GeneratedValueModeTests" name="Deserialize_ReturnsCorrectSubtype" />
+    </UnitTest>
+    <UnitTest name="Deserialize_IntDiscriminator_ReturnsCorrectSubtype" storage="/home/manu/sources/jsonsubtypes/jsonsubtypes-native-resolver/jsonsubtypes.aot.tests/bin/debug/net8.0/jsonsubtypes.aot.tests.dll" id="8c84caf8-7ca4-2242-dcbd-659a2b53e3e7">
+      <Execution id="0f2aa2a0-a975-4f6c-bfb7-bd5ed08f5e3a" />
+      <TestMethod codeBase="/home/manu/sources/JsonSubTypes/JsonSubTypes-native-resolver/JsonSubTypes.Aot.Tests/bin/Debug/net8.0/JsonSubTypes.Aot.Tests.dll" adapterTypeName="executor://nunit3testexecutor/" className="JsonSubTypes.Aot.Tests.GeneratedValueModeTests" name="Deserialize_IntDiscriminator_ReturnsCorrectSubtype" />
+    </UnitTest>
+    <UnitTest name="Serialize_DoesNotWriteDiscriminator" storage="/home/manu/sources/jsonsubtypes/jsonsubtypes-native-resolver/jsonsubtypes.aot.tests/bin/debug/net8.0/jsonsubtypes.aot.tests.dll" id="c37bf25d-8d17-c320-d228-957d802e8aee">
+      <Execution id="6f306a2f-12ed-4724-9653-bc9e51632723" />
+      <TestMethod codeBase="/home/manu/sources/JsonSubTypes/JsonSubTypes-native-resolver/JsonSubTypes.Aot.Tests/bin/Debug/net8.0/JsonSubTypes.Aot.Tests.dll" adapterTypeName="executor://nunit3testexecutor/" className="JsonSubTypes.Aot.Tests.GeneratedPresenceModeTests" name="Serialize_DoesNotWriteDiscriminator" />
+    </UnitTest>
+    <UnitTest name="Deserialize_ByPropertyPresence_ReturnsCorrectSubtype" storage="/home/manu/sources/jsonsubtypes/jsonsubtypes-native-resolver/jsonsubtypes.aot.tests/bin/debug/net8.0/jsonsubtypes.aot.tests.dll" id="2ed1b5ab-dfef-e2a3-1694-8e01cf016ab3">
+      <Execution id="0d3e0e69-6ee5-4308-8394-ba8a90a8170f" />
+      <TestMethod codeBase="/home/manu/sources/JsonSubTypes/JsonSubTypes-native-resolver/JsonSubTypes.Aot.Tests/bin/Debug/net8.0/JsonSubTypes.Aot.Tests.dll" adapterTypeName="executor://nunit3testexecutor/" className="JsonSubTypes.Aot.Tests.GeneratedPresenceModeTests" name="Deserialize_ByPropertyPresence_ReturnsCorrectSubtype" />
+    </UnitTest>
+    <UnitTest name="Serialize_BaseInstance_WithoutMapping_Throws" storage="/home/manu/sources/jsonsubtypes/jsonsubtypes-native-resolver/jsonsubtypes.aot.tests/bin/debug/net8.0/jsonsubtypes.aot.tests.dll" id="b5553a02-0165-c7df-13d1-b032fc0772dc">
+      <Execution id="32196c98-d53a-482f-ba07-d918865d31e8" />
+      <TestMethod codeBase="/home/manu/sources/JsonSubTypes/JsonSubTypes-native-resolver/JsonSubTypes.Aot.Tests/bin/Debug/net8.0/JsonSubTypes.Aot.Tests.dll" adapterTypeName="executor://nunit3testexecutor/" className="JsonSubTypes.Aot.Tests.GeneratedValueModeTests" name="Serialize_BaseInstance_WithoutMapping_Throws" />
+    </UnitTest>
+    <UnitTest name="RoundTrip_PreservesSubtype" storage="/home/manu/sources/jsonsubtypes/jsonsubtypes-native-resolver/jsonsubtypes.aot.tests/bin/debug/net8.0/jsonsubtypes.aot.tests.dll" id="3a074d74-3fa9-c440-6571-63edf5bd2ff6">
+      <Execution id="6b16456c-9239-4b3a-859c-ea8f6812a2f7" />
+      <TestMethod codeBase="/home/manu/sources/JsonSubTypes/JsonSubTypes-native-resolver/JsonSubTypes.Aot.Tests/bin/Debug/net8.0/JsonSubTypes.Aot.Tests.dll" adapterTypeName="executor://nunit3testexecutor/" className="JsonSubTypes.Aot.Tests.GeneratedValueModeTests" name="RoundTrip_PreservesSubtype" />
+    </UnitTest>
+    <UnitTest name="Deserialize_NoMatchingProperty_FallsBackToBase" storage="/home/manu/sources/jsonsubtypes/jsonsubtypes-native-resolver/jsonsubtypes.aot.tests/bin/debug/net8.0/jsonsubtypes.aot.tests.dll" id="4ec37286-939d-65d2-dbf6-28e99b284261">
+      <Execution id="d076a4c4-ad8d-4a84-9941-6ad14b756329" />
+      <TestMethod codeBase="/home/manu/sources/JsonSubTypes/JsonSubTypes-native-resolver/JsonSubTypes.Aot.Tests/bin/Debug/net8.0/JsonSubTypes.Aot.Tests.dll" adapterTypeName="executor://nunit3testexecutor/" className="JsonSubTypes.Aot.Tests.GeneratedPresenceModeTests" name="Deserialize_NoMatchingProperty_FallsBackToBase" />
+    </UnitTest>
+    <UnitTest name="Serialize_Collection_WritesDiscriminators" storage="/home/manu/sources/jsonsubtypes/jsonsubtypes-native-resolver/jsonsubtypes.aot.tests/bin/debug/net8.0/jsonsubtypes.aot.tests.dll" id="5e984f0a-3f1f-da0a-9283-f185b8c0e01a">
+      <Execution id="560b239f-ca27-4ac0-b2d6-3a218b9115e9" />
+      <TestMethod codeBase="/home/manu/sources/JsonSubTypes/JsonSubTypes-native-resolver/JsonSubTypes.Aot.Tests/bin/Debug/net8.0/JsonSubTypes.Aot.Tests.dll" adapterTypeName="executor://nunit3testexecutor/" className="JsonSubTypes.Aot.Tests.GeneratedValueModeTests" name="Serialize_Collection_WritesDiscriminators" />
+    </UnitTest>
+    <UnitTest name="Deserialize_UnknownDiscriminator_FallsBackToBase" storage="/home/manu/sources/jsonsubtypes/jsonsubtypes-native-resolver/jsonsubtypes.aot.tests/bin/debug/net8.0/jsonsubtypes.aot.tests.dll" id="eb249d49-5e02-1764-ef5a-bc765db0f895">
+      <Execution id="daa1c5ac-1fb8-4745-ae1e-bc488a867c02" />
+      <TestMethod codeBase="/home/manu/sources/JsonSubTypes/JsonSubTypes-native-resolver/JsonSubTypes.Aot.Tests/bin/Debug/net8.0/JsonSubTypes.Aot.Tests.dll" adapterTypeName="executor://nunit3testexecutor/" className="JsonSubTypes.Aot.Tests.GeneratedValueModeTests" name="Deserialize_UnknownDiscriminator_FallsBackToBase" />
+    </UnitTest>
+    <UnitTest name="Serialize_Subtype_WritesDiscriminator" storage="/home/manu/sources/jsonsubtypes/jsonsubtypes-native-resolver/jsonsubtypes.aot.tests/bin/debug/net8.0/jsonsubtypes.aot.tests.dll" id="d5007a7d-c432-5322-9466-08ec1a5a30e6">
+      <Execution id="48dfc124-5421-4c5a-ade4-db91908584d0" />
+      <TestMethod codeBase="/home/manu/sources/JsonSubTypes/JsonSubTypes-native-resolver/JsonSubTypes.Aot.Tests/bin/Debug/net8.0/JsonSubTypes.Aot.Tests.dll" adapterTypeName="executor://nunit3testexecutor/" className="JsonSubTypes.Aot.Tests.GeneratedValueModeTests" name="Serialize_Subtype_WritesDiscriminator" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="b0a42cb0-1cf0-b267-59df-8a812ecf54b7" executionId="e01bd07b-6e2c-4c9f-b85c-8dcdedf51961" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5e984f0a-3f1f-da0a-9283-f185b8c0e01a" executionId="560b239f-ca27-4ac0-b2d6-3a218b9115e9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b5553a02-0165-c7df-13d1-b032fc0772dc" executionId="32196c98-d53a-482f-ba07-d918865d31e8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c37bf25d-8d17-c320-d228-957d802e8aee" executionId="6f306a2f-12ed-4724-9653-bc9e51632723" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d5007a7d-c432-5322-9466-08ec1a5a30e6" executionId="48dfc124-5421-4c5a-ade4-db91908584d0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2ed1b5ab-dfef-e2a3-1694-8e01cf016ab3" executionId="0d3e0e69-6ee5-4308-8394-ba8a90a8170f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8c84caf8-7ca4-2242-dcbd-659a2b53e3e7" executionId="0f2aa2a0-a975-4f6c-bfb7-bd5ed08f5e3a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4ec37286-939d-65d2-dbf6-28e99b284261" executionId="d076a4c4-ad8d-4a84-9941-6ad14b756329" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="eb249d49-5e02-1764-ef5a-bc765db0f895" executionId="daa1c5ac-1fb8-4745-ae1e-bc488a867c02" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3a074d74-3fa9-c440-6571-63edf5bd2ff6" executionId="6b16456c-9239-4b3a-859c-ea8f6812a2f7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Les résultats ne figurent pas dans une liste" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="Tous les résultats chargés" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="10" executed="10" passed="9" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>NUnit Adapter 1.0.0.0: Test execution started
+Running all tests in /home/manu/sources/JsonSubTypes/JsonSubTypes-native-resolver/JsonSubTypes.Aot.Tests/bin/Debug/net8.0/JsonSubTypes.Aot.Tests.dll
+   NUnit3TestExecutor discovered 10 of 10 NUnit test cases using Current Discovery mode, Non-Explicit run
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>
