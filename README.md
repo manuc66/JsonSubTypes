@@ -290,6 +290,30 @@ var result = JsonSerializer.Deserialize<Animal>("{\"catLives\":6,\"type\":2,\"ag
 Assert.AreEqual(typeof(Cat), result.GetType());
 ```
 
+### Native resolver via `BuildResolver()`
+
+`JsonSubtypesConverterBuilder` also exposes the native `System.Text.Json` polymorphic contract model (`JsonPolymorphismOptions`) as an alternative to `Build()`. Assign the result to `JsonSerializerOptions.TypeInfoResolver` instead of `Converters`:
+
+```csharp
+var options = new JsonSerializerOptions
+{
+    TypeInfoResolver = JsonSubtypesConverterBuilder
+        .Of(typeof(Animal), "type")
+        .RegisterSubtype(typeof(Cat), AnimalType.Cat)
+        .RegisterSubtype(typeof(Dog), AnimalType.Dog)
+        .SerializeDiscriminatorProperty()
+        .BuildResolver()
+};
+```
+
+The resolver delegates all serialization work to `System.Text.Json`, so it only supports a subset of the converter configuration and throws at build time otherwise: `string` or `int` discriminator values, a single level of hierarchy per base type, and the discriminator always written first. The following native behaviors are exposed as opt-in builder methods:
+
+- `FallBackToNearestAncestor()`: an unregistered derived type is serialized as its nearest registered ancestor instead of throwing.
+- `IgnoreUnrecognizedTypeDiscriminators()`: an unknown type discriminator falls back to the base type instead of throwing. `SetFallbackSubtype(baseType)` enables the same behavior.
+- When no subtype is registered explicitly, `[KnownSubType]` and `[FallBackSubType]` attributes on the base type are honored.
+
+For several base type hierarchies, combine builders with `JsonSubtypesConverterBuilder.BuildResolvers(...)`. Combining resolvers through `JsonSerializerOptions.TypeInfoResolverChain` does not work, because each resolver answers for every type and only the first one would be applied.
+
 ### Serializing the discriminator
 
 The attribute-based converter writes the discriminator by default. For the builder, writing the discriminator is opt-in, like the Newtonsoft version:
@@ -377,6 +401,28 @@ To preserve full compatibility with advanced features (`KnownSubTypeWithProperty
 | Nested or dotted discriminator paths (e.g. `"nested.property"`) | `JsonSubTypes.Text.Json` |
 | Resolution by .NET type name, or cross-assembly plugin subtypes | `JsonSubTypes.Text.Json` |
 | Migrating an existing JsonSubTypes/Newtonsoft code base | `JsonSubTypes.Text.Json` (same API) |
+
+### Native AOT
+
+`JsonSubTypes.Text.Json` — both the converter (`Build()`) and the resolver (`BuildResolver()`) — relies on reflection and is therefore **not compatible with trimming or Native AOT**. The polymorphic metadata that the resolver configures must be declared at compile time for AOT: `System.Text.Json` freezes it at build time, and a source-generated `JsonTypeInfo` is read-only at runtime. Assigning `PolymorphismOptions` to a source-generated `JsonTypeInfo` throws `InvalidOperationException` on both .NET 8 and .NET 10.
+
+For Native AOT, declare the hierarchy on the base type and use a source-generated context (verified to compile and run as a native binary with `dotnet publish -r linux-x64 -p:PublishAot=true`):
+
+```csharp
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
+[JsonDerivedType(typeof(Circle), "circle")]
+[JsonDerivedType(typeof(Square), "square")]
+public class Shape { }
+
+[JsonSerializable(typeof(Shape))]
+[JsonSerializable(typeof(Circle))]
+[JsonSerializable(typeof(Square))]
+public partial class ShapeJsonContext : JsonSerializerContext { }
+
+var options = new JsonSerializerOptions { TypeInfoResolver = ShapeJsonContext.Default };
+var json = JsonSerializer.Serialize<Shape>(new Circle { Radius = 2 }, options);
+// {"$type":"circle","Radius":2}
+```
 ## 💖 Support this project
 If this project helped you save money or time or simply makes your life also easier, you can give me a cup of coffee =)
 
