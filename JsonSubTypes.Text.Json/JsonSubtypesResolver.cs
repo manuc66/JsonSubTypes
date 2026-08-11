@@ -20,8 +20,12 @@ namespace JsonSubTypes.Text.Json
     /// <list type="bullet">
     /// <item>discriminator values must be <c>string</c> or <c>int</c>: <c>null</c>, <c>enum</c> and
     /// other value types are not supported and throw <see cref="NotSupportedException"/> at build time;</item>
-        /// <item>no fallback subtype is supported (<see cref="JsonSubtypesConverterBuilder.SetFallbackSubtype(Type)"/>
-        /// throws <see cref="NotSupportedException"/>);</item>
+    /// <item>an unrecognized type discriminator on deserialization throws by default. When
+    /// <see cref="JsonSubtypesConverterBuilder.IgnoreUnrecognizedTypeDiscriminators"/> is enabled it
+    /// falls back to the base type. A fallback to a registered subtype other than the base type is
+    /// not supported: <see cref="JsonSubtypesConverterBuilder.SetFallbackSubtype(Type)"/> with the
+    /// base type maps to the ignore-unrecognized behavior, any other value throws
+    /// <see cref="NotSupportedException"/> at build time;</item>
     /// <item>the discriminator property is always serialized: a read-only configuration (without
     /// <see cref="JsonSubtypesConverterBuilder.SerializeDiscriminatorProperty"/>) or a discriminator
     /// written last (<see cref="JsonSubtypesConverterBuilder.SerializeDiscriminatorProperty(bool)"/>
@@ -30,14 +34,20 @@ namespace JsonSubTypes.Text.Json
     /// registered as subtypes (including the base type itself when it is registered). An
     /// unregistered runtime type is never silently handled: an unregistered base type is
     /// serialized without a discriminator, while an unregistered derived type throws
-    /// <see cref="NotSupportedException"/>. With discriminator serialization enabled, the
-    /// <see cref="JsonSubtypes{T}"/> converter instead throws <see cref="JsonException"/> for any
-    /// runtime type that has no registered mapping;</item>
+    /// <see cref="NotSupportedException"/> unless
+    /// <see cref="JsonSubtypesConverterBuilder.FallBackToNearestAncestor"/> is enabled, in which
+    /// case it is serialized as its nearest registered ancestor. With discriminator serialization
+    /// enabled, the <see cref="JsonSubtypes{T}"/> converter instead throws
+    /// <see cref="JsonException"/> for any runtime type that has no registered mapping;</item>
     /// <item>only a single level of hierarchy is resolved per base type: intermediate resolvers are
-    /// not chained, and attribute-based configuration (<c>KnownSubType</c>, <c>FallBackSubType</c>,
-    /// <c>JsonSubTypeConverter</c>) is not supported;</item>
+    /// not chained. <c>KnownSubType</c> and <c>FallBackSubType</c> attributes are honored when no
+    /// subtype is registered explicitly, but <c>JsonSubTypeConverter</c> is not (the resolver must
+    /// be built explicitly);</item>
     /// <item><see cref="JsonSerializerOptions.PropertyNamingPolicy"/> is not applied to the
     /// discriminator property name, and case-insensitive matching of that name is not supported;</item>
+    /// <item>the discriminator property name must not equal the serialized name of any property:
+    /// on .NET 8 this silently produces a JSON object with duplicate keys, and on .NET 10 it throws
+    /// <see cref="InvalidOperationException"/>;</item>
     /// <item>a missing discriminator on an interface or abstract base type throws
     /// <see cref="NotSupportedException"/> instead of <see cref="JsonException"/>.</item>
     /// </list>
@@ -75,7 +85,9 @@ namespace JsonSubTypes.Text.Json
                     {
                         info.PolymorphismOptions = new JsonPolymorphismOptions
                         {
-                            TypeDiscriminatorPropertyName = registration.DiscriminatorPropertyName
+                            TypeDiscriminatorPropertyName = registration.DiscriminatorPropertyName,
+                            UnknownDerivedTypeHandling = registration.UnknownDerivedTypeHandling,
+                            IgnoreUnrecognizedTypeDiscriminators = registration.IgnoreUnrecognizedTypeDiscriminators
                         };
                         foreach (JsonDerivedType derivedType in registration.DerivedTypes)
                         {
@@ -93,16 +105,21 @@ namespace JsonSubTypes.Text.Json
         internal readonly struct BaseTypeRegistration
         {
             public BaseTypeRegistration(Type baseType, string discriminatorPropertyName,
-                List<JsonDerivedType> derivedTypes)
+                List<JsonDerivedType> derivedTypes, JsonUnknownDerivedTypeHandling unknownDerivedTypeHandling,
+                bool ignoreUnrecognizedTypeDiscriminators)
             {
                 BaseType = baseType;
                 DiscriminatorPropertyName = discriminatorPropertyName;
                 DerivedTypes = derivedTypes;
+                UnknownDerivedTypeHandling = unknownDerivedTypeHandling;
+                IgnoreUnrecognizedTypeDiscriminators = ignoreUnrecognizedTypeDiscriminators;
             }
 
             public Type BaseType { get; }
             public string DiscriminatorPropertyName { get; }
             public List<JsonDerivedType> DerivedTypes { get; }
+            public JsonUnknownDerivedTypeHandling UnknownDerivedTypeHandling { get; }
+            public bool IgnoreUnrecognizedTypeDiscriminators { get; }
         }
     }
 }

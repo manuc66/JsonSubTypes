@@ -30,7 +30,7 @@ namespace JsonSubTypes.Tests
             var exception = Assert.Throws<InvalidOperationException>(() => builder.BuildResolver());
 
             Assert.AreEqual(
-                "Cannot build a type info resolver without any registered subtype. Call RegisterSubtype before building.",
+                "Cannot build a type info resolver without any registered subtype. Call RegisterSubtype before building, or apply KnownSubType attributes to the base type.",
                 exception?.Message);
         }
 

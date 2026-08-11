@@ -19,6 +19,8 @@ namespace JsonSubTypes.Text.Json
         private Type? _fallbackType;
         private bool _serializeDiscriminatorProperty;
         private bool _addDiscriminatorFirst;
+        private bool _ignoreUnrecognizedTypeDiscriminators;
+        private bool _fallBackToNearestAncestor;
 
         private JsonSubtypesConverterBuilder(Type baseType, string discriminatorProperty)
         {
@@ -70,10 +72,39 @@ namespace JsonSubTypes.Text.Json
             return this;
         }
 
+        /// <summary>
+        /// Makes the native resolver (<see cref="BuildResolver"/>) fall back to the base type when a
+        /// type discriminator is not recognized during deserialization, instead of throwing.
+        /// Only supported by <see cref="BuildResolver"/>; <see cref="Build"/> throws if this is set.
+        /// </summary>
+        public JsonSubtypesConverterBuilder IgnoreUnrecognizedTypeDiscriminators()
+        {
+            _ignoreUnrecognizedTypeDiscriminators = true;
+            return this;
+        }
+
+        /// <summary>
+        /// Makes the native resolver (<see cref="BuildResolver"/>) serialize an unregistered derived
+        /// type as its nearest registered ancestor instead of throwing, when
+        /// <c>System.Text.Json</c> supports it (.NET 8 and later). Only supported by
+        /// <see cref="BuildResolver"/>; <see cref="Build"/> throws if this is set.
+        /// </summary>
+        public JsonSubtypesConverterBuilder FallBackToNearestAncestor()
+        {
+            _fallBackToNearestAncestor = true;
+            return this;
+        }
+
         [RequiresUnreferencedCode("JsonSubTypes.Text.Json uses reflection to create the subtype converter.")]
         [RequiresDynamicCode("JsonSubTypes.Text.Json uses reflection to create the subtype converter.")]
         public JsonConverter Build()
         {
+            if (_ignoreUnrecognizedTypeDiscriminators || _fallBackToNearestAncestor)
+            {
+                throw new NotSupportedException(
+                    "IgnoreUnrecognizedTypeDiscriminators and FallBackToNearestAncestor are only supported by BuildResolver(). Use Build() to obtain the JsonSubtypes converter without these options.");
+            }
+
             if (_serializeDiscriminatorProperty)
             {
                 HashSet<Type> seenTypes = new HashSet<Type>();
@@ -116,11 +147,18 @@ namespace JsonSubTypes.Text.Json
         /// Only a subset of the converter configuration is supported:
         /// <list type="bullet">
         /// <item>discriminator values must be <c>string</c> or <c>int</c> (no <c>null</c>, no enum);</item>
-        /// <item>no fallback subtype (<see cref="SetFallbackSubtype"/>);</item>
+        /// <item>falling back to the base type is supported, either with
+        /// <see cref="SetFallbackSubtype(Type)"/> when the fallback is the base type or with
+        /// <see cref="IgnoreUnrecognizedTypeDiscriminators"/>. A fallback to a subtype other than
+        /// the base type is not supported;</item>
+        /// <item>when no subtype is registered explicitly, <c>KnownSubType</c> and
+        /// <c>FallBackSubType</c> attributes on the base type are honored;</item>
         /// <item><see cref="SerializeDiscriminatorProperty()"/> must have been called and the
         /// discriminator must be written first (the native resolver always writes the discriminator
         /// property, always first, and only for runtime types that are registered as subtypes,
-        /// including the base type when it is registered);</item>
+        /// including the base type when it is registered). An unregistered derived type can be
+        /// serialized as its nearest registered ancestor with
+        /// <see cref="FallBackToNearestAncestor"/>;</item>
         /// <item>only a single level of hierarchy is resolved per base type. To handle several base
         /// type hierarchies, combine builders with <see cref="BuildResolvers"/>. Combining
         /// resolvers through <see cref="JsonSerializerOptions.TypeInfoResolverChain"/> does not work,
@@ -178,16 +216,31 @@ namespace JsonSubTypes.Text.Json
 
         private JsonSubtypesResolver.BaseTypeRegistration BuildRegistration()
         {
-            if (!_subTypeMapping.Entries().Any())
+            NullableDictionary<object, Type> subTypeMapping = _subTypeMapping;
+            if (!subTypeMapping.Entries().Any())
             {
-                throw new InvalidOperationException(
-                    "Cannot build a type info resolver without any registered subtype. Call RegisterSubtype before building.");
+                subTypeMapping = BuildAttributeSubTypeMapping(_baseType);
             }
 
-            if (_fallbackType != null)
+            if (!subTypeMapping.Entries().Any())
             {
-                throw new NotSupportedException(
-                    "SetFallbackSubtype is not supported by the native type info resolver. Use Build() to obtain the JsonSubtypes converter instead.");
+                throw new InvalidOperationException(
+                    "Cannot build a type info resolver without any registered subtype. Call RegisterSubtype before building, or apply KnownSubType attributes to the base type.");
+            }
+
+            Type? fallbackType = _fallbackType ?? GetFallbackSubTypeAttribute(_baseType)?.SubType;
+            bool ignoreUnrecognizedTypeDiscriminators = _ignoreUnrecognizedTypeDiscriminators;
+            if (fallbackType != null)
+            {
+                if (fallbackType == _baseType)
+                {
+                    ignoreUnrecognizedTypeDiscriminators = true;
+                }
+                else
+                {
+                    throw new NotSupportedException(
+                        "SetFallbackSubtype is not supported by the native type info resolver when the fallback is not the base type. Use Build() to obtain the JsonSubtypes converter instead.");
+                }
             }
 
             if (!_serializeDiscriminatorProperty)
@@ -204,7 +257,7 @@ namespace JsonSubTypes.Text.Json
 
             HashSet<Type> seenTypes = new HashSet<Type>();
             List<JsonDerivedType> derivedTypes = new List<JsonDerivedType>();
-            foreach (KeyValuePair<object?, Type> entry in _subTypeMapping.Entries())
+            foreach (KeyValuePair<object?, Type> entry in subTypeMapping.Entries())
             {
                 if (!seenTypes.Add(entry.Value))
                 {
@@ -215,8 +268,31 @@ namespace JsonSubTypes.Text.Json
                 derivedTypes.Add(CreateJsonDerivedType(entry.Value, entry.Key));
             }
 
+            JsonUnknownDerivedTypeHandling unknownDerivedTypeHandling = _fallBackToNearestAncestor
+                ? JsonUnknownDerivedTypeHandling.FallBackToNearestAncestor
+                : JsonUnknownDerivedTypeHandling.FailSerialization;
+
             return new JsonSubtypesResolver.BaseTypeRegistration(
-                _baseType, _discriminatorProperty, derivedTypes);
+                _baseType, _discriminatorProperty, derivedTypes, unknownDerivedTypeHandling,
+                ignoreUnrecognizedTypeDiscriminators);
+        }
+
+        private static NullableDictionary<object, Type> BuildAttributeSubTypeMapping(Type type)
+        {
+            NullableDictionary<object, Type> dictionary = new NullableDictionary<object, Type>();
+            foreach (KnownSubTypeAttribute attribute in type.GetTypeInfo().GetCustomAttributes(false)
+                .OfType<KnownSubTypeAttribute>())
+            {
+                dictionary.Add(attribute.AssociatedValue, attribute.SubType);
+            }
+
+            return dictionary;
+        }
+
+        private static FallBackSubTypeAttribute? GetFallbackSubTypeAttribute(Type type)
+        {
+            return type.GetTypeInfo().GetCustomAttributes(false).OfType<FallBackSubTypeAttribute>()
+                .FirstOrDefault();
         }
 
         private static JsonDerivedType CreateJsonDerivedType(Type subtype, object? discriminator)
