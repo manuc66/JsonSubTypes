@@ -82,7 +82,7 @@ namespace JsonSubTypes
             foreach (Type registeredType in _supportedTypes.Keys)
             {
                 if (ToTypeInfo(registeredType).IsGenericTypeDefinition &&
-                    InheritsOrImplementsGeneric(objectType, registeredType, matchInterfaces: true))
+                    IsClosedGenericFormOf(objectType, registeredType, includeInterfaces: true))
                 {
                     return true;
                 }
@@ -129,7 +129,7 @@ namespace JsonSubTypes
             if (!_supportedTypes.TryGetValue(value.GetType(), out object supportedType))
             {
                 var matchingGenericSupportedType = _supportedTypes.Keys
-                    .FirstOrDefault(x => InheritsOrImplementsGeneric(value.GetType(), x, matchInterfaces: true));
+                    .FirstOrDefault(x => IsClosedGenericFormOf(value.GetType(), x, includeInterfaces: true));
 
                 if (matchingGenericSupportedType == null ||
                     !_supportedTypes.TryGetValue(matchingGenericSupportedType, out supportedType))

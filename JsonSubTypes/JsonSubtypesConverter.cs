@@ -50,45 +50,44 @@ namespace JsonSubTypes
         {
             return objectType == _baseType ||
                    ToTypeInfo(_baseType).IsAssignableFrom(ToTypeInfo(objectType)) ||
-                   InheritsOrImplementsGeneric(objectType, _baseType, matchInterfaces: false);
+                   IsClosedGenericFormOf(objectType, _baseType);
         }
 
-        protected static bool InheritsOrImplementsGeneric(Type objectType, Type baseType, bool matchInterfaces)
+        /// <summary>
+        /// Returns true when <paramref name="objectType"/> is a constructed form of
+        /// the open generic <paramref name="genericType"/> (e.g. Base&lt;int&gt; for
+        /// Base&lt;&gt;), or inherits/implements one (e.g. Nested1&lt;int&gt; : Base&lt;int&gt;).
+        /// Interface matching is opt-in via <paramref name="includeInterfaces"/>: matching
+        /// a generic base interface would also claim unrelated types that merely implement
+        /// it, so it is only enabled against registered subtypes
+        /// (see JsonSubtypesByDiscriminatorValueConverter.CanConvert).
+        /// </summary>
+        protected static bool IsClosedGenericFormOf(Type objectType, Type genericType, bool includeInterfaces = false)
         {
-            // Open generic scenario: baseType = Base<> and objectType = Base<int>
-            if (ToTypeInfo(baseType).IsGenericTypeDefinition && ToTypeInfo(objectType).IsGenericType)
+            if (!ToTypeInfo(genericType).IsGenericTypeDefinition || !ToTypeInfo(objectType).IsGenericType)
             {
-                // Compare the generic definition
-                if (objectType.GetGenericTypeDefinition() == baseType)
-                {
-                    return true;
-                }
-
-                // Walk the base class hierarchy
-                var current = ToTypeInfo(objectType).BaseType;
-                while (current != null)
-                {
-                    if (ToTypeInfo(current).IsGenericType && current.GetGenericTypeDefinition() == baseType)
-                    {
-                        return true;
-                    }
-
-                    current = ToTypeInfo(current).BaseType;
-                }
-
-                // Interface matching is opt-in: matching against a generic base
-                // interface would also claim unrelated types that merely
-                // implement the interface. It is only used against registered
-                // subtypes (see JsonSubtypesByDiscriminatorValueConverter).
-                if (matchInterfaces &&
-                    GetImplementedInterfaces(objectType)
-                        .Any(iface => ToTypeInfo(iface).IsGenericType && iface.GetGenericTypeDefinition() == baseType))
-                {
-                    return true;
-                }
+                return false;
             }
 
-            return false;
+            if (objectType.GetGenericTypeDefinition() == genericType)
+            {
+                return true;
+            }
+
+            var current = ToTypeInfo(objectType).BaseType;
+            while (current != null)
+            {
+                if (ToTypeInfo(current).IsGenericType && current.GetGenericTypeDefinition() == genericType)
+                {
+                    return true;
+                }
+
+                current = ToTypeInfo(current).BaseType;
+            }
+
+            return includeInterfaces &&
+                   GetImplementedInterfaces(objectType)
+                       .Any(iface => ToTypeInfo(iface).IsGenericType && iface.GetGenericTypeDefinition() == genericType);
         }
     }
 }

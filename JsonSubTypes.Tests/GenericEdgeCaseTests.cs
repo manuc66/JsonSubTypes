@@ -79,5 +79,78 @@ namespace JsonSubTypes.Tests
 
             Assert.AreEqual("{\"Value\":5}", json);
         }
+
+        public abstract class MultiBase<T>
+        {
+            public abstract string Kind { get; }
+        }
+
+        public abstract class MultiMid<T> : MultiBase<T>
+        {
+        }
+
+        public class MultiLeaf<T> : MultiMid<T>
+        {
+            public override string Kind => "leaf";
+        }
+
+        [Test]
+        public void MultiLevelGenericHierarchyDeserializes()
+        {
+            var settings = new JsonSerializerSettings();
+            settings.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(MultiBase<>), "Kind")
+                .RegisterSubtype(typeof(MultiLeaf<>), "leaf")
+                .Build());
+
+            var result = JsonConvert.DeserializeObject<MultiBase<int>>("{\"Kind\":\"leaf\"}", settings);
+
+            Assert.IsInstanceOf<MultiLeaf<int>>(result);
+        }
+
+        public class BareBase<T>
+        {
+        }
+
+        public class BareOne<T> : BareBase<T>
+        {
+        }
+
+        [Test]
+        public void ExplicitClosedFormRegistrationTakesPrecedence()
+        {
+            var settings = new JsonSerializerSettings();
+            settings.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(BareBase<>), "Kind")
+                .SerializeDiscriminatorProperty()
+                .RegisterSubtype(typeof(BareOne<>), "1")
+                .RegisterSubtype(typeof(BareOne<int>), "5")
+                .Build());
+
+            var jsonInt = JsonConvert.SerializeObject(new BareOne<int>(), settings);
+            StringAssert.Contains("\"Kind\":\"5\"", jsonInt);
+
+            var jsonString = JsonConvert.SerializeObject(new BareOne<string>(), settings);
+            StringAssert.Contains("\"Kind\":\"1\"", jsonString);
+        }
+
+        public class GenericFallback<T> : BareBase<T>
+        {
+        }
+
+        [Test]
+        public void GenericFallbackSubtypeIsClosed()
+        {
+            var settings = new JsonSerializerSettings();
+            settings.Converters.Add(JsonSubtypesConverterBuilder
+                .Of(typeof(BareBase<>), "Kind")
+                .RegisterSubtype(typeof(BareOne<>), "1")
+                .SetFallbackSubtype(typeof(GenericFallback<>))
+                .Build());
+
+            var result = JsonConvert.DeserializeObject<BareBase<int>>("{\"Kind\":\"zzz\"}", settings);
+
+            Assert.IsInstanceOf<GenericFallback<int>>(result);
+        }
     }
 }
