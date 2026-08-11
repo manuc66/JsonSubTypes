@@ -98,7 +98,7 @@ namespace JsonSubTypes
                 if (!_isInsideRead)
                     return true;
 
-                return !string.IsNullOrEmpty(_reader.Path);
+                return _reader.Depth != 0;
             }
         }
 
@@ -226,7 +226,7 @@ namespace JsonSubTypes
 
         private static JsonReader CreateAnotherReader(JToken jToken, JsonReader reader)
         {
-            var jObjectReader = jToken.CreateReader();
+            var jObjectReader = new JTokenReader(jToken, reader.Path);
             jObjectReader.Culture = reader.Culture;
             jObjectReader.CloseInput = reader.CloseInput;
             jObjectReader.SupportMultipleContent = reader.SupportMultipleContent;
