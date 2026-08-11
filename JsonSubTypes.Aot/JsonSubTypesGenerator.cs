@@ -401,7 +401,7 @@ namespace JsonSubTypes.Aot
                                 WriteBaseObject(writer, ({{info.FullyQualifiedName}})value, options);
                                 return;
                             }
-                            JsonSerializer.Serialize(writer, value, options.TypeInfoResolver!.GetTypeInfo(runtimeType, options)!);
+                            JsonSerializer.Serialize(writer, value, options.GetTypeInfo(runtimeType));
                 """;
             }
 
@@ -422,11 +422,11 @@ namespace JsonSubTypes.Aot
                             }
                             else if (IsRegistered(runtimeType))
                             {
-                                payload = JsonSerializer.Serialize(value, options.TypeInfoResolver!.GetTypeInfo(runtimeType, options)!);
+                                payload = JsonSerializer.Serialize(value, options.GetTypeInfo(runtimeType));
                             }
                             else
                             {
-                                JsonSerializer.Serialize(writer, value, options.TypeInfoResolver!.GetTypeInfo(runtimeType, options)!);
+                                JsonSerializer.Serialize(writer, value, options.GetTypeInfo(runtimeType));
                                 return;
                             }
                 """;
@@ -490,7 +490,7 @@ namespace JsonSubTypes.Aot
                             {
                                 return DeserializeBase(root, options);
                             }
-                            return ({{info.FullyQualifiedName}}?)JsonSerializer.Deserialize(root.GetRawText(), options.TypeInfoResolver!.GetTypeInfo(target, options)!);
+                            return ({{info.FullyQualifiedName}}?)JsonSerializer.Deserialize(root.GetRawText(), options.GetTypeInfo(target));
                 """;
         }
 
@@ -621,7 +621,7 @@ namespace JsonSubTypes.Aot
                 {
                     "string" => $"writer.WriteStringValue({reg.DiscriminatorLiteral});",
                     "int" => $"writer.WriteNumberValue({reg.DiscriminatorLiteral});",
-                    "enum" => $"writer.WriteRawValue(JsonSerializer.Serialize({reg.EnumReference}, options.TypeInfoResolver!.GetTypeInfo(typeof({reg.EnumTypeName}), options)!));",
+                    "enum" => $"writer.WriteRawValue(JsonSerializer.Serialize({reg.EnumReference}, options.GetTypeInfo(typeof({reg.EnumTypeName}))));",
                     _ => "writer.WriteNullValue();"
                 };
                 cases.Add($$"""
@@ -670,7 +670,7 @@ namespace JsonSubTypes.Aot
                             name{{prop.Name}} = options.PropertyNamingPolicy.ConvertName(name{{prop.Name}});
                         }
                         writer.WritePropertyName(name{{prop.Name}});
-                        JsonSerializer.Serialize(writer, value.{{prop.Name}}, options.TypeInfoResolver!.GetTypeInfo(typeof({{prop.PropertyTypeName}}), options)!);
+                        JsonSerializer.Serialize(writer, value.{{prop.Name}}, options.GetTypeInfo(typeof({{prop.PropertyTypeName}})));
                     """);
             }
 
@@ -685,7 +685,7 @@ namespace JsonSubTypes.Aot
                 readProperties.Add($$"""
                         if (TryGetProperty(root, {{SymbolDisplay.FormatLiteral(prop.JsonName, quote: true)}}, options, out JsonElement {{prop.Name}}Value))
                         {
-                            instance.{{prop.Name}} = ({{prop.PropertyTypeName}})JsonSerializer.Deserialize({{prop.Name}}Value.GetRawText(), options.TypeInfoResolver!.GetTypeInfo(typeof({{prop.PropertyTypeName}}), options)!)!;
+                            instance.{{prop.Name}} = ({{prop.PropertyTypeName}})JsonSerializer.Deserialize({{prop.Name}}Value.GetRawText(), options.GetTypeInfo(typeof({{prop.PropertyTypeName}})))!;
                         }
                     """);
             }
