@@ -7,7 +7,7 @@ namespace JsonSubTypes
     {
         private readonly List<TypeWithPropertyMatchingAttributes> _jsonPropertyName2Type;
 
-        internal JsonSubtypesByPropertyPresenceConverter(Type baseType, List<TypeWithPropertyMatchingAttributes> jsonProperty2Type, Type fallbackType) : base(baseType, fallbackType)
+        internal JsonSubtypesByPropertyPresenceConverter(Type baseType, List<TypeWithPropertyMatchingAttributes> jsonProperty2Type, Type fallbackType, Action<UnresolvedSubtypeInfo> onUnresolvedSubtype) : base(baseType, fallbackType, onUnresolvedSubtype)
         {
             _jsonPropertyName2Type = jsonProperty2Type;
         }

@@ -80,6 +80,8 @@ namespace JsonSubTypes
 
         protected readonly string JsonDiscriminatorPropertyName;
 
+        internal Action<UnresolvedSubtypeInfo> OnUnresolvedSubtype { get; set; }
+
         [ThreadStatic] private static bool _isInsideRead;
 
         [ThreadStatic] private static JsonReader _reader;
@@ -250,7 +252,39 @@ namespace JsonSubTypes
                 resolvedType = GetTypeFromDiscriminatorValue(jObject, parentType, serializer);
             }
 
-            return resolvedType ?? GetFallbackSubType(parentType);
+            if (resolvedType != null)
+            {
+                return resolvedType;
+            }
+
+            Type fallbackSubtype = GetFallbackSubType(parentType);
+            NotifyUnresolvedSubtype(jObject, parentType, fallbackSubtype);
+            return fallbackSubtype;
+        }
+
+        private void NotifyUnresolvedSubtype(JObject jObject, Type parentType, Type fallbackSubtype)
+        {
+            Action<UnresolvedSubtypeInfo> onUnresolvedSubtype = OnUnresolvedSubtype;
+            if (onUnresolvedSubtype == null)
+            {
+                return;
+            }
+
+            object discriminatorValue = null;
+            bool hasDiscriminator = false;
+            if (JsonDiscriminatorPropertyName != null)
+            {
+                JToken discriminatorToken;
+                if (TryGetValueInJson(jObject, JsonDiscriminatorPropertyName, out discriminatorToken) ||
+                    (discriminatorToken = jObject.SelectToken(JsonDiscriminatorPropertyName)) != null)
+                {
+                    hasDiscriminator = true;
+                    discriminatorValue = discriminatorToken.ToObject<object>();
+                }
+            }
+
+            onUnresolvedSubtype(new UnresolvedSubtypeInfo(parentType, JsonDiscriminatorPropertyName,
+                discriminatorValue, hasDiscriminator, fallbackSubtype));
         }
 
         private Type GetType(JObject jObject, Type parentType, JsonSerializer serializer)

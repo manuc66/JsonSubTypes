@@ -39,8 +39,16 @@ namespace JsonSubTypes
         private readonly NullableDictionary<object, Type> _subTypeMapping;
 
         // this constructor is part of the public api since it's protected and this class is public
-       protected internal JsonSubtypesByDiscriminatorValueConverter(Type baseType, string discriminatorProperty,
-            NullableDictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty, bool addDiscriminatorFirst, Type fallbackType) : base(baseType, discriminatorProperty, fallbackType)
+        protected internal JsonSubtypesByDiscriminatorValueConverter(Type baseType, string discriminatorProperty,
+            NullableDictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty, bool addDiscriminatorFirst, Type fallbackType)
+            : this(baseType, discriminatorProperty, subTypeMapping, serializeDiscriminatorProperty, addDiscriminatorFirst, fallbackType, null)
+        {
+        }
+
+        // this constructor is part of the public api since it's protected and this class is public
+        protected internal JsonSubtypesByDiscriminatorValueConverter(Type baseType, string discriminatorProperty,
+            NullableDictionary<object, Type> subTypeMapping, bool serializeDiscriminatorProperty, bool addDiscriminatorFirst, Type fallbackType, Action<UnresolvedSubtypeInfo> onUnresolvedSubtype)
+            : base(baseType, discriminatorProperty, fallbackType, onUnresolvedSubtype)
         {
             _serializeDiscriminatorProperty = serializeDiscriminatorProperty;
             _subTypeMapping = subTypeMapping;

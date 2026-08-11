@@ -10,6 +10,7 @@ namespace JsonSubTypes
         private readonly Type _baseType;
         private readonly Dictionary<string, TypeWithPropertyMatchingAttributes> _subTypeMapping = new Dictionary<string, TypeWithPropertyMatchingAttributes>();
         private Type _fallbackSubtype;
+        private Action<UnresolvedSubtypeInfo> _onUnresolvedSubtype;
 
         private JsonSubtypesWithPropertyConverterBuilder(Type baseType)
         {
@@ -53,9 +54,20 @@ namespace JsonSubTypes
             return SetFallbackSubtype(typeof(T));
         }
 
+        /// <summary>
+        /// Registers a callback invoked when a JSON object's subtype cannot be resolved
+        /// (no registered property matched the JSON object). The callback is invoked on
+        /// the thread performing the deserialization, once per unresolved element.
+        /// </summary>
+        public JsonSubtypesWithPropertyConverterBuilder OnUnresolvedSubtype(Action<UnresolvedSubtypeInfo> onUnresolvedSubtype)
+        {
+            _onUnresolvedSubtype = onUnresolvedSubtype;
+            return this;
+        }
+
         public JsonConverter Build()
         {
-            return new JsonSubtypesByPropertyPresenceConverter(_baseType, _subTypeMapping.Values.ToList(), _fallbackSubtype);
+            return new JsonSubtypesByPropertyPresenceConverter(_baseType, _subTypeMapping.Values.ToList(), _fallbackSubtype, _onUnresolvedSubtype);
         }
     }
 }

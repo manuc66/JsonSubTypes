@@ -17,6 +17,7 @@ namespace JsonSubTypes.Text.Json
         private Type? _fallbackType;
         private bool _serializeDiscriminatorProperty;
         private bool _addDiscriminatorFirst;
+        private Action<UnresolvedSubtypeInfo>? _onUnresolvedSubtype;
 
         private JsonSubtypesConverterBuilder(Type baseType, string discriminatorProperty)
         {
@@ -54,6 +55,17 @@ namespace JsonSubTypes.Text.Json
         public JsonSubtypesConverterBuilder SetFallbackSubtype<T>()
         {
             return SetFallbackSubtype(typeof(T));
+        }
+
+        /// <summary>
+        /// Registers a callback invoked when a JSON object's subtype cannot be resolved
+        /// (unknown or missing discriminator value). The callback is invoked on the thread
+        /// performing the deserialization, once per unresolved element.
+        /// </summary>
+        public JsonSubtypesConverterBuilder OnUnresolvedSubtype(Action<UnresolvedSubtypeInfo> onUnresolvedSubtype)
+        {
+            _onUnresolvedSubtype = onUnresolvedSubtype;
+            return this;
         }
 
         public JsonSubtypesConverterBuilder SerializeDiscriminatorProperty()
@@ -95,13 +107,14 @@ namespace JsonSubTypes.Text.Json
                     typeof(List<TypeWithPropertyMatchingAttributes>),
                     typeof(Type),
                     typeof(bool),
-                    typeof(bool)
+                    typeof(bool),
+                    typeof(Action<UnresolvedSubtypeInfo>)
                 }, null)!;
             return (JsonConverter)constructor.Invoke(
                 new object?[]
                 {
                     _discriminatorProperty, _subTypeMapping, null, _fallbackType,
-                    _serializeDiscriminatorProperty, _addDiscriminatorFirst
+                    _serializeDiscriminatorProperty, _addDiscriminatorFirst, _onUnresolvedSubtype
                 })!;
         }
     }
