@@ -305,3 +305,74 @@ namespace JsonSubTypes.Tests
         }
     }
 }
+
+namespace JsonSubTypes.Tests.KnownBaseType
+{
+    [TestFixture]
+    public class MultipleHierarchyLevelsTests
+    {
+        [Test]
+        public void ShouldDeserializeNestedLevel()
+        {
+            var data = "{\"$GameKind\":0,\"$PayloadKind\":1}";
+            Assert.IsInstanceOf<Run>(JsonConvert.DeserializeObject<Payload>(data));
+        }
+
+        [Test]
+        public void ShouldSerializeNestedLevel()
+        {
+            Payload run = new Run();
+            var data = JsonConvert.SerializeObject(run);
+            Assert.AreEqual("{\"$GameKind\":0,\"$PayloadKind\":1}", data);
+        }
+
+        public enum PayloadDiscriminator
+        {
+            COM = 0,
+            GAME = 1
+        }
+
+        public enum GameDiscriminator
+        {
+            RUN = 0,
+            WALK = 1
+        }
+
+        [JsonConverter(typeof(JsonSubtypes), PAYLOAD_KIND)]
+        public abstract class Payload
+        {
+            public const string PAYLOAD_KIND = "$PayloadKind";
+
+            [JsonProperty(PAYLOAD_KIND)] public abstract PayloadDiscriminator PayloadKind { get; }
+        }
+
+        [JsonConverter(typeof(JsonSubtypes), GAME_KIND)]
+        [JsonSubtypes.KnownBaseType(typeof(Payload), PayloadDiscriminator.GAME)]
+        public abstract class Game : Payload
+        {
+            public override PayloadDiscriminator PayloadKind => PayloadDiscriminator.GAME;
+
+            public const string GAME_KIND = "$GameKind";
+
+            [JsonProperty(GAME_KIND)] public abstract GameDiscriminator GameKind { get; }
+        }
+
+        [JsonSubtypes.KnownBaseType(typeof(Payload), PayloadDiscriminator.COM)]
+        public class Com : Payload
+        {
+            public override PayloadDiscriminator PayloadKind => PayloadDiscriminator.COM;
+        }
+
+        [JsonSubtypes.KnownBaseType(typeof(Game), GameDiscriminator.WALK)]
+        public class Walk : Game
+        {
+            public override GameDiscriminator GameKind => GameDiscriminator.WALK;
+        }
+
+        [JsonSubtypes.KnownBaseType(typeof(Game), GameDiscriminator.RUN)]
+        public class Run : Game
+        {
+            public override GameDiscriminator GameKind => GameDiscriminator.RUN;
+        }
+    }
+}

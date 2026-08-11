@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -53,6 +53,19 @@ namespace JsonSubTypes
             }
         }
 
+        [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
+        public class KnownBaseTypeAttribute : Attribute
+        {
+            public Type BaseType { get; }
+            public object AssociatedValue { get; }
+
+            public KnownBaseTypeAttribute(Type baseType, object associatedValue)
+            {
+                BaseType = baseType;
+                AssociatedValue = associatedValue;
+            }
+        }
+
         [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface)]
         public class FallBackSubTypeAttribute : Attribute
         {
@@ -78,6 +91,20 @@ namespace JsonSubTypes
             }
         }
 
+        [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
+        public class KnownBaseTypeWithPropertyAttribute : Attribute
+        {
+            public Type BaseType { get; }
+            public string PropertyName { get; }
+            public bool StopLookupOnMatch { get; set; }
+
+            public KnownBaseTypeWithPropertyAttribute(Type baseType, string propertyName)
+            {
+                BaseType = baseType;
+                PropertyName = propertyName;
+            }
+        }
+
         protected readonly string JsonDiscriminatorPropertyName;
 
         [ThreadStatic] private static bool _isInsideRead;
@@ -86,9 +113,11 @@ namespace JsonSubTypes
 
 #if NET35
         private static readonly Dictionary<TypeInfo, IEnumerable<object>> _attributesCache = new Dictionary<TypeInfo, IEnumerable<object>>();
+        private static readonly Dictionary<TypeInfo, IEnumerable<Type>> _typesWithKnownBaseTypeAttributesCache = new Dictionary<TypeInfo, IEnumerable<Type>>();
 #else
         private static readonly ConcurrentDictionary<TypeInfo, IEnumerable<object>> _attributesCache = new ConcurrentDictionary<TypeInfo, IEnumerable<object>>();
         private static readonly Func<TypeInfo, IEnumerable<object>> _getCustomAttributes = ti => ti.GetCustomAttributes(false);
+        private static readonly ConcurrentDictionary<TypeInfo, IEnumerable<Type>> _typesWithKnownBaseTypeAttributesCache = new ConcurrentDictionary<TypeInfo, IEnumerable<Type>>();
 #endif
 
         public override bool CanRead
@@ -104,6 +133,7 @@ namespace JsonSubTypes
 
         public override bool CanWrite => false;
 
+        private static readonly TypeInfo _knownBaseTypeAttributeType = ToTypeInfo(typeof(KnownBaseTypeAttribute));
         public JsonSubtypes()
         {
         }
@@ -144,16 +174,16 @@ namespace JsonSubTypes
                     value = ReadObject(reader, objectType, serializer);
                     break;
                 case JsonToken.StartArray:
-                {
-                    var elementType = GetElementType(objectType);
-                    if (elementType == null)
                     {
-                        throw CreateJsonReaderException(reader, $"Impossible to read JSON array to fill type: {objectType.Name}");
-                    }
+                        var elementType = GetElementType(objectType);
+                        if (elementType == null)
+                        {
+                            throw CreateJsonReaderException(reader, $"Impossible to read JSON array to fill type: {objectType.Name}");
+                        }
 
-                    value = ReadArray(reader, objectType, elementType, serializer);
-                    break;
-                }
+                        value = ReadArray(reader, objectType, elementType, serializer);
+                        break;
+                    }
                 default:
                     throw CreateJsonReaderException(reader, $"Unrecognized token: {reader.TokenType}");
             }
@@ -342,6 +372,17 @@ namespace JsonSubTypes
         {
             return GetAttributes<KnownSubTypeWithPropertyAttribute>(ToTypeInfo(parentType))
                 .Select(a => new TypeWithPropertyMatchingAttributes(a.SubType, a.PropertyName, a.StopLookupOnMatch))
+                .Concat(
+                    FindTypesWithAttribute(ToTypeInfo(typeof(KnownBaseTypeWithPropertyAttribute)))
+                    .Where(x => GetAttributes<KnownBaseTypeWithPropertyAttribute>(ToTypeInfo(x)).Any(t => t.BaseType == parentType))
+                    .Select(x =>
+                    {
+                        var firstAttribute = GetAttributes<KnownBaseTypeWithPropertyAttribute>(ToTypeInfo(x))
+                                                        .Where(t => t.BaseType == parentType)
+                                                        .First();
+                        return new TypeWithPropertyMatchingAttributes(x, firstAttribute.PropertyName, firstAttribute.StopLookupOnMatch);
+                    })
+                )
                 .ToList();
         }
 
@@ -459,9 +500,24 @@ namespace JsonSubTypes
         {
             var dictionary = new NullableDictionary<object, Type>();
 
-            GetAttributes<KnownSubTypeAttribute>(ToTypeInfo(type))
+            var typeAsTypeInfo = ToTypeInfo(type);
+
+            GetAttributes<KnownSubTypeAttribute>(typeAsTypeInfo)
                 .ToList()
                 .ForEach(x => dictionary.Add(x.AssociatedValue, x.SubType));
+
+            FindTypesWithAttribute(_knownBaseTypeAttributeType)
+            .Where(x => GetAttributes<KnownBaseTypeAttribute>(typeAsTypeInfo).Any(t => t.BaseType == type))
+            .Select(x => new
+            {
+                AssociatedValue = GetAttributes<KnownBaseTypeAttribute>(typeAsTypeInfo)
+                                            .Where(t => t.BaseType == type)
+                                            .Select(t => t.AssociatedValue)
+                                            .First(),
+                SubType = x
+            })
+            .ToList()
+            .ForEach(x => dictionary.Add(x.AssociatedValue, x.SubType));
 
             return dictionary;
         }
@@ -512,6 +568,55 @@ namespace JsonSubTypes
         private static T GetAttribute<T>(TypeInfo typeInfo) where T : Attribute
         {
             return GetAttributes<T>(typeInfo).FirstOrDefault();
+        }
+
+        private static IEnumerable<Type> _getTypesWithCustomAttribute(TypeInfo attributeType)
+        {
+#if NETSTANDARD1_3
+                return new Type[0];
+#else
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            List<IEnumerable<Type>> typesInAssemblies = new List<IEnumerable<TypeInfo>>();
+            foreach (var assembly in assemblies)
+            {
+                IEnumerable<Type> types;
+                try
+                {
+                    types = assembly.GetTypes();
+                }
+                //For example: Microsoft.Graph, combined with PnP.Framework can throw these.
+                //In my testing, combining PnP.Framework v1.8.0 and Microsoft.Graph v5.38.0 gives the following Exception:
+                //System.Reflection.ReflectionTypeLoadException: Unable to load one or more of the requested types.
+                //Could not load type 'Microsoft.Graph.HttpProvider' from assembly 'Microsoft.Graph.Core, Version=3.1.3.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35'.
+                catch (System.Reflection.ReflectionTypeLoadException e)
+                {
+                    types = e.Types.Where(x => x != null);
+                }
+                var filteredTypes = types
+                        .Where(t => t.GetCustomAttributes(attributeType, false).Any());
+
+                typesInAssemblies.Add(filteredTypes);
+            }
+            return typesInAssemblies.SelectMany(x => x).ToList();
+#endif
+        }
+
+        private static IEnumerable<Type> FindTypesWithAttribute(TypeInfo attributeType)
+        {
+#if NET35
+            lock (_attributesCache)
+            {
+                if (_typesWithKnownBaseTypeAttributesCache.TryGetValue(attributeType, out var res))
+                    return res;
+
+                res = _getTypesWithCustomAttribute(attributeType);
+                _typesWithKnownBaseTypeAttributesCache.Add(attributeType, res);
+
+                return res;
+            }
+#else
+            return _typesWithKnownBaseTypeAttributesCache.GetOrAdd(attributeType, _getTypesWithCustomAttribute);
+#endif
         }
 
         private static IEnumerable<Type> GetGenericTypeArguments(Type type)
