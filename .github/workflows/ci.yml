@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  ci:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Build JsonSubTypes (Newtonsoft)
+        run: dotnet build JsonSubTypes/JsonSubTypes.csproj -c Release
+
+      - name: Build JsonSubTypes.Text.Json
+        run: dotnet build JsonSubTypes.Text.Json/JsonSubTypes.Text.Json.csproj -c Release
+
+      - name: Test Text.Json (net8 + net10)
+        run: dotnet test JsonSubTypes.Text.Json.Tests/JsonSubTypes.Text.Json.Tests.csproj -c Release
+
+      - name: Test Newtonsoft (net46)
+        run: dotnet test JsonSubTypes.Tests/JsonSubTypes.Tests.csproj -c Release

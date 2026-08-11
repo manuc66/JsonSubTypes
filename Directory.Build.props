@@ -1,0 +1,32 @@
+<Project>
+
+  <!-- Shared NuGet package metadata for both JsonSubTypes packages.
+       Versions stay independent per project (see each .csproj). -->
+
+  <PropertyGroup>
+    <Authors>Emmanuel Counasse</Authors>
+    <Company>manuc66</Company>
+    <Copyright>manuc66</Copyright>
+    <RepositoryUrl>https://github.com/manuc66/JsonSubTypes</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/manuc66/JsonSubTypes</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReleaseNotes>See in https://github.com/manuc66/JsonSubTypes/releases</PackageReleaseNotes>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <!-- Deterministic builds + Source Link for both packages -->
+  <PropertyGroup>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.301" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>
