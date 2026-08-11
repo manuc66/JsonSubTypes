@@ -70,7 +70,25 @@ namespace JsonSubTypes
 
         public override bool CanConvert(Type objectType)
         {
-            return base.CanConvert(objectType) || _supportedTypes.ContainsKey(objectType);
+            if (base.CanConvert(objectType) || _supportedTypes.ContainsKey(objectType))
+            {
+                return true;
+            }
+
+            // Claim closed forms of registered generic subtypes only, e.g.
+            // Nested1<int> when Nested1<> is registered. Matching against the
+            // base type would also claim unrelated types that merely implement
+            // the generic base interface.
+            foreach (Type registeredType in _supportedTypes.Keys)
+            {
+                if (ToTypeInfo(registeredType).IsGenericTypeDefinition &&
+                    InheritsOrImplementsGeneric(objectType, registeredType, matchInterfaces: true))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public override bool CanWrite
@@ -111,7 +129,7 @@ namespace JsonSubTypes
             if (!_supportedTypes.TryGetValue(value.GetType(), out object supportedType))
             {
                 var matchingGenericSupportedType = _supportedTypes.Keys
-                    .FirstOrDefault(x => InheritsOrImplementsGeneric(value.GetType(), x));
+                    .FirstOrDefault(x => InheritsOrImplementsGeneric(value.GetType(), x, matchInterfaces: true));
 
                 if (matchingGenericSupportedType == null ||
                     !_supportedTypes.TryGetValue(matchingGenericSupportedType, out supportedType))

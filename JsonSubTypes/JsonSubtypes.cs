@@ -276,9 +276,16 @@ namespace JsonSubTypes
 
             if (targetType != null && ToTypeInfo(targetType).IsGenericTypeDefinition && !ToTypeInfo(parentType).IsGenericTypeDefinition)
             {
-                Type closedTargetType = ToTypeInfo(targetType).MakeGenericType(GetGenericTypeArguments(parentType).ToArray());
-                return closedTargetType;
-            } 
+                Type[] parentTypeArguments = GetGenericTypeArguments(parentType).ToArray();
+                if (targetType.GetGenericArguments().Length != parentTypeArguments.Length)
+                {
+                    throw new JsonSerializationException(
+                        "Could not close generic subtype " + targetType.FullName + " with the generic arguments of " +
+                        parentType.FullName + ": different number of generic parameters.");
+                }
+
+                return ToTypeInfo(targetType).MakeGenericType(parentTypeArguments);
+            }
 
             return targetType;
         }

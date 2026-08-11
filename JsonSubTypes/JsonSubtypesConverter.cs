@@ -48,26 +48,23 @@ namespace JsonSubTypes
 
         public override bool CanConvert(Type objectType)
         {
-            if (objectType == _baseType || ToTypeInfo(_baseType).IsAssignableFrom(ToTypeInfo(objectType)))
-            {
-                return true;
-            }
-
-            return InheritsOrImplementsGeneric(objectType, _baseType);
+            return objectType == _baseType ||
+                   ToTypeInfo(_baseType).IsAssignableFrom(ToTypeInfo(objectType)) ||
+                   InheritsOrImplementsGeneric(objectType, _baseType, matchInterfaces: false);
         }
 
-        protected static bool InheritsOrImplementsGeneric(Type objectType, Type baseType)
+        protected static bool InheritsOrImplementsGeneric(Type objectType, Type baseType, bool matchInterfaces)
         {
-            // Cas générique ouvert : _baseType = Base<> et objectType = Base<int>
+            // Open generic scenario: baseType = Base<> and objectType = Base<int>
             if (ToTypeInfo(baseType).IsGenericTypeDefinition && ToTypeInfo(objectType).IsGenericType)
             {
-                // Comparer la définition générique
+                // Compare the generic definition
                 if (objectType.GetGenericTypeDefinition() == baseType)
                 {
                     return true;
                 }
 
-                // Optionnel : remonter la hiérarchie des bases
+                // Walk the base class hierarchy
                 var current = ToTypeInfo(objectType).BaseType;
                 while (current != null)
                 {
@@ -79,9 +76,13 @@ namespace JsonSubTypes
                     current = ToTypeInfo(current).BaseType;
                 }
 
-                // Optionnel : interfaces génériques
-                if (GetImplementedInterfaces(objectType)
-                    .Any(iface => ToTypeInfo(iface).IsGenericType && iface.GetGenericTypeDefinition() == baseType))
+                // Interface matching is opt-in: matching against a generic base
+                // interface would also claim unrelated types that merely
+                // implement the interface. It is only used against registered
+                // subtypes (see JsonSubtypesByDiscriminatorValueConverter).
+                if (matchInterfaces &&
+                    GetImplementedInterfaces(objectType)
+                        .Any(iface => ToTypeInfo(iface).IsGenericType && iface.GetGenericTypeDefinition() == baseType))
                 {
                     return true;
                 }
