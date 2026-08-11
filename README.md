@@ -400,8 +400,18 @@ To preserve full compatibility with advanced features while delegating object se
 - **Base-as-leaf & Fallback path**: lightweight direct property mapping honoring `[JsonIgnore]`, `[JsonPropertyName]`, the naming policy and `PropertyNameCaseInsensitive`. Per-property `[JsonConverter]`, `[JsonInclude]` fields, `required` members and parameterized constructors are not re-implemented on this path.
 - **Parameterless constructor required** for the base fallback type. Subtypes resolved via the discriminator support all STJ constructor features (primary constructors, `record` types).
 
-### Decision matrix
+### Performance (measured, not claimed)
 
+Measured with BenchmarkDotNet (`JsonSubTypes.Benchmarks`, DefaultJob, .NET 8.0, one machine; serializing/deserializing a `Cat` declared as its `Animal` base). Numbers are machine-specific but reproducible by running that project.
+
+| Benchmark | Converter (`Build()`) | Resolver (`BuildResolver()`) | Generator (`JsonSubTypes.Aot`) |
+| :--- | ---: | ---: | ---: |
+| Serialize | 1.65–1.70 µs / 648 B | 0.40–0.41 µs / 400 B | 1.43–1.47 µs / 440 B |
+| Deserialize | 2.63–2.71 µs / 1264 B | 0.51–0.55 µs / 56 B | 1.50–1.56 µs / 216 B |
+
+Reading: the resolver is the fastest (native streaming, no double parse). The generated converter beats the runtime converter by ~1.1× on serialization and ~1.8× on deserialization, and allocates ~6× less on deserialization (compiled routing, no per-call converter scan).
+
+### Decision matrix
 | Use case | Recommended |
 |---|---|
 | Native AOT / trimming, hierarchy known at compile time | `JsonSubTypes.Aot` generator |
