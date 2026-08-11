@@ -77,6 +77,9 @@ namespace JsonSubTypes.Text.Json
     {
         public string? DiscriminatorPropertyName { get; }
 
+        /// <summary>Whether the discriminator is written first. Defaults to <c>true</c>.</summary>
+        public bool AddDiscriminatorFirst { get; set; } = true;
+
         public JsonSubTypesAotConverterAttribute()
         {
         }

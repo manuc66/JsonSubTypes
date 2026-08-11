@@ -74,6 +74,7 @@ namespace JsonSubTypes.Aot
             public string TypeName { get; set; } = "";
             public string FullyQualifiedName { get; set; } = "";
             public string? DiscriminatorPropertyName { get; set; }
+            public bool AddDiscriminatorFirst { get; set; } = true;
             public bool HasPropertyPresence { get; set; }
             public List<SubtypeRegistration> Subtypes { get; } = new List<SubtypeRegistration>();
             public List<PropertyPresenceRegistration> PropertyPresences { get; } = new List<PropertyPresenceRegistration>();
@@ -97,8 +98,12 @@ namespace JsonSubTypes.Aot
         {
             public string TypeName { get; set; } = "";
             public string FullyQualifiedName { get; set; } = "";
-            public string DiscriminatorKind { get; set; } = ""; // "string" | "int"
-            public string DiscriminatorLiteral { get; set; } = "";
+            public string DiscriminatorKind { get; set; } = ""; // "string" | "int" | "enum" | "null"
+            public string DiscriminatorLiteral { get; set; } = ""; // quoted string or int number
+            public string? EnumMemberName { get; set; }
+            public string? EnumUnderlyingValue { get; set; }
+            public string? EnumTypeName { get; set; }
+            public string? EnumReference { get; set; }
             public bool IsBaseType { get; set; }
         }
 
@@ -121,6 +126,7 @@ namespace JsonSubTypes.Aot
             info.AllTypes.Add(baseType);
 
             string? discriminator = null;
+            bool addDiscriminatorFirst = true;
             foreach (AttributeData attr in baseType.GetAttributes())
             {
                 if (attr.AttributeClass?.Name != JsonSubTypesAotConverterAttributeName)
@@ -132,9 +138,18 @@ namespace JsonSubTypes.Aot
                 {
                     discriminator = discName;
                 }
+
+                foreach (KeyValuePair<string, TypedConstant> namedArg in attr.NamedArguments)
+                {
+                    if (namedArg.Key == "AddDiscriminatorFirst" && namedArg.Value.Value is bool b)
+                    {
+                        addDiscriminatorFirst = b;
+                    }
+                }
             }
 
             info.DiscriminatorPropertyName = discriminator;
+            info.AddDiscriminatorFirst = addDiscriminatorFirst;
 
             foreach (AttributeData attr in baseType.GetAttributes())
             {
@@ -148,7 +163,6 @@ namespace JsonSubTypes.Aot
                         }
 
                         ITypeSymbol? subtype = attr.ConstructorArguments[0].Value as ITypeSymbol;
-                        object? value = attr.ConstructorArguments[1].Value;
                         if (subtype == null)
                         {
                             break;
@@ -169,17 +183,26 @@ namespace JsonSubTypes.Aot
                         };
                         string discKind;
                         string discLiteral;
-                        if (TryGetConstant(value, out discKind, out discLiteral))
+                        string? enumMember;
+                        string? enumUnderlying;
+                        string? enumType;
+                        string? enumReference;
+                        if (TryGetDiscriminator(attr.ConstructorArguments[1], out discKind, out discLiteral,
+                            out enumMember, out enumUnderlying, out enumType, out enumReference))
                         {
                             registration.DiscriminatorKind = discKind;
                             registration.DiscriminatorLiteral = discLiteral;
+                            registration.EnumMemberName = enumMember;
+                            registration.EnumUnderlyingValue = enumUnderlying;
+                            registration.EnumTypeName = enumType;
+                            registration.EnumReference = enumReference;
                             info.Subtypes.Add(registration);
                         }
                         else
                         {
                             spc.ReportDiagnostic(Diagnostic.Create(UnsupportedDiscriminator,
                                 attr.ApplicationSyntaxReference?.GetSyntax().GetLocation(),
-                                value?.GetType().Name ?? "null",
+                                attr.ConstructorArguments[1].Type?.Name ?? "null",
                                 subtype.Name));
                         }
 
@@ -288,23 +311,67 @@ namespace JsonSubTypes.Aot
             return info;
         }
 
-        private static bool TryGetConstant(object? value, out string kind, out string literal)
+        private static bool TryGetDiscriminator(TypedConstant value, out string kind, out string literal,
+            out string? enumMember, out string? enumUnderlying, out string? enumType, out string? enumReference)
         {
             kind = "";
             literal = "";
-            switch (value)
+            enumMember = null;
+            enumUnderlying = null;
+            enumType = null;
+            enumReference = null;
+
+            if (value.Value == null)
             {
-                case string s:
-                    kind = "string";
-                    literal = SymbolDisplay.FormatLiteral(s, quote: true);
-                    return true;
-                case int i:
-                    kind = "int";
-                    literal = i.ToString();
-                    return true;
-                default:
-                    return false;
+                kind = "null";
+                literal = "null";
+                return true;
             }
+
+            if (value.Kind != TypedConstantKind.Primitive && value.Kind != TypedConstantKind.Enum)
+            {
+                return false;
+            }
+
+            if (value.Type?.SpecialType == SpecialType.System_String)
+            {
+                kind = "string";
+                literal = SymbolDisplay.FormatLiteral((string)value.Value!, quote: true);
+                return true;
+            }
+
+            if (value.Type?.TypeKind == TypeKind.Enum)
+            {
+                if (value.Type is not INamedTypeSymbol enumTypeSymbol)
+                {
+                    return false;
+                }
+
+                long underlying = Convert.ToInt64(value.Value);
+                IFieldSymbol? member = enumTypeSymbol.GetMembers().OfType<IFieldSymbol>()
+                    .FirstOrDefault(f => f.HasConstantValue && Convert.ToInt64(f.ConstantValue) == underlying);
+                if (member == null)
+                {
+                    return false;
+                }
+
+                kind = "enum";
+                literal = underlying.ToString();
+                enumMember = member.Name;
+                enumUnderlying = underlying.ToString();
+                enumType = enumTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                enumReference = enumType + "." + member.Name;
+                return true;
+            }
+
+            if (value.Type?.SpecialType == SpecialType.System_Int32)
+            {
+                kind = "int";
+                literal = Convert.ToInt32(value.Value).ToString();
+                return true;
+            }
+
+            return false;
         }
 
         private static string EmitRegistry(List<BaseTypeInfo> bases)
@@ -364,8 +431,7 @@ namespace JsonSubTypes.Aot
                 EmitValueModeWrite(sb, info);
             }
             else
-            {
-                sb.AppendLine($"            if (runtimeType == typeof({info.FullyQualifiedName}))");
+            {                sb.AppendLine($"            if (runtimeType == typeof({info.FullyQualifiedName}))");
                 sb.AppendLine("            {");
                 sb.AppendLine("                WriteBaseObject(writer, (" + info.FullyQualifiedName + ")value, options);");
                 sb.AppendLine("                return;");
@@ -378,7 +444,7 @@ namespace JsonSubTypes.Aot
             sb.AppendLine("        {");
             sb.AppendLine("            using JsonDocument document = JsonDocument.ParseValue(ref reader);");
             sb.AppendLine("            JsonElement root = document.RootElement;");
-            sb.AppendLine("            Type target = SelectType(root);");
+            sb.AppendLine("            Type target = SelectType(root, options);");
             sb.AppendLine($"            if (target == typeof({info.FullyQualifiedName}))");
             sb.AppendLine("            {");
             sb.AppendLine("                return DeserializeBase(root, options);");
@@ -386,7 +452,7 @@ namespace JsonSubTypes.Aot
             sb.AppendLine("            return (" + info.FullyQualifiedName + "?)JsonSerializer.Deserialize(root.GetRawText(), options.TypeInfoResolver!.GetTypeInfo(target, options)!);");
             sb.AppendLine("        }");
             sb.AppendLine();
-            sb.AppendLine("        private static Type SelectType(JsonElement root)");
+            sb.AppendLine("        private static Type SelectType(JsonElement root, JsonSerializerOptions options)");
             sb.AppendLine("        {");
             if (info.DiscriminatorPropertyName != null)
             {
@@ -397,6 +463,10 @@ namespace JsonSubTypes.Aot
                 EmitPresenceModeSelectType(sb, info);
             }
             sb.AppendLine("        }");
+            if (info.DiscriminatorPropertyName != null)
+            {
+                EmitDiscriminatorWriter(sb, info);
+            }
             EmitBaseHelpers(sb, info);
             sb.AppendLine("    }");
             sb.AppendLine("}");
@@ -480,6 +550,30 @@ namespace JsonSubTypes.Aot
             sb.AppendLine("            }");
             sb.AppendLine("            return false;");
             sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        private static bool TryGetValueInJson(JsonElement root, string propertyName, JsonSerializerOptions options, out JsonElement value)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            if (TryGetProperty(root, propertyName, options, out value))");
+            sb.AppendLine("            {");
+            sb.AppendLine("                return true;");
+            sb.AppendLine("            }");
+            sb.AppendLine("            if (propertyName.IndexOf('.') >= 0)");
+            sb.AppendLine("            {");
+            sb.AppendLine("                string[] segments = propertyName.Split('.');");
+            sb.AppendLine("                JsonElement current = root;");
+            sb.AppendLine("                foreach (string segment in segments)");
+            sb.AppendLine("                {");
+            sb.AppendLine("                    if (!TryGetProperty(current, segment, options, out current))");
+            sb.AppendLine("                    {");
+            sb.AppendLine("                        value = default;");
+            sb.AppendLine("                        return false;");
+            sb.AppendLine("                    }");
+            sb.AppendLine("                }");
+            sb.AppendLine("                value = current;");
+            sb.AppendLine("                return true;");
+            sb.AppendLine("            }");
+            sb.AppendLine("            return false;");
+            sb.AppendLine("        }");
         }
 
         private static void EmitValueModeWrite(StringBuilder sb, BaseTypeInfo info)
@@ -489,45 +583,96 @@ namespace JsonSubTypes.Aot
             sb.AppendLine($"                ? SerializeBasePayload(({info.FullyQualifiedName})value, options)");
             sb.AppendLine("                : JsonSerializer.Serialize(value, options.TypeInfoResolver!.GetTypeInfo(runtimeType, options)!);");
             sb.AppendLine("            using JsonDocument payloadDocument = JsonDocument.Parse(payload);");
-            sb.AppendLine("            writer.WriteStartObject();");
-            sb.AppendLine($"            writer.WritePropertyName({SymbolDisplay.FormatLiteral(discName, quote: true)});");
-            sb.AppendLine("            switch (runtimeType)");
+            sb.AppendLine($"            string discriminatorName = {SymbolDisplay.FormatLiteral(discName, quote: true)};");
+            sb.AppendLine("            if (options.PropertyNamingPolicy != null)");
             sb.AppendLine("            {");
+            sb.AppendLine("                discriminatorName = options.PropertyNamingPolicy.ConvertName(discriminatorName);");
+            sb.AppendLine("            }");
+            sb.AppendLine("            writer.WriteStartObject();");
+            if (info.AddDiscriminatorFirst)
+            {
+                sb.AppendLine("            writer.WritePropertyName(discriminatorName);");
+                sb.AppendLine("            WriteDiscriminatorValue(writer, runtimeType, options);");
+                sb.AppendLine("            foreach (JsonProperty property in payloadDocument.RootElement.EnumerateObject())");
+                sb.AppendLine("            {");
+                sb.AppendLine("                if (!property.NameEquals(discriminatorName))");
+                sb.AppendLine("                {");
+                sb.AppendLine("                    property.WriteTo(writer);");
+                sb.AppendLine("                }");
+                sb.AppendLine("            }");
+            }
+            else
+            {
+                sb.AppendLine("            foreach (JsonProperty property in payloadDocument.RootElement.EnumerateObject())");
+                sb.AppendLine("            {");
+                sb.AppendLine("                if (!property.NameEquals(discriminatorName))");
+                sb.AppendLine("                {");
+                sb.AppendLine("                    property.WriteTo(writer);");
+                sb.AppendLine("                }");
+                sb.AppendLine("            }");
+                sb.AppendLine("            writer.WritePropertyName(discriminatorName);");
+                sb.AppendLine("            WriteDiscriminatorValue(writer, runtimeType, options);");
+            }
+            sb.AppendLine("            writer.WriteEndObject();");
+        }
+
+        private static void EmitDiscriminatorWriter(StringBuilder sb, BaseTypeInfo info)
+        {
+            sb.AppendLine("        private static void WriteDiscriminatorValue(Utf8JsonWriter writer, Type runtimeType, JsonSerializerOptions options)");
+            sb.AppendLine("        {");
+            Dictionary<string, SubtypeRegistration> byType = new Dictionary<string, SubtypeRegistration>();
             foreach (SubtypeRegistration reg in info.Subtypes)
             {
-                sb.AppendLine($"                case var _ when runtimeType == typeof({reg.FullyQualifiedName}):");
-                if (reg.DiscriminatorKind == "string")
-                {
-                    sb.AppendLine($"                    writer.WriteStringValue({reg.DiscriminatorLiteral});");
-                }
-                else
-                {
-                    sb.AppendLine($"                    writer.WriteNumberValue({reg.DiscriminatorLiteral});");
-                }
-                sb.AppendLine("                    break;");
+                byType[reg.FullyQualifiedName] = reg; // last registration wins
             }
-            sb.AppendLine("                default:");
-            sb.AppendLine("                    throw new JsonException(\"Impossible to serialize type: \" + runtimeType.FullName + \" because there is no registered mapping for the discriminator property\");");
-            sb.AppendLine("            }");
-            sb.AppendLine("            foreach (JsonProperty property in payloadDocument.RootElement.EnumerateObject())");
-            sb.AppendLine("            {");
-            sb.AppendLine($"                if (!property.NameEquals({SymbolDisplay.FormatLiteral(discName, quote: true)}))");
-            sb.AppendLine("                {");
-            sb.AppendLine("                    property.WriteTo(writer);");
-            sb.AppendLine("                }");
-            sb.AppendLine("            }");
-            sb.AppendLine("            writer.WriteEndObject();");
+
+            foreach (SubtypeRegistration reg in byType.Values)
+            {
+                sb.AppendLine($"            if (runtimeType == typeof({reg.FullyQualifiedName}))");
+                sb.AppendLine("            {");
+                switch (reg.DiscriminatorKind)
+                {
+                    case "string":
+                        sb.AppendLine($"                writer.WriteStringValue({reg.DiscriminatorLiteral});");
+                        break;
+                    case "int":
+                        sb.AppendLine($"                writer.WriteNumberValue({reg.DiscriminatorLiteral});");
+                        break;
+                    case "enum":
+                        sb.AppendLine($"                writer.WriteRawValue(JsonSerializer.Serialize({reg.EnumReference}, options.TypeInfoResolver!.GetTypeInfo(typeof({reg.EnumTypeName}), options)!));");
+                        break;
+                    case "null":
+                        sb.AppendLine("                writer.WriteNullValue();");
+                        break;
+                }
+                sb.AppendLine("                return;");
+                sb.AppendLine("            }");
+            }
+            sb.AppendLine("            throw new JsonException(\"Impossible to serialize type: \" + runtimeType.FullName + \" because there is no registered mapping for the discriminator property\");");
+            sb.AppendLine("        }");
         }
 
         private static void EmitValueModeSelectType(StringBuilder sb, BaseTypeInfo info)
         {
             string discName = info.DiscriminatorPropertyName!;
             string fallback = info.FallbackFullyQualifiedName ?? info.FullyQualifiedName;
-            sb.AppendLine($"            if (root.TryGetProperty({SymbolDisplay.FormatLiteral(discName, quote: true)}, out JsonElement discriminator))");
+            sb.AppendLine($"            if (TryGetValueInJson(root, {SymbolDisplay.FormatLiteral(discName, quote: true)}, options, out JsonElement discriminator))");
             sb.AppendLine("            {");
             var strings = info.Subtypes.Where(s => s.DiscriminatorKind == "string").ToList();
             var ints = info.Subtypes.Where(s => s.DiscriminatorKind == "int").ToList();
-            if (strings.Count > 0)
+            var enums = info.Subtypes.Where(s => s.DiscriminatorKind == "enum").ToList();
+            var nulls = info.Subtypes.Where(s => s.DiscriminatorKind == "null").ToList();
+            if (nulls.Count > 0)
+            {
+                sb.AppendLine("                if (discriminator.ValueKind == JsonValueKind.Null)");
+                sb.AppendLine("                {");
+                foreach (SubtypeRegistration reg in nulls)
+                {
+                    sb.AppendLine($"                    return typeof({reg.FullyQualifiedName});");
+                }
+                sb.AppendLine("                }");
+            }
+            if (strings.Count + enums.Count > 0)
             {
                 sb.AppendLine("                if (discriminator.ValueKind == JsonValueKind.String)");
                 sb.AppendLine("                {");
@@ -537,10 +682,14 @@ namespace JsonSubTypes.Aot
                 {
                     sb.AppendLine($"                        case {reg.DiscriminatorLiteral}: return typeof({reg.FullyQualifiedName});");
                 }
+                foreach (SubtypeRegistration reg in enums)
+                {
+                    sb.AppendLine($"                        case {SymbolDisplay.FormatLiteral(reg.EnumMemberName!, quote: true)}: return typeof({reg.FullyQualifiedName});");
+                }
                 sb.AppendLine("                    }");
                 sb.AppendLine("                }");
             }
-            if (ints.Count > 0)
+            if (ints.Count + enums.Count > 0)
             {
                 sb.AppendLine("                if (discriminator.ValueKind == JsonValueKind.Number)");
                 sb.AppendLine("                {");
@@ -549,6 +698,10 @@ namespace JsonSubTypes.Aot
                 foreach (SubtypeRegistration reg in ints)
                 {
                     sb.AppendLine($"                        case {SymbolDisplay.FormatLiteral(reg.DiscriminatorLiteral, quote: true)}: return typeof({reg.FullyQualifiedName});");
+                }
+                foreach (SubtypeRegistration reg in enums)
+                {
+                    sb.AppendLine($"                        case {SymbolDisplay.FormatLiteral(reg.EnumUnderlyingValue!, quote: true)}: return typeof({reg.FullyQualifiedName});");
                 }
                 sb.AppendLine("                    }");
                 sb.AppendLine("                }");
