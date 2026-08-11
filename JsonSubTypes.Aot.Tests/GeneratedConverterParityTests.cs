@@ -200,15 +200,11 @@ namespace JsonSubTypes.Aot.Tests
         }
 
         [Test]
-        public void ShouldSerializeNestedLevel_IsALimitation()
+        public void ShouldSerializeNestedLevel()
         {
-            // Known limitation: the runtime converter serializes a deeply nested subtype through
-            // JsonConverterAttribute inheritance on the intermediate base. That cannot be
-            // reproduced with options.Converters + exact CanConvert matching, so an unregistered
-            // nested subtype is serialized plainly without discriminators.
             string data = JsonSerializer.Serialize<Payload>(new Run(), Options());
 
-            Assert.AreEqual("{}", data);
+            Assert.AreEqual("{\"$PayloadKind\":0,\"$GameKind\":0}", data);
         }
     }
 

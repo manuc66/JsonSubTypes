@@ -59,6 +59,8 @@ namespace JsonSubTypes.Aot
                     return;
                 }
 
+                BuildGlobalModel(generated);
+
                 spc.AddSource("JsonSubTypesAotConverters.g.cs", SourceText.From(EmitRegistry(generated), System.Text.Encoding.UTF8));
                 foreach (BaseTypeInfo baseInfo in generated)
                 {
@@ -79,11 +81,24 @@ namespace JsonSubTypes.Aot
             public string? FallbackFullyQualifiedName { get; set; }
             public List<ITypeSymbol> AllTypes { get; } = new List<ITypeSymbol>();
             public List<BaseProperty> Properties { get; } = new List<BaseProperty>();
+            public List<NestedChain> NestedTypes { get; } = new List<NestedChain>();
 
             public string FallbackType => FallbackFullyQualifiedName ?? FullyQualifiedName;
             public bool IsValueMode => DiscriminatorPropertyName != null;
             public bool BaseIsAbstractOrInterface { get; set; }
             public bool BaseHasParameterlessConstructor { get; set; }
+        }
+
+        private sealed class NestedChain
+        {
+            public string RuntimeTypeName { get; set; } = "";
+            public List<ChainEntry> Chain { get; } = new List<ChainEntry>();
+        }
+
+        private sealed class ChainEntry
+        {
+            public string DiscriminatorName { get; set; } = "";
+            public SubtypeRegistration Discriminator { get; set; } = null!;
         }
 
         private sealed class SubtypeRegistration
@@ -317,6 +332,144 @@ namespace JsonSubTypes.Aot
             return false;
         }
 
+        // ---------------------------------------------------------- global model
+
+        private static void BuildGlobalModel(List<BaseTypeInfo> bases)
+        {
+            Dictionary<string, BaseTypeInfo> baseByType = bases
+                .Where(b => b.IsValueMode)
+                .ToDictionary(b => b.FullyQualifiedName, b => b, StringComparer.Ordinal);
+
+            // subtype -> hierarchy bases where it is a direct subtype
+            Dictionary<string, List<BaseTypeInfo>> parents = new Dictionary<string, List<BaseTypeInfo>>(StringComparer.Ordinal);
+            foreach (BaseTypeInfo b in bases)
+            {
+                foreach (SubtypeRegistration s in b.Subtypes)
+                {
+                    if (!parents.TryGetValue(s.FullyQualifiedName, out List<BaseTypeInfo>? list))
+                    {
+                        parents[s.FullyQualifiedName] = list = new List<BaseTypeInfo>();
+                    }
+                    list.Add(b);
+                }
+            }
+
+            Dictionary<string, List<string>> ancestorCache = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            // ordered [T, parent bases, grandparent bases, ...]
+            List<string> TypeAncestors(string type)
+            {
+                if (ancestorCache.TryGetValue(type, out List<string>? cached))
+                {
+                    return cached;
+                }
+
+                List<string> result = new List<string> { type };
+                HashSet<string> seen = new HashSet<string> { type };
+                List<string> frontier = new List<string> { type };
+                while (frontier.Count > 0)
+                {
+                    List<string> next = new List<string>();
+                    foreach (string f in frontier)
+                    {
+                        if (parents.TryGetValue(f, out List<BaseTypeInfo>? hs))
+                        {
+                            foreach (BaseTypeInfo h in hs)
+                            {
+                                if (seen.Add(h.FullyQualifiedName))
+                                {
+                                    result.Add(h.FullyQualifiedName);
+                                    next.Add(h.FullyQualifiedName);
+                                }
+                            }
+                        }
+                    }
+                    frontier = next;
+                }
+
+                ancestorCache[type] = result;
+                return result;
+            }
+
+            foreach (BaseTypeInfo b in bases)
+            {
+                if (!b.IsValueMode)
+                {
+                    continue;
+                }
+
+                // BFS over descendant types (direct subtypes and their subtypes)
+                List<(string Type, int Depth)> descendants = new List<(string, int)>();
+                Queue<(string Type, int Depth)> queue = new Queue<(string, int)>();
+                HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
+                foreach (SubtypeRegistration s in b.Subtypes)
+                {
+                    if (seen.Add(s.FullyQualifiedName))
+                    {
+                        queue.Enqueue((s.FullyQualifiedName, 1));
+                    }
+                }
+
+                while (queue.Count > 0)
+                {
+                    (string type, int depth) = queue.Dequeue();
+                    descendants.Add((type, depth));
+                    if (baseByType.TryGetValue(type, out BaseTypeInfo? intermediate))
+                    {
+                        foreach (SubtypeRegistration s in intermediate.Subtypes)
+                        {
+                            if (seen.Add(s.FullyQualifiedName))
+                            {
+                                queue.Enqueue((s.FullyQualifiedName, depth + 1));
+                            }
+                        }
+                    }
+                }
+
+                HashSet<string> direct = new HashSet<string>(b.Subtypes.Select(s => s.FullyQualifiedName), StringComparer.Ordinal);
+                foreach ((string type, int depth) in descendants)
+                {
+                    if (direct.Contains(type))
+                    {
+                        continue; // handled by the normal discriminator path
+                    }
+
+                    List<string> ancestors = TypeAncestors(type);
+                    // hierarchy bases on the path strictly below-or-at the declared base, ordered
+                    // outer-first (declared base first, innermost last)
+                    List<string> pathBases = ancestors
+                        .Where(t => baseByType.ContainsKey(t))
+                        .Where(t => t == b.FullyQualifiedName ||
+                                    TypeAncestors(t).Contains(b.FullyQualifiedName))
+                        .ToList();
+                    pathBases.Reverse();
+
+                    List<ChainEntry> chain = new List<ChainEntry>();
+                    foreach (string hName in pathBases)
+                    {
+                        BaseTypeInfo h = baseByType[hName];
+                        SubtypeRegistration? nearest = ancestors
+                            .Select(a => h.Subtypes.FirstOrDefault(s => s.FullyQualifiedName == a))
+                            .FirstOrDefault(s => s != null);
+                        if (nearest != null)
+                        {
+                            chain.Add(new ChainEntry
+                            {
+                                DiscriminatorName = h.DiscriminatorPropertyName!,
+                                Discriminator = nearest
+                            });
+                        }
+                    }
+
+                    if (chain.Count > 0)
+                    {
+                        NestedChain nested = new NestedChain { RuntimeTypeName = type };
+                        nested.Chain.AddRange(chain);
+                        b.NestedTypes.Add(nested);
+                    }
+                }
+            }
+        }
+
         // ---------------------------------------------------------------- emit
 
         private static string EmitRegistry(List<BaseTypeInfo> bases)
@@ -372,7 +525,7 @@ namespace JsonSubTypes.Aot
                 {{read}}
                         }
 
-                        private static Type SelectType(JsonElement root, JsonSerializerOptions options)
+                        private Type SelectType(JsonElement root, JsonSerializerOptions options)
                         {
                 {{selectType}}
                         }
@@ -423,6 +576,14 @@ namespace JsonSubTypes.Aot
                             else if (IsRegistered(runtimeType))
                             {
                                 payload = JsonSerializer.Serialize(value, options.GetTypeInfo(runtimeType));
+                            }
+                            else if (TryWriteNestedObject(writer, value, runtimeType, options))
+                            {
+                                return;
+                            }
+                            else if (TryWriteDynamic(writer, value, runtimeType, options))
+                            {
+                                return;
                             }
                             else
                             {
@@ -559,6 +720,10 @@ namespace JsonSubTypes.Aot
                 {{nullBlock}}
                 {{stringBlock}}
                 {{numberBlock}}
+                        if (TryGetDynamicType(discriminator, out Type dynamicType))
+                        {
+                            return dynamicType;
+                        }
                         return typeof({{info.FallbackType}});
                     }
                     return typeof({{info.FallbackType}});
@@ -649,7 +814,115 @@ namespace JsonSubTypes.Aot
                 {{string.Join("\n", cases)}}
                         throw new JsonException("Impossible to serialize type: " + runtimeType.FullName + " because there is no registered mapping for the discriminator property");
                     }
+
+                    public readonly System.Collections.Concurrent.ConcurrentDictionary<object, Type> DynamicSubtypes = new System.Collections.Concurrent.ConcurrentDictionary<object, Type>();
+
+                    public void RegisterDynamicSubtype(object discriminator, Type type)
+                    {
+                        DynamicSubtypes[discriminator] = type;
+                    }
+
+                    private bool TryGetDynamicType(JsonElement discriminator, out Type dynamicType)
+                    {
+                        switch (discriminator.ValueKind)
+                        {
+                            case JsonValueKind.String:
+                                return DynamicSubtypes.TryGetValue(discriminator.GetString()!, out dynamicType);
+                            case JsonValueKind.Number:
+                                if (int.TryParse(discriminator.GetRawText(), out int dynamicInt) && DynamicSubtypes.TryGetValue(dynamicInt, out dynamicType))
+                                {
+                                    return true;
+                                }
+                                return DynamicSubtypes.TryGetValue(discriminator.GetRawText(), out dynamicType);
+                            default:
+                                return DynamicSubtypes.TryGetValue(discriminator.GetRawText(), out dynamicType);
+                        }
+                    }
+
+                    private static bool TryWriteNestedObject(Utf8JsonWriter writer, {{info.FullyQualifiedName}} value, Type runtimeType, JsonSerializerOptions options)
+                    {
+                {{EmitNestedCases(info)}}
+                        return false;
+                    }
+
+                    private bool TryWriteDynamic(Utf8JsonWriter writer, {{info.FullyQualifiedName}} value, Type runtimeType, JsonSerializerOptions options)
+                    {
+                        foreach (System.Collections.Generic.KeyValuePair<object, Type> entry in DynamicSubtypes)
+                        {
+                            if (entry.Value == runtimeType)
+                            {
+                                writer.WriteStartObject();
+                                string dynamicDiscriminatorName = {{SymbolDisplay.FormatLiteral(info.DiscriminatorPropertyName!, quote: true)}};
+                                if (options.PropertyNamingPolicy != null)
+                                {
+                                    dynamicDiscriminatorName = options.PropertyNamingPolicy.ConvertName(dynamicDiscriminatorName);
+                                }
+                                writer.WritePropertyName(dynamicDiscriminatorName);
+                                writer.WriteRawValue(JsonSerializer.Serialize(entry.Key, options.GetTypeInfo(entry.Key.GetType())));
+                                string payload = JsonSerializer.Serialize(value, options.GetTypeInfo(runtimeType));
+                                using JsonDocument payloadDocument = JsonDocument.Parse(payload);
+                                foreach (JsonProperty property in payloadDocument.RootElement.EnumerateObject())
+                                {
+                                    property.WriteTo(writer);
+                                }
+                                writer.WriteEndObject();
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
                 """;
+        }
+
+        private static string EmitNestedCases(BaseTypeInfo info)
+        {
+            if (info.NestedTypes.Count == 0)
+            {
+                return "                        return false;";
+            }
+
+            List<string> blocks = new List<string>();
+            foreach (NestedChain nested in info.NestedTypes)
+            {
+                List<string> discLines = new List<string>();
+                foreach (ChainEntry entry in nested.Chain)
+                {
+                    discLines.Add($"                        writer.WritePropertyName({SymbolDisplay.FormatLiteral(entry.DiscriminatorName, quote: true)});");
+                    discLines.Add($"                        {EmitDiscriminatorValueStatement(entry.Discriminator)}");
+                }
+                string payload = $$"""
+                            string payload = JsonSerializer.Serialize(value, options.GetTypeInfo(runtimeType));
+                            using JsonDocument payloadDocument = JsonDocument.Parse(payload);
+                            foreach (JsonProperty property in payloadDocument.RootElement.EnumerateObject())
+                            {
+                                property.WriteTo(writer);
+                            }
+                            writer.WriteEndObject();
+                            return true;
+                """;
+                blocks.Add($$"""
+                        if (runtimeType == typeof({{nested.RuntimeTypeName}}))
+                        {
+                            writer.WriteStartObject();
+                {{string.Join("\n", discLines)}}
+                {{payload}}
+                        }
+                """);
+            }
+
+            blocks.Add("                        return false;");
+            return string.Join("\n", blocks);
+        }
+
+        private static string EmitDiscriminatorValueStatement(SubtypeRegistration reg)
+        {
+            return reg.DiscriminatorKind switch
+            {
+                "string" => $"writer.WriteStringValue({reg.DiscriminatorLiteral});",
+                "int" => $"writer.WriteNumberValue({reg.DiscriminatorLiteral});",
+                "enum" => $"writer.WriteRawValue(JsonSerializer.Serialize({reg.EnumReference}, options.GetTypeInfo(typeof({reg.EnumTypeName}))));",
+                _ => "writer.WriteNullValue();"
+            };
         }
 
         private static string EmitBaseHelpers(BaseTypeInfo info)

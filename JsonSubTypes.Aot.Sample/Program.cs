@@ -6,7 +6,7 @@ using JsonSubTypes.Text.Json;
 var options = new JsonSerializerOptions
 {
     TypeInfoResolver = AnimalJsonContext.Default,
-    Converters = { JsonSubTypesAotConverters.Animal, JsonSubTypesAotConverters.Person, JsonSubTypesAotConverters.Gadget }
+    Converters = { JsonSubTypesAotConverters.Animal, JsonSubTypesAotConverters.Person, JsonSubTypesAotConverters.Gadget, JsonSubTypesAotConverters.Payload, JsonSubTypesAotConverters.Game }
 };
 
 string json = JsonSerializer.Serialize<Animal>(new Cat { Age = 11, Lives = 6 }, options);
@@ -52,6 +52,20 @@ Console.WriteLine($"dotted nested deserialize: {dotted?.GetType().Name}");
 
 string plainBaseJson = JsonSerializer.Serialize<Animal>(new Animal { Age = 1 }, options);
 Console.WriteLine($"base-as-leaf without mapping (plain): {plainBaseJson}");
+
+string nestedJson = JsonSerializer.Serialize<Payload>(new Run(), options);
+Console.WriteLine($"nested serialize: {nestedJson}");
+Console.WriteLine($"nested deserialize: {JsonSerializer.Deserialize<Payload>(nestedJson, options)?.GetType().Name}");
+
+JsonSubTypesAotConverters.Gadget.RegisterDynamicSubtype("mouse", typeof(ElectronicMouse));
+var dynamicOpts = new JsonSerializerOptions
+{
+    TypeInfoResolver = AnimalJsonContext.Default,
+    Converters = { JsonSubTypesAotConverters.Gadget, new JsonStringEnumConverter() }
+};
+string dynamicJson = JsonSerializer.Serialize<Gadget>(new ElectronicMouse { Age = 1, Buttons = 3 }, dynamicOpts);
+Console.WriteLine($"dynamic serialize: {dynamicJson}");
+Console.WriteLine($"dynamic deserialize: {JsonSerializer.Deserialize<Gadget>(dynamicJson, dynamicOpts)?.GetType().Name}");
 
 [JsonSubTypesAotConverter("type")]
 [KnownSubType(typeof(Cat), "cat")]
@@ -119,6 +133,49 @@ public class DottedElectronic : DottedGadget
     public int Lives { get; set; }
 }
 
+public enum PayloadDiscriminator
+{
+    GAME = 0,
+    COM = 1
+}
+
+public enum GameDiscriminator
+{
+    RUN = 0,
+    WALK = 1
+}
+
+[JsonSubTypesAotConverter("$PayloadKind")]
+[KnownSubType(typeof(Game), PayloadDiscriminator.GAME)]
+[KnownSubType(typeof(Com), PayloadDiscriminator.COM)]
+public class Payload
+{
+}
+
+public class Com : Payload
+{
+}
+
+[JsonSubTypesAotConverter("$GameKind")]
+[KnownSubType(typeof(Run), GameDiscriminator.RUN)]
+[KnownSubType(typeof(Walk), GameDiscriminator.WALK)]
+public class Game : Payload
+{
+}
+
+public class Run : Game
+{
+}
+
+public class Walk : Game
+{
+}
+
+public class ElectronicMouse : Gadget
+{
+    public int Buttons { get; set; }
+}
+
 [JsonSerializable(typeof(Animal))]
 [JsonSerializable(typeof(Cat))]
 [JsonSerializable(typeof(Dog))]
@@ -130,6 +187,14 @@ public class DottedElectronic : DottedGadget
 [JsonSerializable(typeof(GadgetKind))]
 [JsonSerializable(typeof(DottedGadget))]
 [JsonSerializable(typeof(DottedElectronic))]
+[JsonSerializable(typeof(Payload))]
+[JsonSerializable(typeof(Com))]
+[JsonSerializable(typeof(Game))]
+[JsonSerializable(typeof(Run))]
+[JsonSerializable(typeof(Walk))]
+[JsonSerializable(typeof(PayloadDiscriminator))]
+[JsonSerializable(typeof(GameDiscriminator))]
+[JsonSerializable(typeof(ElectronicMouse))]
 public partial class AnimalJsonContext : JsonSerializerContext
 {
 }

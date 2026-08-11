@@ -266,3 +266,77 @@ namespace JsonSubTypes.Aot.Tests
         public int Lives { get; set; }
     }
 }
+
+[TestFixture]
+public class GeneratedDynamicRegistrationTests
+{
+    private static JsonSerializerOptions Options()
+    {
+        return new JsonSerializerOptions { Converters = { JsonSubTypesAotConverters.DynAnimal } };
+    }
+
+    [Test]
+    public void Deserialize_StaticSubtype_Works()
+    {
+        var result = JsonSerializer.Deserialize<DynAnimal>("{\"type\":\"cat\",\"Lives\":9,\"Age\":4}", Options());
+
+        Assert.IsInstanceOf<DynCat>(result);
+    }
+
+    [Test]
+    public void Deserialize_DynamicSubtype_RegisteredAtRuntime()
+    {
+        JsonSubTypesAotConverters.DynAnimal.DynamicSubtypes["dog"] = typeof(DynDog);
+
+        try
+        {
+            var result = JsonSerializer.Deserialize<DynAnimal>("{\"type\":\"dog\",\"CanHunt\":true,\"Age\":4}", Options());
+            Assert.IsInstanceOf<DynDog>(result);
+        }
+        finally
+        {
+            JsonSubTypesAotConverters.DynAnimal.DynamicSubtypes.TryRemove("dog", out _);
+        }
+    }
+
+    [Test]
+    public void Serialize_DynamicSubtype_WritesDiscriminator()
+    {
+        JsonSubTypesAotConverters.DynAnimal.DynamicSubtypes["dog"] = typeof(DynDog);
+
+        try
+        {
+            string json = JsonSerializer.Serialize<DynAnimal>(new DynDog { CanHunt = true, Age = 4 }, Options());
+            Assert.AreEqual("{\"type\":\"dog\",\"CanHunt\":true,\"Age\":4}", json);
+        }
+        finally
+        {
+            JsonSubTypesAotConverters.DynAnimal.DynamicSubtypes.TryRemove("dog", out _);
+        }
+    }
+
+    [Test]
+    public void Deserialize_UnknownDiscriminator_StillFallsBack()
+    {
+        var result = JsonSerializer.Deserialize<DynAnimal>("{\"type\":\"fish\",\"Age\":4}", Options());
+
+        Assert.IsInstanceOf<DynAnimal>(result);
+    }
+}
+
+[JsonSubTypesAotConverter("type")]
+[KnownSubType(typeof(DynCat), "cat")]
+public class DynAnimal
+{
+    public int Age { get; set; }
+}
+
+public class DynCat : DynAnimal
+{
+    public int Lives { get; set; }
+}
+
+public class DynDog : DynAnimal
+{
+    public bool CanHunt { get; set; }
+}
