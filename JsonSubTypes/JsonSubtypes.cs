@@ -554,15 +554,6 @@ namespace JsonSubTypes
 #endif
         }
 
-        internal static IEnumerable<Type> GetImplementedInterfaces(Type type)
-        {
-#if (!NETSTANDARD1_3)
-            return type.GetInterfaces();
-#else
-            return type?.GetTypeInfo().ImplementedInterfaces;
-#endif
-        }
-
         internal static Type ToType(TypeInfo typeInfo)
         {
 #if (!NETSTANDARD1_3)

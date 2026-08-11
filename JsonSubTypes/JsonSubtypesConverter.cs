@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 
 namespace JsonSubTypes
 {
@@ -54,15 +53,13 @@ namespace JsonSubTypes
         }
 
         /// <summary>
-        /// Returns true when <paramref name="objectType"/> is a constructed form of
-        /// the open generic <paramref name="genericType"/> (e.g. Base&lt;int&gt; for
-        /// Base&lt;&gt;), or inherits/implements one (e.g. Nested1&lt;int&gt; : Base&lt;int&gt;).
-        /// Interface matching is opt-in via <paramref name="includeInterfaces"/>: matching
-        /// a generic base interface would also claim unrelated types that merely implement
-        /// it, so it is only enabled against registered subtypes
-        /// (see JsonSubtypesByDiscriminatorValueConverter.CanConvert).
+        /// Returns true when <paramref name="objectType"/> is a constructed form of the
+        /// open generic <paramref name="genericType"/> (e.g. Base&lt;int&gt; for Base&lt;&gt;),
+        /// or inherits one (e.g. Square&lt;int&gt; : ShapeBase&lt;int&gt;). Interfaces are
+        /// intentionally not matched: registering an interface as a subtype cannot work
+        /// end-to-end (deserialization would resolve to a non-instantiable interface).
         /// </summary>
-        protected static bool IsClosedGenericFormOf(Type objectType, Type genericType, bool includeInterfaces = false)
+        protected static bool IsClosedGenericFormOf(Type objectType, Type genericType)
         {
             if (!ToTypeInfo(genericType).IsGenericTypeDefinition || !ToTypeInfo(objectType).IsGenericType)
             {
@@ -85,9 +82,7 @@ namespace JsonSubTypes
                 current = ToTypeInfo(current).BaseType;
             }
 
-            return includeInterfaces &&
-                   GetImplementedInterfaces(objectType)
-                       .Any(iface => ToTypeInfo(iface).IsGenericType && iface.GetGenericTypeDefinition() == genericType);
+            return false;
         }
     }
 }
