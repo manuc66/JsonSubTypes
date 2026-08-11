@@ -10,9 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Fixed
 - Deserialization with an open generic base type (e.g. `Base<>`) now closes the generic subtype correctly (e.g. `Nested1<int>` for `Base<int>`) instead of failing. #177
 
-### JsonSubTypes.Text.Json
-#### Added
-- New package `JsonSubTypes.Text.Json` (1.0.0-rc.1) bringing polymorphic subtype serialization to `System.Text.Json` (.NET 8+).
+## [1.0.0-rc.2] - 2026-08-10
+### Changed
+- Rebuilt with Source Link, deterministic builds and `.snupkg` symbol packages so symbols validate against the published package.
+
+## [1.0.0-rc.1] - 2026-08-10
+### Added
+- New package `JsonSubTypes.Text.Json` bringing polymorphic subtype serialization to `System.Text.Json` (.NET 8+).
   - Attribute-based and builder-based subtype registration.
   - Discriminator mapping by property presence (`KnownSubTypeWithProperty`).
   - Fallback subtype support (`FallBackSubType`).
