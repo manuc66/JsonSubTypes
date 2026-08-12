@@ -42,11 +42,36 @@ jobs:
         with:
           user: manuc66
 
+      # Each tag pushes every package, but a package whose version is already on
+      # nuget.org must not be re-pushed: --skip-duplicate only skips the nupkg
+      # and would still upload a freshly built snupkg, whose PDBs never match the
+      # DLLs already published (different commit / toolchain), failing validation.
       - name: Publish JsonSubTypes
-        run: dotnet nuget push "JsonSubTypes/bin/Release/*.nupkg" "JsonSubTypes/bin/Release/*.snupkg" --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        run: |
+          id=jsonSubTypes
+          version=$(dotnet msbuild JsonSubTypes/JsonSubTypes.csproj -getProperty:Version -p:Configuration=Release | tail -n 1)
+          if curl -sf -o /dev/null "https://api.nuget.org/v3-flatcontainer/$id/$version/$id.$version.nupkg"; then
+            echo "JsonSubTypes $version already on nuget.org, skipping"
+          else
+            dotnet nuget push "JsonSubTypes/bin/Release/*.nupkg" "JsonSubTypes/bin/Release/*.snupkg" --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+          fi
 
       - name: Publish JsonSubTypes.Text.Json
-        run: dotnet nuget push "JsonSubTypes.Text.Json/bin/Release/*.nupkg" "JsonSubTypes.Text.Json/bin/Release/*.snupkg" --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        run: |
+          id=jsonSubTypes.text.json
+          version=$(dotnet msbuild JsonSubTypes.Text.Json/JsonSubTypes.Text.Json.csproj -getProperty:Version -p:Configuration=Release | tail -n 1)
+          if curl -sf -o /dev/null "https://api.nuget.org/v3-flatcontainer/$id/$version/$id.$version.nupkg"; then
+            echo "JsonSubTypes.Text.Json $version already on nuget.org, skipping"
+          else
+            dotnet nuget push "JsonSubTypes.Text.Json/bin/Release/*.nupkg" "JsonSubTypes.Text.Json/bin/Release/*.snupkg" --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+          fi
 
       - name: Publish JsonSubTypes.Aot
-        run: dotnet nuget push "JsonSubTypes.Aot/bin/Release/*.nupkg" --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        run: |
+          id=jsonSubTypes.aot
+          version=$(dotnet msbuild JsonSubTypes.Aot/JsonSubTypes.Aot.csproj -getProperty:Version -p:Configuration=Release | tail -n 1)
+          if curl -sf -o /dev/null "https://api.nuget.org/v3-flatcontainer/$id/$version/$id.$version.nupkg"; then
+            echo "JsonSubTypes.Aot $version already on nuget.org, skipping"
+          else
+            dotnet nuget push "JsonSubTypes.Aot/bin/Release/*.nupkg" --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+          fi
