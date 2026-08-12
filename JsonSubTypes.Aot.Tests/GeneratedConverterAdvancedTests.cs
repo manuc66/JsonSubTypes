@@ -179,6 +179,43 @@ namespace JsonSubTypes.Aot.Tests
         }
     }
 
+    [TestFixture]
+    public class GeneratedDirectAndNestedSubtypeTests
+    {
+        // Pins the routing when a subtype is registered both directly on the base and
+        // reachable through an intermediate base. The generator must prefer the direct
+        // registration and not emit a duplicate nested chain (see BuildNestedChains).
+        private static JsonSerializerOptions Options()
+        {
+            return new JsonSerializerOptions { Converters = { JsonSubTypesAotConverters.DNRoot } };
+        }
+
+        [Test]
+        public void Serialize_DirectRegistration_IsPreferredOverNestedChain()
+        {
+            string json = JsonSerializer.Serialize<DNRoot>(new DNLeaf { Age = 1, Mark = 2 }, Options());
+
+            // the direct registration ("leaf" on Root) wins; no nested chain is emitted
+            Assert.AreEqual("{\"kind\":\"leaf\",\"Mark\":2,\"Age\":1}", json);
+        }
+
+        [Test]
+        public void Deserialize_DirectDiscriminator_ReturnsSubtype()
+        {
+            var result = JsonSerializer.Deserialize<DNRoot>("{\"kind\":\"leaf\",\"Age\":1}", Options());
+
+            Assert.IsInstanceOf<DNLeaf>(result);
+        }
+
+        [Test]
+        public void Deserialize_NestedDiscriminator_StillWorksForIntermediate()
+        {
+            var result = JsonSerializer.Deserialize<DNRoot>("{\"kind\":\"mid\",\"Age\":1}", Options());
+
+            Assert.IsInstanceOf<DNMid>(result);
+        }
+    }
+
     // ---- domain types ----
 
     public enum EAnimalKind
@@ -395,4 +432,23 @@ public class DupAnimal
 public class DupCat : DupAnimal
 {
     public int Lives { get; set; }
+}
+
+[JsonSubTypesAotConverter("kind")]
+[KnownSubType(typeof(DNMid), "mid")]
+[KnownSubType(typeof(DNLeaf), "leaf")]
+public class DNRoot
+{
+    public int Age { get; set; }
+}
+
+[JsonSubTypesAotConverter("kind")]
+[KnownSubType(typeof(DNLeaf), "leaf")]
+public class DNMid : DNRoot
+{
+}
+
+public class DNLeaf : DNMid
+{
+    public int Mark { get; set; }
 }
