@@ -1,6 +1,6 @@
-using JsonSubTypes.Tests.Shared;
+using JsonSubTypes.Text.Json.Tests.Shared;
 
-namespace JsonSubTypes.Tests.Plugin
+namespace JsonSubTypes.Text.Json.Tests.Plugin
 {
     public class PluginDog : SharedAnimal
     {
