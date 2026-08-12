@@ -24,6 +24,14 @@
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)'=='netstandard1.3'">
+    <!--
+      netstandard1.3 pulls these from NETStandard.Library 1.6.1 at the vulnerable 4.3.0
+      versions. Pin them to the patched releases (see inspection/Security findings).
+    -->
+    <PackageReference Include="System.Net.Http" Version="4.3.4" />
+    <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
+  </ItemGroup>
   <ItemGroup>
     <None Include="..\README.md" Pack="true" PackagePath="\"/>
     <None Include="..\LICENSE" Pack="true" PackagePath="\"/>
