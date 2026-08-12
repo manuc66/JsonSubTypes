@@ -186,6 +186,7 @@ namespace JsonSubTypes.Aot
         {
             foreach (AttributeData attr in baseType.GetAttributes())
             {
+                spc.CancellationToken.ThrowIfCancellationRequested();
                 switch (attr.AttributeClass?.Name)
                 {
                     case KnownSubTypeAttributeName:
@@ -224,6 +225,7 @@ namespace JsonSubTypes.Aot
             }
             else
             {
+                spc.CancellationToken.ThrowIfCancellationRequested();
                 spc.ReportDiagnostic(Diagnostic.Create(UnsupportedDiscriminator,
                     attr.ApplicationSyntaxReference?.GetSyntax().GetLocation(),
                     attr.ConstructorArguments[1].Type?.Name ?? "null",
@@ -269,6 +271,7 @@ namespace JsonSubTypes.Aot
         {
             foreach (IGrouping<string, SubtypeRegistration> duplicates in info.Subtypes.GroupBy(s => s.FullyQualifiedName))
             {
+                spc.CancellationToken.ThrowIfCancellationRequested();
                 if (duplicates.Count() > 1)
                 {
                     spc.ReportDiagnostic(Diagnostic.Create(DuplicateDiscriminators,
