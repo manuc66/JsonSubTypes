@@ -13,6 +13,18 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # A tag can be pushed with a failing build (GitHub's branch protection does
+      # not cover tags), so gate publishing on the tagged commit's CI checks.
+      - name: Fail if CI checks did not pass on the tagged commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          checks=$(gh api repos/${{ github.repository }}/commits/${{ github.sha }}/check-runs --jq '.check_runs')
+          echo "$checks" | jq -e 'length > 0' > /dev/null || { echo "No CI check runs found for ${{ github.sha }}"; exit 1; }
+          echo "$checks" | jq -e 'all(.[]; .status == "completed" and .conclusion == "success")' > /dev/null \
+            || { echo "CI checks not all green for ${{ github.sha }}:"; echo "$checks" | jq -r '.[] | "\(.name): \(.status)/\(.conclusion)"'; exit 1; }
+          echo "All CI checks passed for ${{ github.sha }}"
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
