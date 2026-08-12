@@ -386,11 +386,11 @@ public interface IExpression { }
 | Cross-assembly / plugin types outside the compilation | ❌ | ❌ | ✅ | ⚠️ (must be in the source-gen context) |
 | Native AOT / Trimming support | ✅ | ❌ | ❌ | ✅ |
 
-**The three niches:**
+**The three engines in one line:**
 
-1. **Converter (`Build()`)** — the full-featured runtime engine. No generator setup, works with attributes directly, and is the only engine for runtime-by-nature scenarios (real cross-assembly plugins, arbitrary type names resolved by reflection). The right default for non-AOT applications.
-2. **Resolver (`BuildResolver()`)** — the thin native bridge. Supports only the subset the native contract model can express, but is the simplest and the fastest for that subset. A lightweight option for .NET 7+ apps that need string/int polymorphism without attributes on the domain and without a generator.
-3. **Generator (`JsonSubTypes.Aot`)** — a Roslyn source generator emitting compiled converters. Nearly feature-identical to the converter, and it is **the Native AOT answer**: the routing is compiled, so property presence, fallback, enums, nested hierarchies and dynamic registration all work without reflection in a trimmed/AOT binary. The generator reads the `[JsonSubTypesAotConverter]`, `[KnownSubType]` and `[FallBackSubType]` attributes, so a consumer still references the `JsonSubTypes.Text.Json` package for those attributes (the generator itself is referenced as an analyzer).
+1. **Converter (`Build()`)** — the full-featured runtime engine and the right default for non-AOT applications.
+2. **Resolver (`BuildResolver()`)** — the thin native bridge: simplest and fastest, but limited to the subset the native contract model can express.
+3. **Generator (`JsonSubTypes.Aot`)** — a Roslyn source generator emitting compiled converters: the Native AOT answer, with routing compiled instead of reflected.
 
 ### Converter known scope & fallback path
 
@@ -409,27 +409,16 @@ Measured with BenchmarkDotNet (`JsonSubTypes.Benchmarks`, DefaultJob, .NET 8.0, 
 | Serialize | 1.65–1.70 µs / 648 B | 0.40–0.41 µs / 400 B | 1.43–1.47 µs / 440 B |
 | Deserialize | 2.63–2.71 µs / 1264 B | 0.51–0.55 µs / 56 B | 1.50–1.56 µs / 216 B |
 
-Reading: the resolver is the fastest (native streaming, no double parse). The generated converter beats the runtime converter by ~1.1× on serialization and ~1.8× on deserialization, and allocates ~6× less on deserialization (compiled routing, no per-call converter scan).
+Reading: the resolver is the fastest (native streaming, no double parse). The generated converter beats the runtime converter on deserialization, and allocates ~6× less (compiled routing, no per-call converter scan).
 
-**Native AOT** (generated engine, measured with BenchmarkDotNet's NativeAOT job — ILCompiler toolchain — in the same benchmark project):
+**Native AOT** (generated engine, measured with a BenchmarkDotNet NativeAOT job in the same benchmark project):
 
-| Benchmark | DefaultJob (JIT) | Native AOT (ILCompiler) |
+| Benchmark | DefaultJob (JIT) | Native AOT |
 | :--- | ---: | ---: |
 | Generated_Serialize | 1.47–1.52 µs / 440 B | 1.63–1.74 µs / 440 B |
 | Generated_Deserialize | 1.46–1.54 µs / 216 B | 1.74–1.82 µs / 216 B |
 
-In steady state, Native AOT is comparable to (slightly slower than) JIT for this workload: the earlier stopwatch estimate that AOT halves serialization time was an artifact of the AOT binary's faster startup (no JIT tiering). The real AOT advantage is trimming compatibility and startup time, not steady-state throughput.
-
-### Test formalism
-
-The engine parity tests are written once and derived into every engine and target framework:
-
-- `ParityDomain.cs` holds the shared domain types (once).
-- `EngineParityTests` defines each scenario once with a `ParityCapabilities` gate; scenarios an engine cannot express are skipped with `Assert.Ignore` rather than re-written.
-- `RuntimeConverterParityTests`, `GeneratedConverterParityTests` and `ResolverParityTests` each supply only their `JsonSerializerOptions` and capability set.
-- Every scenario runs on both `net8.0` and `net10.0`.
-
-So a behavioral fix in one engine is automatically checked against the others, and the scenarios need no duplication.
+In steady state, Native AOT is comparable to (slightly slower than) JIT for this workload. The real AOT advantage is trimming compatibility and startup time, not steady-state throughput.
 
 ### Decision matrix
 | Use case | Recommended |
