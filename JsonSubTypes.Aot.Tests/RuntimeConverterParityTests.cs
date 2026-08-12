@@ -12,6 +12,11 @@ namespace JsonSubTypes.Aot.Tests
     [TestFixture]
     public class RuntimeConverterParityTests : EngineParityTests
     {
+        protected override ParityCapabilities Capabilities =>
+            ParityCapabilities.ValueDiscriminator | ParityCapabilities.Presence |
+            ParityCapabilities.NestedHierarchy | ParityCapabilities.DiscriminatorNameCollision |
+            ParityCapabilities.BaseFallbackError;
+
         protected override JsonSerializerOptions CreateOptions(bool caseInsensitive = false)
         {
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = caseInsensitive };

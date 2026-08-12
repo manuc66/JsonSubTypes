@@ -13,6 +13,11 @@ namespace JsonSubTypes.Aot.Tests
     [TestFixture]
     public class GeneratedConverterParityTests : EngineParityTests
     {
+        protected override ParityCapabilities Capabilities =>
+            ParityCapabilities.ValueDiscriminator | ParityCapabilities.Presence |
+            ParityCapabilities.NestedHierarchy | ParityCapabilities.DiscriminatorNameCollision |
+            ParityCapabilities.BaseFallbackError;
+
         protected override JsonSerializerOptions CreateOptions(bool caseInsensitive = false)
         {
             return new JsonSerializerOptions
