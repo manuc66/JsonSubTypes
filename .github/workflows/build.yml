@@ -59,16 +59,6 @@ jobs:
             TestResults/aot/**/coverage.cobertura.xml
           fail_ci_if_error: true
 
-      - name: Upload coverage reports as artifact (for Sonar)
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-reports
-          path: |
-            TestResults/newtonsoft/**/coverage.cobertura.xml
-            TestResults/textjson/**/coverage.cobertura.xml
-            TestResults/aot/**/coverage.cobertura.xml
-          if-no-files-found: error
-
       # The Aot sample is the only top-level-statements consumer of the generator:
       # building it catches generated-code conflicts that unit tests cannot (e.g. a
       # top-level `_` variable colliding with `out _` emitted by the generator).
@@ -109,18 +99,11 @@ jobs:
     # secret in a step-level `if`, which broke workflow startup before (secrets are
     # not allowed in `if:` conditions).
     runs-on: ubuntu-latest
-    needs: modern
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-
-      - name: Download coverage reports from the modern job
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage-reports
-          path: TestResults
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -129,13 +112,30 @@ jobs:
             8.0.x
             10.0.x
 
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@383f7e52eae3ab0510c3cb0e7d9d150bbaeab838
-        with:
-          args: >
-            -Dsonar.projectKey=manuc66_JsonSubTypes
-            -Dsonar.organization=manuc66-github
-            -Dsonar.cs.cobertura.reportsPaths=TestResults/**/coverage.cobertura.xml
+      - name: Install SonarScanner for .NET
+        run: dotnet tool install --global dotnet-sonarscanner --version 11.2.1
+
+      # The generic sonarcloud-github-action cannot analyze C#; only the
+      # SonarScanner for .NET can (the "Your project contains C# files which
+      # cannot be analyzed" warning). Per Sonar's docs, the coverage report must
+      # be produced in the same job as the scan (between begin and end), so this
+      # job builds and tests the solution itself rather than reusing modern's
+      # reports (whose relative file paths would not resolve here).
+      - name: Begin SonarCloud analysis
+        run: dotnet-sonarscanner begin /k:manuc66_JsonSubTypes /o:manuc66-github /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url=https://sonarcloud.io /d:sonar.cs.cobertura.reportsPaths=TestResults/**/coverage.cobertura.xml
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Build for SonarCloud analysis
+        run: dotnet build JsonSubTypes.sln -c Release
+
+      - name: Test with coverage (net10)
+        run: |
+          dotnet test JsonSubTypes.Tests/JsonSubTypes.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/newtonsoft
+          dotnet test JsonSubTypes.Text.Json.Tests/JsonSubTypes.Text.Json.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/textjson
+          dotnet test JsonSubTypes.Aot.Tests/JsonSubTypes.Aot.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/aot
+
+      - name: End SonarCloud analysis
+        run: dotnet-sonarscanner end /d:sonar.token="$SONAR_TOKEN"
+        env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

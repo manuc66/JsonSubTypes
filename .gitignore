@@ -15,3 +15,6 @@ TestResults/
 .junie/
 *.DotSettings
 BenchmarkDotNet.Artifacts/
+
+# SonarScanner for .NET working directory
+.sonarqube/
