@@ -154,7 +154,7 @@ namespace JsonSubTypes.Aot.Tests
             var expected = new Root
             {
                 Content = new Base(),
-                ContentList = new List<Base> { new SubB { Index = 1 }, new SubC { Name = "foo" } }
+                ContentList = [new SubB { Index = 1 }, new SubC { Name = "foo" }]
             };
 
             var root = JsonSerializer.Deserialize<Root>(
