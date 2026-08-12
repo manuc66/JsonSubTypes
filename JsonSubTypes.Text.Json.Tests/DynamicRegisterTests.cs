@@ -540,26 +540,26 @@ namespace JsonSubTypes.Tests
             {
                 SubExpressionA = new ManyOrExpression2
                 {
-                    OrExpr = new List<IExpression2>
-                    {
+                    OrExpr =
+                    [
                         new ConstantExpression2 { Value = "A" },
                         new ConstantExpression2 { Value = "B" }
-                    }
+                    ]
                 },
                 SubExpressionB = new ManyOrExpression2
                 {
-                    OrExpr = new List<IExpression2>
-                    {
+                    OrExpr =
+                    [
                         new ConstantExpression2 { Value = "A" },
                         new ManyOrExpression2
                         {
-                            OrExpr = new List<IExpression2>
-                            {
+                            OrExpr =
+                            [
                                 new ConstantExpression2 { Value = "A" },
                                 new ConstantExpression2 { Value = "B" }
-                            }
+                            ]
                         }
-                    }
+                    ]
                 }
             }, options);
 
@@ -591,26 +591,26 @@ namespace JsonSubTypes.Tests
                 {
                     SubExpressionA = new ManyOrExpression2
                     {
-                        OrExpr = new List<IExpression2>
-                        {
+                        OrExpr =
+                        [
                             new ConstantExpression2 { Value = "A" },
                             new ConstantExpression2 { Value = "B" }
-                        }
+                        ]
                     },
                     SubExpressionB = new ManyOrExpression2
                     {
-                        OrExpr = new List<IExpression2>
-                        {
+                        OrExpr =
+                        [
                             new ConstantExpression2 { Value = "A" },
                             new ManyOrExpression2
                             {
-                                OrExpr = new List<IExpression2>
-                                {
+                                OrExpr =
+                                [
                                     new ConstantExpression2 { Value = "A" },
                                     new ConstantExpression2 { Value = "B" }
-                                }
+                                ]
                             }
-                        }
+                        ]
                     }
                 }, options);
 

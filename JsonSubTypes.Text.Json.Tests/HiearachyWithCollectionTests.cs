@@ -50,13 +50,14 @@ namespace JsonSubTypes.Tests
                 {
                     Root = new FolderNode
                     {
-                        Children = new List<Node>
-                        {
+                        Children =
+                        [
+
                             new FolderNode
                             {
-                                Children = new List<Node> {new ElemNode {Size = 3}}
+                                Children = [new ElemNode { Size = 3 }]
                             }
-                        }
+                        ]
                     }
                 };
 
@@ -154,13 +155,13 @@ namespace JsonSubTypes.Tests
                 {
                     Root = new FolderNode
                     {
-                        Children = new[]
-                        {
+                        Children =
+                        [
                             new FolderNode
                             {
-                                Children = new[] {new ElemNode {Size = 3}}
+                                Children = [new ElemNode {Size = 3}]
                             }
-                        }
+                        ]
                     }
                 };
 
@@ -262,7 +263,7 @@ namespace JsonSubTypes.Tests
 #if NET35
                                 Children = new List<Node> {new ElemNode {Size = 3}}
 #else    
-                                Children = new ObservableCollection<Node> {new ElemNode {Size = 3}}
+                                Children = [new ElemNode { Size = 3 }]
 #endif
                                 
                             }
