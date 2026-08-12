@@ -19,7 +19,7 @@ namespace JsonSubTypes.Aot
         private const string DuplicateDiscriminatorDiagnosticId = "JSTAOT002";
 
         private static readonly DiagnosticDescriptor UnsupportedDiscriminator =
-            new DiagnosticDescriptor(
+            new(
                 DiagnosticId,
                 "Discriminator value not supported by JsonSubTypes.Aot",
                 "The discriminator value of type '{0}' on subtype '{1}' is not supported by JsonSubTypes.Aot. The subtype is not generated. Use the runtime converter for this hierarchy.",
@@ -28,7 +28,7 @@ namespace JsonSubTypes.Aot
                 isEnabledByDefault: true);
 
         private static readonly DiagnosticDescriptor DuplicateDiscriminators =
-            new DiagnosticDescriptor(
+            new(
                 DuplicateDiscriminatorDiagnosticId,
                 "Multiple discriminators on one type are not supported by JsonSubTypes.Aot",
                 "Type '{0}' is registered with several discriminator values; only the last one is used for writing. The runtime converter's Build() rejects this configuration.",
@@ -41,7 +41,7 @@ namespace JsonSubTypes.Aot
             IncrementalValuesProvider<INamedTypeSymbol> baseTypes = context.SyntaxProvider
                 .ForAttributeWithMetadataName(
                     $"{AttributeNamespace}.{JsonSubTypesAotConverterAttributeName}",
-                    predicate: static (node, _) => true,
+                    predicate: static (_, _) => true,
                     transform: static (ctx, _) => (INamedTypeSymbol)ctx.TargetSymbol!);
 
             context.RegisterSourceOutput(baseTypes.Collect(), static (spc, types) =>
@@ -51,15 +51,18 @@ namespace JsonSubTypes.Aot
                     return;
                 }
 
-                List<BaseTypeInfo> bases = new List<BaseTypeInfo>();
-                foreach (INamedTypeSymbol? baseType in types.Distinct(SymbolEqualityComparer.Default))
+                List<BaseTypeInfo> bases = [];
+                foreach (ISymbol? symbol in types.Distinct(SymbolEqualityComparer.Default))
                 {
+                    INamedTypeSymbol? baseType = (INamedTypeSymbol?)symbol;
                     bases.Add(BuildBaseTypeInfo(baseType!, spc));
                 }
 
-                List<BaseTypeInfo> generated = bases
-                    .Where(b => b.Subtypes.Count > 0 || b.HasPropertyPresence)
-                    .ToList();
+                List<BaseTypeInfo> generated =
+                [
+                    .. bases
+                        .Where(b => b.Subtypes.Count > 0 || b.HasPropertyPresence)
+                ];
                 if (generated.Count == 0)
                 {
                     return;
@@ -82,12 +85,12 @@ namespace JsonSubTypes.Aot
             public string? DiscriminatorPropertyName { get; set; }
             public bool AddDiscriminatorFirst { get; set; } = true;
             public bool HasPropertyPresence { get; set; }
-            public List<SubtypeRegistration> Subtypes { get; } = new List<SubtypeRegistration>();
-            public List<PropertyPresenceRegistration> PropertyPresences { get; } = new List<PropertyPresenceRegistration>();
+            public List<SubtypeRegistration> Subtypes { get; } = [];
+            public List<PropertyPresenceRegistration> PropertyPresences { get; } = [];
             public string? FallbackFullyQualifiedName { get; set; }
-            public List<ITypeSymbol> AllTypes { get; } = new List<ITypeSymbol>();
-            public List<BaseProperty> Properties { get; } = new List<BaseProperty>();
-            public List<NestedChain> NestedTypes { get; } = new List<NestedChain>();
+
+            public List<BaseProperty> Properties { get; } = [];
+            public List<NestedChain> NestedTypes { get; } = [];
 
             public string FallbackType => FallbackFullyQualifiedName ?? FullyQualifiedName;
             public bool IsValueMode => DiscriminatorPropertyName != null;
@@ -98,7 +101,7 @@ namespace JsonSubTypes.Aot
         private sealed class NestedChain
         {
             public string RuntimeTypeName { get; set; } = "";
-            public List<ChainEntry> Chain { get; } = new List<ChainEntry>();
+            public List<ChainEntry> Chain { get; } = [];
         }
 
         private sealed class ChainEntry
@@ -137,15 +140,14 @@ namespace JsonSubTypes.Aot
 
         private static BaseTypeInfo BuildBaseTypeInfo(INamedTypeSymbol baseType, SourceProductionContext spc)
         {
-            BaseTypeInfo info = new BaseTypeInfo
+            BaseTypeInfo info = new()
             {
                 FullyQualifiedName = baseType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                 TypeName = baseType.Name,
                 BaseIsAbstractOrInterface = baseType.TypeKind == TypeKind.Interface || baseType.IsAbstract,
-                BaseHasParameterlessConstructor = baseType.InstanceConstructors.Any(
-                    c => c.Parameters.Length == 0 && c.DeclaredAccessibility == Accessibility.Public)
+                BaseHasParameterlessConstructor = baseType.InstanceConstructors.Any(c =>
+                    c.Parameters.Length == 0 && c.DeclaredAccessibility == Accessibility.Public)
             };
-            info.AllTypes.Add(baseType);
 
             ReadMarkerAttribute(baseType, info);
             ProcessRegistrationAttributes(baseType, info, spc);
@@ -171,7 +173,7 @@ namespace JsonSubTypes.Aot
 
                 foreach (KeyValuePair<string, TypedConstant> namedArg in attr.NamedArguments)
                 {
-                    if (namedArg.Key == "AddDiscriminatorFirst" && namedArg.Value.Value is bool b)
+                    if (namedArg is { Key: "AddDiscriminatorFirst", Value.Value: bool b })
                     {
                         info.AddDiscriminatorFirst = b;
                     }
@@ -206,14 +208,13 @@ namespace JsonSubTypes.Aot
             {
                 return;
             }
-
-            info.AllTypes.Add(subtype);
+            
             if (info.DiscriminatorPropertyName == null)
             {
                 return; // presence mode ignores value registrations
             }
 
-            SubtypeRegistration registration = new SubtypeRegistration
+            SubtypeRegistration registration = new()
             {
                 FullyQualifiedName = subtype.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
             };
@@ -232,9 +233,7 @@ namespace JsonSubTypes.Aot
 
         private static void ProcessKnownSubTypeWithProperty(AttributeData attr, BaseTypeInfo info)
         {
-            ITypeSymbol? subtype = attr.ConstructorArguments[0].Value as ITypeSymbol;
-            string? propertyName = attr.ConstructorArguments[1].Value as string;
-            if (subtype == null || propertyName == null)
+            if (attr.ConstructorArguments[0].Value is not ITypeSymbol subtype || attr.ConstructorArguments[1].Value is not string propertyName)
             {
                 return;
             }
@@ -242,13 +241,12 @@ namespace JsonSubTypes.Aot
             bool stopLookup = false;
             foreach (KeyValuePair<string, TypedConstant> namedArg in attr.NamedArguments)
             {
-                if (namedArg.Key == "StopLookupOnMatch" && namedArg.Value.Value is bool b)
+                if (namedArg is { Key: "StopLookupOnMatch", Value.Value: bool b })
                 {
                     stopLookup = b;
                 }
             }
 
-            info.AllTypes.Add(subtype);
             info.HasPropertyPresence = true;
             info.PropertyPresences.Add(new PropertyPresenceRegistration
             {
@@ -262,7 +260,6 @@ namespace JsonSubTypes.Aot
         {
             if (attr.ConstructorArguments[0].Value is ITypeSymbol fallback)
             {
-                info.AllTypes.Add(fallback);
                 info.FallbackFullyQualifiedName = fallback.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             }
         }
@@ -298,15 +295,16 @@ namespace JsonSubTypes.Aot
                 string? jsonName = null;
                 foreach (AttributeData attr in property.GetAttributes())
                 {
-                    if (attr.AttributeClass?.Name == "JsonIgnoreAttribute")
+                    switch (attr.AttributeClass?.Name)
                     {
-                        ignored = true;
-                    }
-                    else if (attr.AttributeClass?.Name == "JsonPropertyNameAttribute" &&
-                             attr.ConstructorArguments.Length > 0 &&
-                             attr.ConstructorArguments[0].Value is string name)
-                    {
-                        jsonName = name;
+                        case "JsonIgnoreAttribute":
+                            ignored = true;
+                            break;
+                        case "JsonPropertyNameAttribute" when
+                            attr.ConstructorArguments.Length > 0 &&
+                            attr.ConstructorArguments[0].Value is string name:
+                            jsonName = name;
+                            break;
                     }
                 }
 
@@ -383,7 +381,7 @@ namespace JsonSubTypes.Aot
                 .ToDictionary(b => b.FullyQualifiedName, b => b, StringComparer.Ordinal);
 
             Dictionary<string, List<BaseTypeInfo>> parents = BuildParentMap(bases);
-            Dictionary<string, List<string>> ancestorCache = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            Dictionary<string, List<string>> ancestorCache = new(StringComparer.Ordinal);
 
             foreach (BaseTypeInfo b in bases)
             {
@@ -392,7 +390,7 @@ namespace JsonSubTypes.Aot
                     continue;
                 }
 
-                HashSet<string> direct = new HashSet<string>(b.Subtypes.Select(s => s.FullyQualifiedName), StringComparer.Ordinal);
+                HashSet<string> direct = [.. b.Subtypes.Select(s => s.FullyQualifiedName)];
                 foreach ((string type, _) in BuildDescendants(b, baseByType))
                 {
                     if (direct.Contains(type))
@@ -403,7 +401,7 @@ namespace JsonSubTypes.Aot
                     List<ChainEntry> chain = ComputeChain(b, type, baseByType, parents, ancestorCache);
                     if (chain.Count > 0)
                     {
-                        NestedChain nested = new NestedChain { RuntimeTypeName = type };
+                        NestedChain nested = new() { RuntimeTypeName = type };
                         nested.Chain.AddRange(chain);
                         b.NestedTypes.Add(nested);
                     }
@@ -414,14 +412,14 @@ namespace JsonSubTypes.Aot
         private static Dictionary<string, List<BaseTypeInfo>> BuildParentMap(List<BaseTypeInfo> bases)
         {
             // subtype -> hierarchy bases where it is a direct subtype
-            Dictionary<string, List<BaseTypeInfo>> parents = new Dictionary<string, List<BaseTypeInfo>>(StringComparer.Ordinal);
+            Dictionary<string, List<BaseTypeInfo>> parents = new(StringComparer.Ordinal);
             foreach (BaseTypeInfo b in bases)
             {
                 foreach (SubtypeRegistration s in b.Subtypes)
                 {
                     if (!parents.TryGetValue(s.FullyQualifiedName, out List<BaseTypeInfo>? list))
                     {
-                        parents[s.FullyQualifiedName] = list = new List<BaseTypeInfo>();
+                        parents[s.FullyQualifiedName] = list = [];
                     }
                     list.Add(b);
                 }
@@ -439,12 +437,12 @@ namespace JsonSubTypes.Aot
             }
 
             // ordered [T, parent bases, grandparent bases, ...]
-            List<string> result = new List<string> { type };
-            HashSet<string> seen = new HashSet<string> { type };
-            List<string> frontier = new List<string> { type };
+            List<string> result = [type];
+            HashSet<string> seen = [type];
+            List<string> frontier = [type];
             while (frontier.Count > 0)
             {
-                List<string> next = new List<string>();
+                List<string> next = [];
                 foreach (string f in frontier)
                 {
                     if (parents.TryGetValue(f, out List<BaseTypeInfo>? hs))
@@ -470,9 +468,9 @@ namespace JsonSubTypes.Aot
         private static List<(string Type, int Depth)> BuildDescendants(BaseTypeInfo b,
             Dictionary<string, BaseTypeInfo> baseByType)
         {
-            List<(string Type, int Depth)> descendants = new List<(string, int)>();
-            Queue<(string Type, int Depth)> queue = new Queue<(string, int)>();
-            HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
+            List<(string Type, int Depth)> descendants = [];
+            Queue<(string Type, int Depth)> queue = new();
+            HashSet<string> seen = new(StringComparer.Ordinal);
             foreach (SubtypeRegistration s in b.Subtypes)
             {
                 if (seen.Add(s.FullyQualifiedName))
@@ -507,14 +505,16 @@ namespace JsonSubTypes.Aot
             List<string> ancestors = TypeAncestors(type, parents, ancestorCache);
             // hierarchy bases on the path strictly below-or-at the declared base, ordered
             // outer-first (declared base first, innermost last)
-            List<string> pathBases = ancestors
-                .Where(t => baseByType.ContainsKey(t))
-                .Where(t => t == declaredBase.FullyQualifiedName ||
-                            TypeAncestors(t, parents, ancestorCache).Contains(declaredBase.FullyQualifiedName))
-                .ToList();
+            List<string> pathBases =
+            [
+                .. ancestors
+                    .Where(baseByType.ContainsKey)
+                    .Where(t => t == declaredBase.FullyQualifiedName ||
+                                TypeAncestors(t, parents, ancestorCache).Contains(declaredBase.FullyQualifiedName))
+            ];
             pathBases.Reverse();
 
-            List<ChainEntry> chain = new List<ChainEntry>();
+            List<ChainEntry> chain = [];
             foreach (string hName in pathBases)
             {
                 BaseTypeInfo h = baseByType[hName];
@@ -727,7 +727,7 @@ namespace JsonSubTypes.Aot
         private static string EmitValueModeSelectType(BaseTypeInfo info)
         {
             string? nullCases = null;
-            var nulls = info.Subtypes.Where(s => s.DiscriminatorKind == "null").ToList();
+            List<SubtypeRegistration> nulls = [.. info.Subtypes.Where(s => s.DiscriminatorKind == "null")];
             if (nulls.Count > 0)
             {
                 // dedupe so consecutive null registrations do not emit unreachable returns
@@ -736,49 +736,49 @@ namespace JsonSubTypes.Aot
                         .Select(t => $"return typeof({t});"));
             }
 
-            var strings = info.Subtypes.Where(s => s.DiscriminatorKind == "string").ToList();
-            var enums = info.Subtypes.Where(s => s.DiscriminatorKind == "enum").ToList();
+            List<SubtypeRegistration> strings = [.. info.Subtypes.Where(s => s.DiscriminatorKind == "string")];
+            List<SubtypeRegistration> enums = [.. info.Subtypes.Where(s => s.DiscriminatorKind == "enum")];
             string? stringCases = null;
             if (strings.Count + enums.Count > 0)
             {
-                var cases = strings.Select(r => $"case {r.DiscriminatorLiteral}: return typeof({r.FullyQualifiedName});")
+                IEnumerable<string> cases = strings.Select(r => $"case {r.DiscriminatorLiteral}: return typeof({r.FullyQualifiedName});")
                     .Concat(enums.Select(r => $"case {SymbolDisplay.FormatLiteral(r.EnumMemberName!, quote: true)}: return typeof({r.FullyQualifiedName});"));
                 stringCases = "                        " + string.Join("\n" + "                        ", cases);
             }
 
-            var ints = info.Subtypes.Where(s => s.DiscriminatorKind == "int").ToList();
+            List<SubtypeRegistration> ints = [.. info.Subtypes.Where(s => s.DiscriminatorKind == "int")];
             string? numberCases = null;
             if (ints.Count + enums.Count > 0)
             {
-                var cases = ints.Select(r => $"case {SymbolDisplay.FormatLiteral(r.DiscriminatorLiteral, quote: true)}: return typeof({r.FullyQualifiedName});")
+                IEnumerable<string> cases = ints.Select(r => $"case {SymbolDisplay.FormatLiteral(r.DiscriminatorLiteral, quote: true)}: return typeof({r.FullyQualifiedName});")
                     .Concat(enums.Select(r => $"case {SymbolDisplay.FormatLiteral(r.EnumUnderlyingValue!, quote: true)}: return typeof({r.FullyQualifiedName});"));
                 numberCases = "                        " + string.Join("\n" + "                        ", cases);
             }
 
-            string? nullBlock = nullCases == null ? "" : $$"""
-                    if (discriminator.ValueKind == JsonValueKind.Null)
-                    {
-                {{nullCases}}
-                    }
-                """;
-            string? stringBlock = stringCases == null ? "" : $$"""
-                    if (discriminator.ValueKind == JsonValueKind.String)
-                    {
-                        switch (discriminator.GetString())
-                        {
-                {{stringCases}}
-                        }
-                    }
-                """;
-            string? numberBlock = numberCases == null ? "" : $$"""
-                    if (discriminator.ValueKind == JsonValueKind.Number)
-                    {
-                        switch (discriminator.GetRawText())
-                        {
-                {{numberCases}}
-                        }
-                    }
-                """;
+            string nullBlock = nullCases == null ? "" : $$"""
+                                                              if (discriminator.ValueKind == JsonValueKind.Null)
+                                                              {
+                                                          {{nullCases}}
+                                                              }
+                                                          """;
+            string stringBlock = stringCases == null ? "" : $$"""
+                                                                  if (discriminator.ValueKind == JsonValueKind.String)
+                                                                  {
+                                                                      switch (discriminator.GetString())
+                                                                      {
+                                                              {{stringCases}}
+                                                                      }
+                                                                  }
+                                                              """;
+            string numberBlock = numberCases == null ? "" : $$"""
+                                                                  if (discriminator.ValueKind == JsonValueKind.Number)
+                                                                  {
+                                                                      switch (discriminator.GetRawText())
+                                                                      {
+                                                              {{numberCases}}
+                                                                      }
+                                                                  }
+                                                              """;
 
             return $$"""
                     if (TryGetValueInJson(root, {{SymbolDisplay.FormatLiteral(info.DiscriminatorPropertyName!, quote: true)}}, options, out JsonElement discriminator))
@@ -806,27 +806,22 @@ namespace JsonSubTypes.Aot
 
         private static string EmitPresenceModeSelectType(BaseTypeInfo info)
         {
-            List<string> checks = new List<string>();
+            List<string> checks = [];
             foreach (PropertyPresenceRegistration reg in info.PropertyPresences)
             {
-                if (reg.StopLookupOnMatch)
-                {
-                    checks.Add($$"""
+                checks.Add(reg.StopLookupOnMatch
+                    ? $$"""
                         if (root.TryGetProperty({{SymbolDisplay.FormatLiteral(reg.PropertyName, quote: true)}}, out _))
                         {
                             return typeof({{reg.FullyQualifiedName}});
                         }
-                        """);
-                }
-                else
-                {
-                    checks.Add($$"""
+                        """
+                    : $$"""
                         if (root.TryGetProperty({{SymbolDisplay.FormatLiteral(reg.PropertyName, quote: true)}}, out _))
                         {
                             matches.Add(typeof({{reg.FullyQualifiedName}}));
                         }
                         """);
-                }
             }
 
             string presenceChecks = string.Join("\n", checks);
@@ -847,13 +842,13 @@ namespace JsonSubTypes.Aot
 
         private static string EmitDiscriminatorWriter(BaseTypeInfo info)
         {
-            Dictionary<string, SubtypeRegistration> byType = new Dictionary<string, SubtypeRegistration>();
+            Dictionary<string, SubtypeRegistration> byType = new();
             foreach (SubtypeRegistration reg in info.Subtypes)
             {
                 byType[reg.FullyQualifiedName] = reg; // last registration wins for writing
             }
 
-            List<string> dictionaryEntries = new List<string>();
+            List<string> dictionaryEntries = [];
             foreach (SubtypeRegistration reg in byType.Values)
             {
                 string value = reg.DiscriminatorKind switch
@@ -976,10 +971,10 @@ namespace JsonSubTypes.Aot
                 return "";
             }
 
-            List<string> blocks = new List<string>();
+            List<string> blocks = [];
             foreach (NestedChain nested in info.NestedTypes)
             {
-                List<string> discLines = new List<string>();
+                List<string> discLines = [];
                 foreach (ChainEntry entry in nested.Chain)
                 {
                     discLines.Add($"                        writer.WritePropertyName({SymbolDisplay.FormatLiteral(entry.DiscriminatorName, quote: true)});");
@@ -1021,7 +1016,7 @@ namespace JsonSubTypes.Aot
 
         private static string EmitBaseHelpers(BaseTypeInfo info)
         {
-            List<string> writeProperties = new List<string>();
+            List<string> writeProperties = [];
             foreach (BaseProperty prop in info.Properties)
             {
                 if (!prop.HasGetter)
@@ -1041,7 +1036,7 @@ namespace JsonSubTypes.Aot
                     """);
             }
 
-            List<string> readProperties = new List<string>();
+            List<string> readProperties = [];
             foreach (BaseProperty prop in info.Properties)
             {
                 if (!prop.HasSetter)
