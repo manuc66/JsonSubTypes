@@ -44,6 +44,11 @@ jobs:
       - name: Test Aot with coverage (net10)
         run: dotnet test JsonSubTypes.Aot.Tests/JsonSubTypes.Aot.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/aot
 
+      - name: Install gpg (required by codecov-action v5)
+        run: sudo apt-get install -y gpg
+        # codecov-action v5 verifies the Codecov binary signature and requires
+        # gpg, which is not installed on the default ubuntu-latest image.
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
