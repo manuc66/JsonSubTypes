@@ -411,14 +411,14 @@ Measured with BenchmarkDotNet (`JsonSubTypes.Benchmarks`, DefaultJob, .NET 8.0, 
 
 Reading: the resolver is the fastest (native streaming, no double parse). The generated converter beats the runtime converter by ~1.1× on serialization and ~1.8× on deserialization, and allocates ~6× less on deserialization (compiled routing, no per-call converter scan).
 
-**Native AOT** (generated engine, measured with a Stopwatch loop in the published native binary — same harness as the JIT `--measure` mode of `JsonSubTypes.Benchmarks`):
+**Native AOT** (generated engine, measured with BenchmarkDotNet's NativeAOT job — ILCompiler toolchain — in the same benchmark project):
 
-| Mode | Serialize | Deserialize |
+| Benchmark | DefaultJob (JIT) | Native AOT (ILCompiler) |
 | :--- | ---: | ---: |
-| JIT | ~4.2 µs/op | ~2.4 µs/op |
-| Native AOT | ~1.7–2.1 µs/op | ~1.9–2.3 µs/op |
+| Generated_Serialize | 1.47–1.52 µs / 440 B | 1.63–1.74 µs / 440 B |
+| Generated_Deserialize | 1.46–1.54 µs / 216 B | 1.74–1.82 µs / 216 B |
 
-AOT roughly halves serialization time (no JIT tiering); deserialization stays comparable because it is dominated by the `JsonDocument` parse. The main AOT win is trimming compatibility, not raw speed.
+In steady state, Native AOT is comparable to (slightly slower than) JIT for this workload: the earlier stopwatch estimate that AOT halves serialization time was an artifact of the AOT binary's faster startup (no JIT tiering). The real AOT advantage is trimming compatibility and startup time, not steady-state throughput.
 
 ### Test formalism
 

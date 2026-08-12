@@ -278,10 +278,12 @@ namespace JsonSubTypes.Text.Json
         private static NullableDictionary<object, Type> BuildAttributeSubTypeMapping(Type type)
         {
             NullableDictionary<object, Type> dictionary = new NullableDictionary<object, Type>();
-            foreach (KnownSubTypeAttribute attribute in type.GetTypeInfo().GetCustomAttributes(false)
-                .OfType<KnownSubTypeAttribute>())
+            foreach (object attribute in type.GetTypeInfo().GetCustomAttributes(false))
             {
-                dictionary.Add(attribute.AssociatedValue, attribute.SubType);
+                if (attribute is KnownSubTypeAttribute known)
+                {
+                    dictionary.Add(known.AssociatedValue, known.SubType);
+                }
             }
 
             return dictionary;
@@ -289,8 +291,15 @@ namespace JsonSubTypes.Text.Json
 
         private static FallBackSubTypeAttribute? GetFallbackSubTypeAttribute(Type type)
         {
-            return type.GetTypeInfo().GetCustomAttributes(false).OfType<FallBackSubTypeAttribute>()
-                .FirstOrDefault();
+            foreach (object attribute in type.GetTypeInfo().GetCustomAttributes(false))
+            {
+                if (attribute is FallBackSubTypeAttribute fallback)
+                {
+                    return fallback;
+                }
+            }
+
+            return null;
         }
 
         private static JsonDerivedType CreateJsonDerivedType(Type subtype, object? discriminator)

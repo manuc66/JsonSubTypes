@@ -570,7 +570,15 @@ namespace JsonSubTypes.Text.Json
         {
             Type targetType = parentType;
             IJsonSubtypes? lastTypeResolver = null;
-            List<IJsonSubtypes> converters = serializer.Converters.OfType<IJsonSubtypes>().ToList();
+            List<IJsonSubtypes> converters = new List<IJsonSubtypes>();
+            foreach (JsonConverter converter in serializer.Converters)
+            {
+                if (converter is IJsonSubtypes jsonSubtypes)
+                {
+                    converters.Add(jsonSubtypes);
+                }
+            }
+
             IJsonSubtypes? currentTypeResolver = GetTypeResolver(targetType.GetTypeInfo(), converters);
             HashSet<Type> visitedTypes = new HashSet<Type> { targetType };
 
@@ -872,7 +880,13 @@ namespace JsonSubTypes.Text.Json
 
         private static IEnumerable<TAttribute> GetAttributes<TAttribute>(TypeInfo typeInfo) where TAttribute : Attribute
         {
-            return typeInfo.GetCustomAttributes(false).OfType<TAttribute>();
+            foreach (object attribute in typeInfo.GetCustomAttributes(false))
+            {
+                if (attribute is TAttribute typed)
+                {
+                    yield return typed;
+                }
+            }
         }
 
         private static TAttribute? GetAttribute<TAttribute>(TypeInfo typeInfo) where TAttribute : Attribute
