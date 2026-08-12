@@ -122,7 +122,7 @@ jobs:
       # job builds and tests the solution itself rather than reusing modern's
       # reports (whose relative file paths would not resolve here).
       - name: Begin SonarCloud analysis
-        run: dotnet-sonarscanner begin /k:manuc66_JsonSubTypes /o:manuc66-github /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url=https://sonarcloud.io /d:sonar.cs.cobertura.reportsPaths=TestResults/**/coverage.cobertura.xml /d:sonar.exclusions=**/*Tests*/**,**/JsonSubTypes.Benchmarks/**,**/JsonSubTypes.Aot.Sample/**
+        run: dotnet-sonarscanner begin /k:manuc66_JsonSubTypes /o:manuc66-github /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url=https://sonarcloud.io /d:sonar.cs.cobertura.reportsPaths=TestResults/**/coverage.cobertura.xml /d:sonar.exclusions=**/*Tests*/**/*,**/JsonSubTypes.Benchmarks/**/*,**/JsonSubTypes.Aot.Sample/**/*
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
