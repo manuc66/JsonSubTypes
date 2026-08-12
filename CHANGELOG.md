@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deserialization with an open generic base type (e.g. `Base<>`) now closes the generic subtype correctly (e.g. `Nested1<int>` for `Base<int>`) instead of failing. #177
 - Errors and exceptions raised while deserializing a subtype now carry the fully qualified JSON path (e.g. `Property2.Value` instead of `Value`), matching stock Newtonsoft.Json error handling. #182
 
+## [1.0.0-rc.3] - 2026-08-12
+
+### JsonSubTypes.Text.Json
+#### Added
+- New `JsonSubTypesAotConverterAttribute` opting a base type into the `JsonSubTypes.Aot` source generator.
+
+### JsonSubTypes.Aot
+#### Added
+- New package `JsonSubTypes.Aot` (1.0.0-rc.1): a Roslyn source generator emitting compiled subtype converters. Routing (property presence, fallback, enums, nested hierarchies, dynamic registration) is compiled, so it works in Native AOT / trimmed binaries without reflection.
+
 ## [1.0.0-rc.2] - 2026-08-10
 ### Changed
 - Rebuilt with Source Link, deterministic builds and `.snupkg` symbol packages so symbols validate against the published package.

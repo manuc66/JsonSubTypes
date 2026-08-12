@@ -14,7 +14,7 @@
 
   <PropertyGroup>
     <Description>Discriminated Json Subtypes Converter implementation for System.Text.Json</Description>
-    <Version>1.0.0-rc.2</Version>
+    <Version>1.0.0-rc.3</Version>
     <PackageTags>json converter subtype inheritance deserializeobject polymorphism System.Text.Json</PackageTags>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <SignAssembly>true</SignAssembly>
