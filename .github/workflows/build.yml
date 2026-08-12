@@ -33,6 +33,37 @@ jobs:
       - name: Test Aot (net8 + net10)
         run: dotnet test JsonSubTypes.Aot.Tests/JsonSubTypes.Aot.Tests.csproj -c Release
 
+      # The Newtonsoft tests run on net10 too (the library targets netstandard1.3/2.0),
+      # which lets coverlet measure the JsonSubTypes package on Linux.
+      - name: Test Newtonsoft on net10 (coverage)
+        run: dotnet test JsonSubTypes.Tests/JsonSubTypes.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/newtonsoft
+
+      - name: Test Text.Json with coverage (net10)
+        run: dotnet test JsonSubTypes.Text.Json.Tests/JsonSubTypes.Text.Json.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/textjson
+
+      - name: Test Aot with coverage (net10)
+        run: dotnet test JsonSubTypes.Aot.Tests/JsonSubTypes.Aot.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/aot
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: |
+            TestResults/newtonsoft/**/coverage.cobertura.xml
+            TestResults/textjson/**/coverage.cobertura.xml
+            TestResults/aot/**/coverage.cobertura.xml
+          fail_ci_if_error: true
+
+      - name: Upload coverage reports as artifact (for Sonar)
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            TestResults/newtonsoft/**/coverage.cobertura.xml
+            TestResults/textjson/**/coverage.cobertura.xml
+            TestResults/aot/**/coverage.cobertura.xml
+          if-no-files-found: error
+
       # The Aot sample is the only top-level-statements consumer of the generator:
       # building it catches generated-code conflicts that unit tests cannot (e.g. a
       # top-level `_` variable colliding with `out _` emitted by the generator).
@@ -66,18 +97,25 @@ jobs:
         run: dotnet build JsonSubTypes/JsonSubTypes.csproj -c Release
 
       - name: Test Newtonsoft (net46)
-        run: dotnet test JsonSubTypes.Tests/JsonSubTypes.Tests.csproj -c Release
+        run: dotnet test JsonSubTypes.Tests/JsonSubTypes.Tests.csproj -c Release -f net46
 
   analysis:
     # SonarCloud runs on master only. The job-level `if` avoids referencing the
     # secret in a step-level `if`, which broke workflow startup before (secrets are
     # not allowed in `if:` conditions).
     runs-on: ubuntu-latest
+    needs: modern
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+
+      - name: Download coverage reports from the modern job
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-reports
+          path: TestResults
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -92,6 +130,7 @@ jobs:
           args: >
             -Dsonar.projectKey=manuc66_JsonSubTypes
             -Dsonar.organization=manuc66-github
+            -Dsonar.cs.cobertura.reportsPaths=TestResults/**/coverage.cobertura.xml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
