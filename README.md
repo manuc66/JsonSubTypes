@@ -411,6 +411,26 @@ Measured with BenchmarkDotNet (`JsonSubTypes.Benchmarks`, DefaultJob, .NET 8.0, 
 
 Reading: the resolver is the fastest (native streaming, no double parse). The generated converter beats the runtime converter by ~1.1× on serialization and ~1.8× on deserialization, and allocates ~6× less on deserialization (compiled routing, no per-call converter scan).
 
+**Native AOT** (generated engine, measured with a Stopwatch loop in the published native binary — same harness as the JIT `--measure` mode of `JsonSubTypes.Benchmarks`):
+
+| Mode | Serialize | Deserialize |
+| :--- | ---: | ---: |
+| JIT | ~4.2 µs/op | ~2.4 µs/op |
+| Native AOT | ~1.7–2.1 µs/op | ~1.9–2.3 µs/op |
+
+AOT roughly halves serialization time (no JIT tiering); deserialization stays comparable because it is dominated by the `JsonDocument` parse. The main AOT win is trimming compatibility, not raw speed.
+
+### Test formalism
+
+The engine parity tests are written once and derived into every engine and target framework:
+
+- `ParityDomain.cs` holds the shared domain types (once).
+- `EngineParityTests` defines each scenario once with a `ParityCapabilities` gate; scenarios an engine cannot express are skipped with `Assert.Ignore` rather than re-written.
+- `RuntimeConverterParityTests`, `GeneratedConverterParityTests` and `ResolverParityTests` each supply only their `JsonSerializerOptions` and capability set.
+- Every scenario runs on both `net8.0` and `net10.0`.
+
+So a behavioral fix in one engine is automatically checked against the others, and the scenarios need no duplication.
+
 ### Decision matrix
 | Use case | Recommended |
 |---|---|
