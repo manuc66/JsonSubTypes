@@ -1,0 +1,93 @@
+name: Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: read
+
+jobs:
+  modern:
+    # .NET 8+/10+ workloads: Text.Json and Aot run anywhere; the native Aot publish
+    # is done on Linux (linux-x64) as the representative AOT platform.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Build Text.Json
+        run: dotnet build JsonSubTypes.Text.Json/JsonSubTypes.Text.Json.csproj -c Release
+
+      - name: Test Text.Json (net8 + net10)
+        run: dotnet test JsonSubTypes.Text.Json.Tests/JsonSubTypes.Text.Json.Tests.csproj -c Release
+
+      - name: Test Aot (net8 + net10)
+        run: dotnet test JsonSubTypes.Aot.Tests/JsonSubTypes.Aot.Tests.csproj -c Release
+
+      # The Aot sample is the only top-level-statements consumer of the generator:
+      # building it catches generated-code conflicts that unit tests cannot (e.g. a
+      # top-level `_` variable colliding with `out _` emitted by the generator).
+      - name: Build Aot sample (top-level statements consumer)
+        run: dotnet build JsonSubTypes.Aot.Sample/JsonSubTypes.Aot.Sample.csproj -c Release -f net8.0
+
+      # Native AOT end-to-end check: publish the sample as a native binary and run
+      # it. This is the only check that proves the generated converters work in a
+      # trimmed/AOT binary, not just under the JIT.
+      - name: Publish Aot sample as native binary
+        run: dotnet publish JsonSubTypes.Aot.Sample/JsonSubTypes.Aot.Sample.csproj -c Release -f net8.0 -r linux-x64 -p:StripSymbols=true
+
+      - name: Run the native Aot sample
+        run: ./JsonSubTypes.Aot.Sample/bin/Release/net8.0/linux-x64/publish/JsonSubTypes.Aot.Sample
+
+  framework:
+    # The Newtonsoft library targets net35/40/45/46/47 (.NET Framework), which runs
+    # only on Windows, so its test suite stays on a Windows agent.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Build JsonSubTypes (Newtonsoft)
+        run: dotnet build JsonSubTypes/JsonSubTypes.csproj -c Release
+
+      - name: Test Newtonsoft (net46)
+        run: dotnet test JsonSubTypes.Tests/JsonSubTypes.Tests.csproj -c Release
+
+  analysis:
+    # SonarCloud runs on master only. The job-level `if` avoids referencing the
+    # secret in a step-level `if`, which broke workflow startup before (secrets are
+    # not allowed in `if:` conditions).
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

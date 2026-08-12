@@ -1,8 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using JsonSubTypes.Tests.Plugin;
-using JsonSubTypes.Tests.Shared;
 using JsonSubTypes.Text.Json;
+using JsonSubTypes.Text.Json.Tests.Plugin;
+using JsonSubTypes.Text.Json.Tests.Shared;
 using NUnit.Framework;
 
 namespace JsonSubTypes.Tests
@@ -213,7 +213,7 @@ namespace JsonSubTypes.Tests
             try
             {
                 var dog = JsonSerializer.Deserialize<SharedAnimal>(
-                    "{\"Kind\":\"JsonSubTypes.Tests.Plugin.PluginDog\",\"CanBark\":true}");
+                    $"{{\"Kind\":\"{typeof(PluginDog).FullName}\",\"CanBark\":true}}");
 
                 Assert.IsInstanceOf<PluginDog>(dog);
                 Assert.IsTrue((dog as PluginDog)?.CanBark == true);
@@ -231,7 +231,7 @@ namespace JsonSubTypes.Tests
             try
             {
                 var animal = JsonSerializer.Deserialize<SharedAnimal>(
-                    "{\"Kind\":\"JsonSubTypes.Tests.Plugin.PluginDog\",\"CanBark\":true}");
+                    $"{{\"Kind\":\"{typeof(PluginDog).FullName}\",\"CanBark\":true}}");
 
                 Assert.IsInstanceOf<SharedAnimal>(animal);
             }

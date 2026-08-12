@@ -1,3 +1,6 @@
+// The sample uses the generic JsonSerializer overloads for brevity. The trimming/AOT
+// warnings are false positives here: the source-generated context supplies the metadata.
+#pragma warning disable IL2026, IL3050
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using JsonSubTypes.Aot.Generated;
@@ -21,7 +24,7 @@ Console.WriteLine($"presence serialize: {presenceJson}");
 Person? person = JsonSerializer.Deserialize<Person>("{\"Skill\":\"Painter\",\"FirstName\":\"A\"}", options);
 Console.WriteLine($"presence deserialize: {person?.GetType().Name}");
 
-string baseJson = JsonSerializer.Serialize<Person>(new Person { FirstName = "B" }, options);
+string baseJson = JsonSerializer.Serialize(new Person { FirstName = "B" }, options);
 Console.WriteLine($"presence base-as-leaf serialize: {baseJson}");
 
 Animal? fallback = JsonSerializer.Deserialize<Animal>("{\"type\":\"fish\",\"Age\":1}", options);
@@ -50,7 +53,7 @@ DottedGadget? dotted = JsonSerializer.Deserialize<DottedGadget>("{\"nested\":{\"
 });
 Console.WriteLine($"dotted nested deserialize: {dotted?.GetType().Name}");
 
-string plainBaseJson = JsonSerializer.Serialize<Animal>(new Animal { Age = 1 }, options);
+string plainBaseJson = JsonSerializer.Serialize(new Animal { Age = 1 }, options);
 Console.WriteLine($"base-as-leaf without mapping (plain): {plainBaseJson}");
 
 string nestedJson = JsonSerializer.Serialize<Payload>(new Run(), options);

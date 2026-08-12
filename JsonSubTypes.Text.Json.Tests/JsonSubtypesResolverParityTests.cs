@@ -74,7 +74,7 @@ namespace JsonSubTypes.Tests
         [Test]
         public void SerializeEverySubtype_WritesSameJsonAsConverter()
         {
-            IShape[] shapes = { new Circle { Radius = 10 }, new Square { Length = 4 } };
+            IShape[] shapes = [new Circle { Radius = 10 }, new Square { Length = 4 }];
 
             foreach (IShape shape in shapes)
             {
@@ -100,7 +100,7 @@ namespace JsonSubTypes.Tests
         [Test]
         public void Deserialize_EverySubtype_ReturnsSameTypeAsConverter()
         {
-            string[] jsons = { "{\"$type\":\"circle\",\"Radius\":10}", "{\"$type\":\"square\",\"Length\":4}" };
+            string[] jsons = ["{\"$type\":\"circle\",\"Radius\":10}", "{\"$type\":\"square\",\"Length\":4}"];
 
             foreach (string json in jsons)
             {
@@ -159,7 +159,7 @@ namespace JsonSubTypes.Tests
         [Test]
         public void SerializeAndDeserialize_Array_WritesSameJsonAsConverter()
         {
-            IShape[] shapes = { new Circle { Radius = 1 } };
+            IShape[] shapes = [new Circle { Radius = 1 }];
 
             string converterJson = JsonSerializer.Serialize(shapes, ConverterOptions());
             string resolverJson = JsonSerializer.Serialize(shapes, ResolverOptions());

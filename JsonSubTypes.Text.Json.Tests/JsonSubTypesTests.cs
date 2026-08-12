@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -251,7 +250,7 @@ namespace JsonSubTypes.Tests
             var expected = new Root
             {
                 Content = new Base(),
-                ContentList = new List<Base> { new SubB { Index = 1 }, new SubC { Name = "foo" } }
+                ContentList = [new SubB { Index = 1 }, new SubC { Name = "foo" }]
             };
 
             var root = JsonSerializer.Deserialize<Root>(

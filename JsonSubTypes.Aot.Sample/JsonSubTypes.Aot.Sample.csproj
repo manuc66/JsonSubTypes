@@ -6,7 +6,15 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <PublishAot>true</PublishAot>
+    <!-- native AOT is the most aggressive trimming; for a trimmed-JIT build override PublishAot=false -->
+    <PublishTrimmed Condition="'$(PublishAot)'=='false'">true</PublishTrimmed>
+    <TrimMode Condition="'$(PublishAot)'=='false'">full</TrimMode>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- The generic Serialize<T>/Deserialize<T> overloads are used because the generated
+         converters are applied through JsonSerializerOptions.Converters. All metadata comes from
+         the source-generated context (TypeInfoResolver), so the trimmer's IL2026 is a
+         conservative false positive here. -->
+    <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
   </PropertyGroup>
 
   <ItemGroup>

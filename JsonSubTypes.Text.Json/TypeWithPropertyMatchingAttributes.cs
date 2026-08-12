@@ -1,18 +1,10 @@
 using System;
 
-namespace JsonSubTypes.Text.Json
-{
-    internal class TypeWithPropertyMatchingAttributes
-    {
-        public Type Type { get; }
-        public string JsonPropertyName { get; }
-        public bool StopLookupOnMatch { get; }
+namespace JsonSubTypes.Text.Json;
 
-        public TypeWithPropertyMatchingAttributes(Type type, string jsonPropertyName, bool stopLookupOnMatch)
-        {
-            Type = type;
-            JsonPropertyName = jsonPropertyName;
-            StopLookupOnMatch = stopLookupOnMatch;
-        }
-    }
+internal class TypeWithPropertyMatchingAttributes(Type type, string jsonPropertyName, bool stopLookupOnMatch)
+{
+    public Type Type { get; } = type;
+    public string JsonPropertyName { get; } = jsonPropertyName;
+    public bool StopLookupOnMatch { get; } = stopLookupOnMatch;
 }

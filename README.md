@@ -1,7 +1,7 @@
 # __JsonSubTypes__
 __JsonSubTypes__ is a discriminated Json sub-type Converter implementation for .NET
 
-[![CI](https://github.com/manuc66/JsonSubTypes/actions/workflows/ci.yml/badge.svg)](https://github.com/manuc66/JsonSubTypes/actions/workflows/ci.yml)
+[![CI](https://github.com/manuc66/JsonSubTypes/actions/workflows/build.yml/badge.svg)](https://github.com/manuc66/JsonSubTypes/actions/workflows/build.yml)
 [![CodeQL](https://github.com/manuc66/JsonSubTypes/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/manuc66/JsonSubTypes/security/code-scanning)
 [![Code Coverage](https://codecov.io/gh/manuc66/JsonSubTypes/branch/master/graph/badge.svg)](https://codecov.io/gh/manuc66/JsonSubTypes)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=manuc66_JsonSubTypes&metric=alert_status)](https://sonarcloud.io/dashboard?id=manuc66_JsonSubTypes)
@@ -366,7 +366,7 @@ public interface IExpression { }
 - **Security**: name-based subtype resolution (`GetTypeByName`, used when no `[KnownSubType]` mapping is declared) resolves a type name from the JSON discriminator against the base type's assembly (and any assembly registered via `JsonSubTypesTypeResolution`). Only types assignable from the base can be resolved, but do **not** expose a name-based hierarchy to untrusted JSON without validating the payload upstream.
 - The property-presence builder (`JsonSubtypesWithPropertyConverterBuilder`) registers subtypes by property name, so two subtypes cannot share the same property name through the builder (use `[KnownSubTypeWithProperty]` attributes for that case).
 
-### Choosing between the three engines
+### Which engine should I use?
 
 `JsonSubTypes.Text.Json` ships three engines that share the same configuration layer (the attributes and `JsonSubtypesConverterBuilder`), and a parity test battery keeps them aligned:
 
@@ -386,11 +386,11 @@ public interface IExpression { }
 | Cross-assembly / plugin types outside the compilation | ❌ | ❌ | ✅ | ⚠️ (must be in the source-gen context) |
 | Native AOT / Trimming support | ✅ | ❌ | ❌ | ✅ |
 
-**The three niches:**
+**The three engines in one line:**
 
-1. **Converter (`Build()`)** — the full-featured runtime engine. No generator setup, works with attributes directly, and is the only engine for runtime-by-nature scenarios (real cross-assembly plugins, arbitrary type names resolved by reflection). The right default for non-AOT applications.
-2. **Resolver (`BuildResolver()`)** — the thin native bridge. Supports only the subset the native contract model can express, but is the simplest and the fastest for that subset. A lightweight option for .NET 7+ apps that need string/int polymorphism without attributes on the domain and without a generator.
-3. **Generator (`JsonSubTypes.Aot`)** — a Roslyn source generator emitting compiled converters. Nearly feature-identical to the converter, and it is **the Native AOT answer**: the routing is compiled, so property presence, fallback, enums, nested hierarchies and dynamic registration all work without reflection in a trimmed/AOT binary. The generator reads the `[JsonSubTypesAotConverter]`, `[KnownSubType]` and `[FallBackSubType]` attributes, so a consumer still references the `JsonSubTypes.Text.Json` package for those attributes (the generator itself is referenced as an analyzer).
+1. **Converter (`Build()`)** — the full-featured runtime engine and the right default for non-AOT applications.
+2. **Resolver (`BuildResolver()`)** — the thin native bridge: simplest and fastest, but limited to the subset the native contract model can express.
+3. **Generator (`JsonSubTypes.Aot`)** — a Roslyn source generator emitting compiled converters: the Native AOT answer, with routing compiled instead of reflected.
 
 ### Converter known scope & fallback path
 
@@ -400,8 +400,27 @@ To preserve full compatibility with advanced features while delegating object se
 - **Base-as-leaf & Fallback path**: lightweight direct property mapping honoring `[JsonIgnore]`, `[JsonPropertyName]`, the naming policy and `PropertyNameCaseInsensitive`. Per-property `[JsonConverter]`, `[JsonInclude]` fields, `required` members and parameterized constructors are not re-implemented on this path.
 - **Parameterless constructor required** for the base fallback type. Subtypes resolved via the discriminator support all STJ constructor features (primary constructors, `record` types).
 
-### Decision matrix
+### Performance (measured)
 
+Measured with BenchmarkDotNet (`JsonSubTypes.Benchmarks`, DefaultJob, .NET 8.0, one machine; serializing/deserializing a `Cat` declared as its `Animal` base). Numbers are machine-specific but reproducible by running that project.
+
+| Benchmark | Converter (`Build()`) | Resolver (`BuildResolver()`) | Generator (`JsonSubTypes.Aot`) |
+| :--- | ---: | ---: | ---: |
+| Serialize | 1.65–1.70 µs / 648 B | 0.40–0.41 µs / 400 B | 1.43–1.47 µs / 440 B |
+| Deserialize | 2.63–2.71 µs / 1264 B | 0.51–0.55 µs / 56 B | 1.50–1.56 µs / 216 B |
+
+Reading: the resolver is the fastest (native streaming, no double parse). The generated converter beats the runtime converter on deserialization, and allocates ~6× less (compiled routing, no per-call converter scan).
+
+**Native AOT** (generated engine, measured with a BenchmarkDotNet NativeAOT job in the same benchmark project):
+
+| Benchmark | DefaultJob (JIT) | Native AOT |
+| :--- | ---: | ---: |
+| Generated_Serialize | 1.47–1.52 µs / 440 B | 1.63–1.74 µs / 440 B |
+| Generated_Deserialize | 1.46–1.54 µs / 216 B | 1.74–1.82 µs / 216 B |
+
+In steady state, Native AOT is comparable to (slightly slower than) JIT for this workload. The real AOT advantage is trimming compatibility and startup time, not steady-state throughput.
+
+### Decision matrix
 | Use case | Recommended |
 |---|---|
 | Native AOT / trimming, hierarchy known at compile time | `JsonSubTypes.Aot` generator |
