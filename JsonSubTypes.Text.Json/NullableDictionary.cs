@@ -1,65 +1,64 @@
 using System;
 using System.Collections.Generic;
 
-namespace JsonSubTypes.Text.Json
+namespace JsonSubTypes.Text.Json;
+
+internal class NullableDictionary<TKey, TValue> where TKey : notnull
 {
-    internal class NullableDictionary<TKey, TValue> where TKey : notnull
+    private bool _hasNullKey;
+    private TValue? _nullKeyValue;
+    private readonly Dictionary<TKey, TValue> _dictionary = new();
+
+    public bool TryGetValue(TKey? key, out TValue? value)
     {
-        private bool _hasNullKey;
-        private TValue? _nullKeyValue;
-        private readonly Dictionary<TKey, TValue> _dictionary = new Dictionary<TKey, TValue>();
-
-        public bool TryGetValue(TKey? key, out TValue? value)
+        if (key is null)
         {
-            if (key is null)
+            if (!_hasNullKey)
             {
-                if (!_hasNullKey)
-                {
-                    value = default;
-                    return false;
-                }
-
-                value = _nullKeyValue;
-                return true;
+                value = default;
+                return false;
             }
 
-            return _dictionary.TryGetValue(key, out value);
+            value = _nullKeyValue;
+            return true;
         }
 
-        public void Add(TKey? key, TValue value)
-        {
-            if (key is null)
-            {
-                if (_hasNullKey)
-                {
-                    throw new ArgumentException();
-                }
+        return _dictionary.TryGetValue(key, out value);
+    }
 
-                _hasNullKey = true;
-                _nullKeyValue = value;
-            }
-            else
-            {
-                _dictionary.Add(key, value);
-            }
-        }
-
-        public IEnumerable<TKey> NotNullKeys()
-        {
-            return _dictionary.Keys;
-        }
-
-        public IEnumerable<KeyValuePair<TKey?, TValue>> Entries()
+    public void Add(TKey? key, TValue value)
+    {
+        if (key is null)
         {
             if (_hasNullKey)
             {
-                yield return new KeyValuePair<TKey?, TValue>(default, _nullKeyValue!);
+                throw new ArgumentException();
             }
 
-            foreach (KeyValuePair<TKey, TValue> value in _dictionary)
-            {
-                yield return new KeyValuePair<TKey?, TValue>(value.Key, value.Value);
-            }
+            _hasNullKey = true;
+            _nullKeyValue = value;
+        }
+        else
+        {
+            _dictionary.Add(key, value);
+        }
+    }
+
+    public IEnumerable<TKey> NotNullKeys()
+    {
+        return _dictionary.Keys;
+    }
+
+    public IEnumerable<KeyValuePair<TKey?, TValue>> Entries()
+    {
+        if (_hasNullKey)
+        {
+            yield return new KeyValuePair<TKey?, TValue>(default, _nullKeyValue!);
+        }
+
+        foreach (KeyValuePair<TKey, TValue> value in _dictionary)
+        {
+            yield return new KeyValuePair<TKey?, TValue>(value.Key, value.Value);
         }
     }
 }
