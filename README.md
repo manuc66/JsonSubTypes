@@ -366,7 +366,7 @@ public interface IExpression { }
 - **Security**: name-based subtype resolution (`GetTypeByName`, used when no `[KnownSubType]` mapping is declared) resolves a type name from the JSON discriminator against the base type's assembly (and any assembly registered via `JsonSubTypesTypeResolution`). Only types assignable from the base can be resolved, but do **not** expose a name-based hierarchy to untrusted JSON without validating the payload upstream.
 - The property-presence builder (`JsonSubtypesWithPropertyConverterBuilder`) registers subtypes by property name, so two subtypes cannot share the same property name through the builder (use `[KnownSubTypeWithProperty]` attributes for that case).
 
-### Choosing between the three engines
+### Which engine should I use?
 
 `JsonSubTypes.Text.Json` ships three engines that share the same configuration layer (the attributes and `JsonSubtypesConverterBuilder`), and a parity test battery keeps them aligned:
 
@@ -400,7 +400,7 @@ To preserve full compatibility with advanced features while delegating object se
 - **Base-as-leaf & Fallback path**: lightweight direct property mapping honoring `[JsonIgnore]`, `[JsonPropertyName]`, the naming policy and `PropertyNameCaseInsensitive`. Per-property `[JsonConverter]`, `[JsonInclude]` fields, `required` members and parameterized constructors are not re-implemented on this path.
 - **Parameterless constructor required** for the base fallback type. Subtypes resolved via the discriminator support all STJ constructor features (primary constructors, `record` types).
 
-### Performance (measured, not claimed)
+### Performance (measured)
 
 Measured with BenchmarkDotNet (`JsonSubTypes.Benchmarks`, DefaultJob, .NET 8.0, one machine; serializing/deserializing a `Cat` declared as its `Animal` base). Numbers are machine-specific but reproducible by running that project.
 
