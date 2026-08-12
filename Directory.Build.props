@@ -1,6 +1,6 @@
 <Project>
 
-  <!-- Shared NuGet package metadata for both JsonSubTypes packages.
+  <!-- Shared NuGet package metadata for the JsonSubTypes packages.
        Versions stay independent per project (see each .csproj). -->
 
   <PropertyGroup>

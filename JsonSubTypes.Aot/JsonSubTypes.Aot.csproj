@@ -11,8 +11,42 @@
     <IsAotCompatible>false</IsAotCompatible>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Description>Source generator emitting compiled subtype converters for JsonSubTypes.Text.Json, removing reflection from polymorphic serialization (Native AOT friendly)</Description>
+    <Version>1.0.0-rc.1</Version>
+    <PackageTags>json converter subtype inheritance deserializeobject polymorphism source generator System.Text.Json Native AOT</PackageTags>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>JsonSubTypes.Key.snk</AssemblyOriginatorKeyFile>
+    <DelaySign>false</DelaySign>
+    <FileVersion>1.0.0.0</FileVersion>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- The generator ships only as an analyzer; it must not be referenced as a runtime library.
+       Symbol packages are disabled: with IncludeBuildOutput=false there is no build output to
+       populate a snupkg, and the generator assembly is build-time tooling, not runtime code. -->
+  <PropertyGroup>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <IncludeSymbols>false</IncludeSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(OutputPath)$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\"/>
+    <None Include="..\LICENSE" Pack="true" PackagePath="\"/>
   </ItemGroup>
 
 </Project>

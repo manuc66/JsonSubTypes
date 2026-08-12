@@ -27,6 +27,7 @@ test_script:
 artifacts:
   - path: 'JsonSubTypes\**\*.nupkg'
   - path: 'JsonSubTypes.Text.Json\**\*.nupkg'
+  - path: 'JsonSubTypes.Aot\**\*.nupkg'
 
 deploy:
   - provider: NuGet

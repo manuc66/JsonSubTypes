@@ -29,6 +29,9 @@ jobs:
       - name: Build + pack JsonSubTypes.Text.Json
         run: dotnet build JsonSubTypes.Text.Json/JsonSubTypes.Text.Json.csproj -c Release
 
+      - name: Build + pack JsonSubTypes.Aot
+        run: dotnet build JsonSubTypes.Aot/JsonSubTypes.Aot.csproj -c Release
+
       # Trusted publishing: exchange the GitHub OIDC token for a short-lived
       # NuGet API key (no long-lived secret). Requires a trusted publishing
       # policy on nuget.org for owner manuc66, repository JsonSubTypes and
@@ -44,3 +47,6 @@ jobs:
 
       - name: Publish JsonSubTypes.Text.Json
         run: dotnet nuget push "JsonSubTypes.Text.Json/bin/Release/*.nupkg" "JsonSubTypes.Text.Json/bin/Release/*.snupkg" --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Publish JsonSubTypes.Aot
+        run: dotnet nuget push "JsonSubTypes.Aot/bin/Release/*.nupkg" --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

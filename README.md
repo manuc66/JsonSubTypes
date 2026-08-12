@@ -418,7 +418,14 @@ To preserve full compatibility with advanced features while delegating object se
 
 The resolver and the converter rely on reflection and are therefore **not compatible with trimming or Native AOT**. The polymorphic metadata that the resolver configures must be declared at compile time for AOT: `System.Text.Json` freezes it at build time, and a source-generated `JsonTypeInfo` is read-only at runtime. Assigning `PolymorphismOptions` to a source-generated `JsonTypeInfo` throws `InvalidOperationException` on both .NET 8 and .NET 10.
 
-For Native AOT, the `JsonSubTypes.Aot` generator compiles the routing into the converter (verified to run as a native binary with `dotnet publish -r linux-x64 -p:PublishAot=true`). Alternatively, declare the hierarchy with `[JsonDerivedType]` on the base type and use a plain source-generated context:
+For Native AOT, the `JsonSubTypes.Aot` generator compiles the routing into the converter (verified to run as a native binary with `dotnet publish -r linux-x64 -p:PublishAot=true`). The generator is referenced as an analyzer and reads its attributes (`[JsonSubTypesAotConverter]`, `[KnownSubType]`, …) from the `JsonSubTypes.Text.Json` package, so reference **both** `JsonSubTypes.Aot` and `JsonSubTypes.Text.Json`:
+
+```bash
+dotnet add package JsonSubTypes.Aot
+dotnet add package JsonSubTypes.Text.Json
+```
+
+Alternatively, declare the hierarchy with `[JsonDerivedType]` on the base type and use a plain source-generated context:
 
 ```csharp
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
