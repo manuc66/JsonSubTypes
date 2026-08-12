@@ -87,7 +87,7 @@ jobs:
             10.0.x
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v3
+        uses: SonarSource/sonarcloud-github-action@383f7e52eae3ab0510c3cb0e7d9d150bbaeab838
         with:
           args: >
             -Dsonar.projectKey=manuc66_JsonSubTypes
