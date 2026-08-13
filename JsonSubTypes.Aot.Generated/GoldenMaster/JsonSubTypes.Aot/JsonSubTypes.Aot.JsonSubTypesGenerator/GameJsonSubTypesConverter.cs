@@ -16,7 +16,6 @@ namespace JsonSubTypes.Aot.Generated
             [typeof(global::JsonSubTypes.Aot.Generated.TestDomain.Walk)] = static (writer, options) => writer.WriteRawValue(JsonSerializer.Serialize(global::JsonSubTypes.Aot.Generated.TestDomain.GameDiscriminator.WALK, options.GetTypeInfo(typeof(global::JsonSubTypes.Aot.Generated.TestDomain.GameDiscriminator))))
         };
 
-
         protected override Type SelectType(JsonElement root, JsonSerializerOptions options)
         {
     if (TryGetValueInJson(root, "$GameKind", options, out JsonElement discriminator))
@@ -69,7 +68,6 @@ namespace JsonSubTypes.Aot.Generated
         }
         protected override bool TryWriteNestedObject(Utf8JsonWriter writer, global::JsonSubTypes.Aot.Generated.TestDomain.Game value, Type runtimeType, JsonSerializerOptions options)
         {
-
             return false;
         }
     }

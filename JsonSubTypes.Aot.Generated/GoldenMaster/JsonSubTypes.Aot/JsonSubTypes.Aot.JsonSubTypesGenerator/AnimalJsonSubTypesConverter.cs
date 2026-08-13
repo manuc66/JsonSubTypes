@@ -16,7 +16,6 @@ namespace JsonSubTypes.Aot.Generated
             [typeof(global::JsonSubTypes.Aot.Generated.TestDomain.Dog)] = static (writer, options) => writer.WriteNumberValue(2)
         };
 
-
         protected override Type SelectType(JsonElement root, JsonSerializerOptions options)
         {
     if (TryGetValueInJson(root, "type", options, out JsonElement discriminator))
@@ -76,7 +75,6 @@ namespace JsonSubTypes.Aot.Generated
         }
         protected override bool TryWriteNestedObject(Utf8JsonWriter writer, global::JsonSubTypes.Aot.Generated.TestDomain.Animal value, Type runtimeType, JsonSerializerOptions options)
         {
-
             return false;
         }
     }

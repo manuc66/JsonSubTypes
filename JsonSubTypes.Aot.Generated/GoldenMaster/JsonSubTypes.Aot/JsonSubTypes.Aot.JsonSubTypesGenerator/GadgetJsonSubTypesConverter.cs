@@ -15,7 +15,6 @@ namespace JsonSubTypes.Aot.Generated
             [typeof(global::JsonSubTypes.Aot.Generated.TestDomain.ElectronicCat)] = static (writer, options) => writer.WriteRawValue(JsonSerializer.Serialize(global::JsonSubTypes.Aot.Generated.TestDomain.GadgetKind.ElectronicCat, options.GetTypeInfo(typeof(global::JsonSubTypes.Aot.Generated.TestDomain.GadgetKind))))
         };
 
-
         protected override Type SelectType(JsonElement root, JsonSerializerOptions options)
         {
     if (TryGetValueInJson(root, "kind", options, out JsonElement discriminator))
@@ -75,7 +74,6 @@ namespace JsonSubTypes.Aot.Generated
         }
         protected override bool TryWriteNestedObject(Utf8JsonWriter writer, global::JsonSubTypes.Aot.Generated.TestDomain.Gadget value, Type runtimeType, JsonSerializerOptions options)
         {
-
             return false;
         }
     }

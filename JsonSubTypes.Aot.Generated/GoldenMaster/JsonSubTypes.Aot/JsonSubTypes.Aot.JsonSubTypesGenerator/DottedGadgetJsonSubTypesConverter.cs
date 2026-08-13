@@ -15,7 +15,6 @@ namespace JsonSubTypes.Aot.Generated
             [typeof(global::JsonSubTypes.Aot.Generated.TestDomain.DottedElectronic)] = static (writer, options) => writer.WriteStringValue("electronic")
         };
 
-
         protected override Type SelectType(JsonElement root, JsonSerializerOptions options)
         {
     if (TryGetValueInJson(root, "nested.type", options, out JsonElement discriminator))
@@ -69,7 +68,6 @@ namespace JsonSubTypes.Aot.Generated
         }
         protected override bool TryWriteNestedObject(Utf8JsonWriter writer, global::JsonSubTypes.Aot.Generated.TestDomain.DottedGadget value, Type runtimeType, JsonSerializerOptions options)
         {
-
             return false;
         }
     }

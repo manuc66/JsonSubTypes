@@ -16,7 +16,6 @@ namespace JsonSubTypes.Aot.Generated
             [typeof(global::JsonSubTypes.Aot.Generated.TestDomain.Com)] = static (writer, options) => writer.WriteRawValue(JsonSerializer.Serialize(global::JsonSubTypes.Aot.Generated.TestDomain.PayloadDiscriminator.COM, options.GetTypeInfo(typeof(global::JsonSubTypes.Aot.Generated.TestDomain.PayloadDiscriminator))))
         };
 
-
         protected override Type SelectType(JsonElement root, JsonSerializerOptions options)
         {
     if (TryGetValueInJson(root, "$PayloadKind", options, out JsonElement discriminator))

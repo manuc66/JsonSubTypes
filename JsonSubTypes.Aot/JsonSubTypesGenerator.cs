@@ -820,69 +820,67 @@ namespace JsonSubTypes.Aot
                                 writer.WriteNullValue();
                                 return;
                             }
+
                             Type runtimeType = value.GetType();
-                            string payload;
-                            if (runtimeType == typeof(T))
-                            {
-                                if (IsRegistered(runtimeType))
-                                {
-                                    payload = SerializeBasePayload(value, options);
-                                }
-                                else
-                                {
-                                    WriteBaseObject(writer, value, options);
-                                    return;
-                                }
-                            }
-                            else if (IsRegistered(runtimeType))
-                            {
-                                payload = JsonSerializer.Serialize(value, options.GetTypeInfo(runtimeType));
-                            }
-                            else if (TryWriteNestedObject(writer, value, runtimeType, options))
+                            if (!TryGetPayload(writer, value, runtimeType, options, out string payload))
                             {
                                 return;
                             }
-                            else if (TryWriteDynamic(writer, value, runtimeType, options))
-                            {
-                                return;
-                            }
-                            else
-                            {
-                                JsonSerializer.Serialize(writer, value, options.GetTypeInfo(runtimeType));
-                                return;
-                            }
+
                             using JsonDocument payloadDocument = JsonDocument.Parse(payload);
-                            string discriminatorName = DiscriminatorPropertyName;
-                            if (options.PropertyNamingPolicy != null)
-                            {
-                                discriminatorName = options.PropertyNamingPolicy.ConvertName(discriminatorName);
-                            }
+                            string discriminatorName = options.PropertyNamingPolicy?.ConvertName(DiscriminatorPropertyName) ?? DiscriminatorPropertyName;
                             writer.WriteStartObject();
                             if (AddDiscriminatorFirst)
                             {
                                 writer.WritePropertyName(discriminatorName);
                                 WriteDiscriminatorValue(writer, runtimeType, options);
-                                foreach (JsonProperty property in payloadDocument.RootElement.EnumerateObject())
+                            }
+                            foreach (JsonProperty property in payloadDocument.RootElement.EnumerateObject())
+                            {
+                                if (!property.NameEquals(discriminatorName))
                                 {
-                                    if (!property.NameEquals(discriminatorName))
-                                    {
-                                        property.WriteTo(writer);
-                                    }
+                                    property.WriteTo(writer);
                                 }
                             }
-                            else
+                            if (!AddDiscriminatorFirst)
                             {
-                                foreach (JsonProperty property in payloadDocument.RootElement.EnumerateObject())
-                                {
-                                    if (!property.NameEquals(discriminatorName))
-                                    {
-                                        property.WriteTo(writer);
-                                    }
-                                }
                                 writer.WritePropertyName(discriminatorName);
                                 WriteDiscriminatorValue(writer, runtimeType, options);
                             }
                             writer.WriteEndObject();
+                        }
+
+                        // Resolves the serialized payload of the runtime type. Returns false
+                        // when the value was already written directly (base fallback, nested
+                        // chain, dynamic subtype or unregistered runtime type).
+                        private bool TryGetPayload(Utf8JsonWriter writer, T value, Type runtimeType, JsonSerializerOptions options, out string payload)
+                        {
+                            payload = "";
+                            if (runtimeType == typeof(T))
+                            {
+                                if (IsRegistered(runtimeType))
+                                {
+                                    payload = SerializeBasePayload(value, options);
+                                    return true;
+                                }
+                                WriteBaseObject(writer, value, options);
+                                return false;
+                            }
+                            if (IsRegistered(runtimeType))
+                            {
+                                payload = JsonSerializer.Serialize(value, options.GetTypeInfo(runtimeType));
+                                return true;
+                            }
+                            if (TryWriteNestedObject(writer, value, runtimeType, options))
+                            {
+                                return false;
+                            }
+                            if (TryWriteDynamic(writer, value, runtimeType, options))
+                            {
+                                return false;
+                            }
+                            JsonSerializer.Serialize(writer, value, options.GetTypeInfo(runtimeType));
+                            return false;
                         }
 
                         protected virtual System.Collections.Generic.Dictionary<System.Type, System.Action<Utf8JsonWriter, JsonSerializerOptions>> DiscriminatorWriters { get; } = new System.Collections.Generic.Dictionary<System.Type, System.Action<Utf8JsonWriter, JsonSerializerOptions>>();
@@ -929,8 +927,7 @@ namespace JsonSubTypes.Aot
                     [global::System.CodeDom.Compiler.GeneratedCode("JsonSubTypes.Aot", "1.0.0")]
                     public sealed class {{info.ConverterName}} : {{baseClass}}
                     {
-                {{valueModeMembers}}
-                        protected override Type SelectType(JsonElement root, JsonSerializerOptions options)
+                {{valueModeMembers}}        protected override Type SelectType(JsonElement root, JsonSerializerOptions options)
                         {
                 {{EmitSelectTypeMethod(info)}}
                         }
@@ -1225,9 +1222,10 @@ namespace JsonSubTypes.Aot
 
         private static string EmitTryWriteNestedObject(BaseTypeInfo info)
         {
+            string nestedCases = EmitNestedCases(info);
             return "        protected override bool TryWriteNestedObject(Utf8JsonWriter writer, " + info.FullyQualifiedName + " value, Type runtimeType, JsonSerializerOptions options)\n" +
                    "        {\n" +
-                   EmitNestedCases(info) + "\n" +
+                   (nestedCases.Length == 0 ? "" : nestedCases + "\n") +
                    "            return false;\n" +
                    "        }";
         }
