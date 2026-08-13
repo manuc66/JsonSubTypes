@@ -41,8 +41,8 @@ jobs:
       - name: Build + pack JsonSubTypes.Text.Json
         run: dotnet build JsonSubTypes.Text.Json/JsonSubTypes.Text.Json.csproj -c Release
 
-      - name: Build + pack JsonSubTypes.Aot
-        run: dotnet build JsonSubTypes.Aot/JsonSubTypes.Aot.csproj -c Release
+      - name: Build + pack JsonSubTypes.Text.Json.Aot
+        run: dotnet build JsonSubTypes.Text.Json.Aot/JsonSubTypes.Text.Json.Aot.csproj -c Release
 
       # Trusted publishing: exchange the GitHub OIDC token for a short-lived
       # NuGet API key (no long-lived secret). Requires a trusted publishing
@@ -78,12 +78,12 @@ jobs:
             dotnet nuget push "JsonSubTypes.Text.Json/bin/Release/*.nupkg" "JsonSubTypes.Text.Json/bin/Release/*.snupkg" --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
           fi
 
-      - name: Publish JsonSubTypes.Aot
+      - name: Publish JsonSubTypes.Text.Json.Aot
         run: |
           id=jsonSubTypes.aot
-          version=$(dotnet msbuild JsonSubTypes.Aot/JsonSubTypes.Aot.csproj -getProperty:Version -p:Configuration=Release | tail -n 1)
+          version=$(dotnet msbuild JsonSubTypes.Text.Json.Aot/JsonSubTypes.Text.Json.Aot.csproj -getProperty:Version -p:Configuration=Release | tail -n 1)
           if curl -sf -o /dev/null "https://api.nuget.org/v3-flatcontainer/$id/$version/$id.$version.nupkg"; then
-            echo "JsonSubTypes.Aot $version already on nuget.org, skipping"
+            echo "JsonSubTypes.Text.Json.Aot $version already on nuget.org, skipping"
           else
-            dotnet nuget push "JsonSubTypes.Aot/bin/Release/*.nupkg" --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+            dotnet nuget push "JsonSubTypes.Text.Json.Aot/bin/Release/*.nupkg" --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
           fi

@@ -370,7 +370,7 @@ public interface IExpression { }
 
 `JsonSubTypes.Text.Json` ships three engines that share the same configuration layer (the attributes and `JsonSubtypesConverterBuilder`), and a parity test battery keeps them aligned:
 
-| Feature / Capability | Native STJ (`[JsonDerivedType]`) | Resolver (`BuildResolver()`) | Converter (`Build()`) | Generator (`JsonSubTypes.Aot`) |
+| Feature / Capability | Native STJ (`[JsonDerivedType]`) | Resolver (`BuildResolver()`) | Converter (`Build()`) | Generator (`JsonSubTypes.Text.Json.Aot`) |
 | :--- | :---: | :---: | :---: | :---: |
 | Type discriminator mapping (string/int) | ✅ | ✅ | ✅ | ✅ |
 | Enum / `null` discriminator values | ❌ | ❌ | ✅ | ✅ |
@@ -390,7 +390,7 @@ public interface IExpression { }
 
 1. **Converter (`Build()`)** — the full-featured runtime engine and the right default for non-AOT applications.
 2. **Resolver (`BuildResolver()`)** — the thin native bridge: simplest and fastest, but limited to the subset the native contract model can express.
-3. **Generator (`JsonSubTypes.Aot`)** — a Roslyn source generator emitting compiled converters: the Native AOT answer, with routing compiled instead of reflected.
+3. **Generator (`JsonSubTypes.Text.Json.Aot`)** — a Roslyn source generator emitting compiled converters: the Native AOT answer, with routing compiled instead of reflected.
 
 ### Converter known scope & fallback path
 
@@ -404,7 +404,7 @@ To preserve full compatibility with advanced features while delegating object se
 
 Measured with BenchmarkDotNet (`JsonSubTypes.Benchmarks`, DefaultJob, .NET 8.0, one machine; serializing/deserializing a `Cat` declared as its `Animal` base). Numbers are machine-specific but reproducible by running that project.
 
-| Benchmark | Converter (`Build()`) | Resolver (`BuildResolver()`) | Generator (`JsonSubTypes.Aot`) |
+| Benchmark | Converter (`Build()`) | Resolver (`BuildResolver()`) | Generator (`JsonSubTypes.Text.Json.Aot`) |
 | :--- | ---: | ---: | ---: |
 | Serialize | 1.65–1.70 µs / 648 B | 0.40–0.41 µs / 400 B | 1.43–1.47 µs / 440 B |
 | Deserialize | 2.63–2.71 µs / 1264 B | 0.51–0.55 µs / 56 B | 1.50–1.56 µs / 216 B |
@@ -423,7 +423,7 @@ In steady state, Native AOT is comparable to (slightly slower than) JIT for this
 ### Decision matrix
 | Use case | Recommended |
 |---|---|
-| Native AOT / trimming, hierarchy known at compile time | `JsonSubTypes.Aot` generator |
+| Native AOT / trimming, hierarchy known at compile time | `JsonSubTypes.Text.Json.Aot` generator |
 | Non-AOT, full feature set with minimal setup | Converter (`Build()`) |
 | Non-AOT, string/int discriminators only, fastest and simplest | Resolver (`BuildResolver()`) |
 | Discriminator by property presence (no discriminator field in the JSON) | Converter or Generator |
@@ -437,10 +437,10 @@ In steady state, Native AOT is comparable to (slightly slower than) JIT for this
 
 The resolver and the converter rely on reflection and are therefore **not compatible with trimming or Native AOT**. The polymorphic metadata that the resolver configures must be declared at compile time for AOT: `System.Text.Json` freezes it at build time, and a source-generated `JsonTypeInfo` is read-only at runtime. Assigning `PolymorphismOptions` to a source-generated `JsonTypeInfo` throws `InvalidOperationException` on both .NET 8 and .NET 10.
 
-For Native AOT, the `JsonSubTypes.Aot` generator compiles the routing into the converter (verified to run as a native binary with `dotnet publish -r linux-x64 -p:PublishAot=true`). The generator is referenced as an analyzer and reads its attributes (`[JsonSubTypesAotConverter]`, `[KnownSubType]`, …) from the `JsonSubTypes.Text.Json` package, so reference **both** `JsonSubTypes.Aot` and `JsonSubTypes.Text.Json`:
+For Native AOT, the `JsonSubTypes.Text.Json.Aot` generator compiles the routing into the converter (verified to run as a native binary with `dotnet publish -r linux-x64 -p:PublishAot=true`). The generator is referenced as an analyzer and reads its attributes (`[JsonSubTypesAotConverter]`, `[KnownSubType]`, …) from the `JsonSubTypes.Text.Json` package, so reference **both** `JsonSubTypes.Text.Json.Aot` and `JsonSubTypes.Text.Json`:
 
 ```bash
-dotnet add package JsonSubTypes.Aot
+dotnet add package JsonSubTypes.Text.Json.Aot
 dotnet add package JsonSubTypes.Text.Json
 ```
 

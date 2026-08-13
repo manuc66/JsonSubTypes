@@ -26,17 +26,17 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonSubTypes.Text.Json.Test
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonSubTypes.Text.Json.Tests.Plugin", "JsonSubTypes.Text.Json.Tests.Plugin\JsonSubTypes.Text.Json.Tests.Plugin.csproj", "{3503C568-B5F3-472F-BED4-52FA7EEE98A7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonSubTypes.Aot", "JsonSubTypes.Aot\JsonSubTypes.Aot.csproj", "{FCC887C5-B1FA-4E98-A934-5605F1670E8B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonSubTypes.Text.Json.Aot", "JsonSubTypes.Text.Json.Aot\JsonSubTypes.Text.Json.Aot.csproj", "{FCC887C5-B1FA-4E98-A934-5605F1670E8B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonSubTypes.Aot.Tests", "JsonSubTypes.Aot.Tests\JsonSubTypes.Aot.Tests.csproj", "{3C6AF029-C3E3-40CE-8AB9-3442CFBA7FE3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonSubTypes.Text.Json.Aot.Tests", "JsonSubTypes.Text.Json.Aot.Tests\JsonSubTypes.Text.Json.Aot.Tests.csproj", "{3C6AF029-C3E3-40CE-8AB9-3442CFBA7FE3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonSubTypes.Aot.Sample", "JsonSubTypes.Aot.Sample\JsonSubTypes.Aot.Sample.csproj", "{7FF3FF99-AA68-4294-B94A-BE54E6D79648}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonSubTypes.Text.Json.Aot.Sample", "JsonSubTypes.Text.Json.Aot.Sample\JsonSubTypes.Text.Json.Aot.Sample.csproj", "{7FF3FF99-AA68-4294-B94A-BE54E6D79648}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonSubTypes.Benchmarks", "JsonSubTypes.Benchmarks\JsonSubTypes.Benchmarks.csproj", "{43447A7A-0C1D-4613-A7FD-0D4A8C7A11AD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonSubTypes.Aot.Generator.Tests", "JsonSubTypes.Aot.Generator.Tests\JsonSubTypes.Aot.Generator.Tests.csproj", "{50112231-C47C-4FAD-B2E2-7A61A9486C04}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonSubTypes.Text.Json.Aot.Generator.Tests", "JsonSubTypes.Text.Json.Aot.Generator.Tests\JsonSubTypes.Text.Json.Aot.Generator.Tests.csproj", "{50112231-C47C-4FAD-B2E2-7A61A9486C04}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonSubTypes.Aot.Generated", "JsonSubTypes.Aot.Generated\JsonSubTypes.Aot.Generated.csproj", "{5A0027A7-3617-4CD7-9E87-5F84F38B58A4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonSubTypes.Text.Json.Aot.Generated", "JsonSubTypes.Text.Json.Aot.Generated\JsonSubTypes.Text.Json.Aot.Generated.csproj", "{5A0027A7-3617-4CD7-9E87-5F84F38B58A4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
