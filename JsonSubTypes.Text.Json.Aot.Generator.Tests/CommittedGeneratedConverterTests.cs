@@ -174,6 +174,32 @@ namespace JsonSubTypes.Text.Json.Aot.Generator.Tests
         }
 
         [Test]
+        public void Payload_DeserializeMissingDiscriminator_FallsBackToBase()
+        {
+            Payload? result = JsonSerializer.Deserialize<Payload>("{}", PayloadOptions);
+
+            Assert.That(result, Is.InstanceOf<Payload>());
+        }
+
+        [Test]
+        public void Payload_DeserializeUnknownValue_FallsBackToBase()
+        {
+            Payload? result = JsonSerializer.Deserialize<Payload>("{\"$PayloadKind\":\"nope\"}", PayloadOptions);
+
+            Assert.That(result, Is.InstanceOf<Payload>());
+        }
+
+        [Test]
+        public void Payload_DeserializeStringEnumNames_ReturnsSubtype()
+        {
+            Payload? game = JsonSerializer.Deserialize<Payload>("{\"$PayloadKind\":\"GAME\"}", PayloadOptions);
+            Payload? com = JsonSerializer.Deserialize<Payload>("{\"$PayloadKind\":\"COM\"}", PayloadOptions);
+
+            Assert.That(game, Is.InstanceOf<Game>());
+            Assert.That(com, Is.InstanceOf<Com>());
+        }
+
+        [Test]
         public void Game_SerializeRun_WritesDiscriminator()
         {
             string json = JsonSerializer.Serialize<Game>(new Run(), PayloadAndGameOptions);
@@ -206,6 +232,32 @@ namespace JsonSubTypes.Text.Json.Aot.Generator.Tests
         }
 
         [Test]
+        public void Game_DeserializeMissingDiscriminator_FallsBackToBase()
+        {
+            Game? result = JsonSerializer.Deserialize<Game>("{}", PayloadAndGameOptions);
+
+            Assert.That(result, Is.InstanceOf<Game>());
+        }
+
+        [Test]
+        public void Game_DeserializeUnknownValue_FallsBackToBase()
+        {
+            Game? result = JsonSerializer.Deserialize<Game>("{\"$GameKind\":\"nope\"}", PayloadAndGameOptions);
+
+            Assert.That(result, Is.InstanceOf<Game>());
+        }
+
+        [Test]
+        public void Game_DeserializeStringEnumNames_ReturnsSubtype()
+        {
+            Game? run = JsonSerializer.Deserialize<Game>("{\"$GameKind\":\"RUN\"}", PayloadAndGameOptions);
+            Game? walk = JsonSerializer.Deserialize<Game>("{\"$GameKind\":\"WALK\"}", PayloadAndGameOptions);
+
+            Assert.That(run, Is.InstanceOf<Run>());
+            Assert.That(walk, Is.InstanceOf<Walk>());
+        }
+
+        [Test]
         public void Gadget_SerializeBase_WritesBaseObject()
         {
             string json = JsonSerializer.Serialize<Gadget>(new Gadget { Age = 3 }, Options<Gadget>());
@@ -219,6 +271,14 @@ namespace JsonSubTypes.Text.Json.Aot.Generator.Tests
             Gadget? result = JsonSerializer.Deserialize<Gadget>("{\"kind\":\"fish\",\"Age\":3}", Options<Gadget>());
 
             Assert.That(result, Is.InstanceOf<Gadget>());
+        }
+
+        [Test]
+        public void Gadget_DeserializeStringEnumName_ReturnsSubtype()
+        {
+            Gadget? result = JsonSerializer.Deserialize<Gadget>("{\"kind\":\"ElectronicCat\",\"Lives\":9,\"Age\":3}", Options<Gadget>());
+
+            Assert.That(result, Is.InstanceOf<ElectronicCat>());
         }
 
         [Test]
@@ -293,6 +353,14 @@ namespace JsonSubTypes.Text.Json.Aot.Generator.Tests
             Assert.That(json, Is.EqualTo("{\"Age\":3}"));
         }
 
+        [Test]
+        public void Animal_SerializeUnregisteredSubtype_WritesThroughResolver()
+        {
+            string json = JsonSerializer.Serialize<Animal>(new Owl { Wingspan = 40, Age = 3 }, Options<Animal>());
+
+            Assert.That(json, Is.EqualTo("{\"Wingspan\":40,\"Age\":3}"));
+        }
+
         // ---- null discriminator ----
 
         [Test]
@@ -351,6 +419,22 @@ namespace JsonSubTypes.Text.Json.Aot.Generator.Tests
             string json = JsonSerializer.Serialize<DiscriminatorLast>(new DiscriminatorLast { Age = 3 }, Options<DiscriminatorLast>());
 
             Assert.That(json, Is.EqualTo("{\"Age\":3}"));
+        }
+
+        [Test]
+        public void DiscriminatorLast_DeserializeMissingDiscriminator_FallsBackToBase()
+        {
+            DiscriminatorLast? result = JsonSerializer.Deserialize<DiscriminatorLast>("{}", Options<DiscriminatorLast>());
+
+            Assert.That(result, Is.InstanceOf<DiscriminatorLast>());
+        }
+
+        [Test]
+        public void DiscriminatorLast_DeserializeUnknownValue_FallsBackToBase()
+        {
+            DiscriminatorLast? result = JsonSerializer.Deserialize<DiscriminatorLast>("{\"type\":\"nope\"}", Options<DiscriminatorLast>());
+
+            Assert.That(result, Is.InstanceOf<DiscriminatorLast>());
         }
 
         // ---- get-only property and conditional JsonIgnore ----

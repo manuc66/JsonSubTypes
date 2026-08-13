@@ -27,6 +27,11 @@ namespace JsonSubTypes.Text.Json.Aot.Generated.TestDomain
         public int Speed { get; set; }
     }
 
+    public class Owl : Animal
+    {
+        public int Wingspan { get; set; }
+    }
+
     [JsonSubTypesAotConverter]
     [KnownSubTypeWithProperty(typeof(Employee), "JobTitle")]
     [KnownSubTypeWithProperty(typeof(Artist), "Skill")]
