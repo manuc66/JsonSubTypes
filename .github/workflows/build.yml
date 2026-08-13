@@ -44,6 +44,9 @@ jobs:
       - name: Test Aot with coverage (net10)
         run: dotnet test JsonSubTypes.Aot.Tests/JsonSubTypes.Aot.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/aot
 
+      - name: Test Aot generator with coverage (net10)
+        run: dotnet test JsonSubTypes.Aot.Generator.Tests/JsonSubTypes.Aot.Generator.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/generator
+
       - name: Install gpg (required by codecov-action v5)
         run: sudo apt-get install -y gpg
         # codecov-action v5 verifies the Codecov binary signature and requires
@@ -57,6 +60,7 @@ jobs:
             TestResults/newtonsoft/**/coverage.cobertura.xml
             TestResults/textjson/**/coverage.cobertura.xml
             TestResults/aot/**/coverage.cobertura.xml
+            TestResults/generator/**/coverage.cobertura.xml
           fail_ci_if_error: true
 
       # The Aot sample is the only top-level-statements consumer of the generator:
@@ -95,11 +99,15 @@ jobs:
         run: dotnet test JsonSubTypes.Tests/JsonSubTypes.Tests.csproj -c Release -f net46
 
   analysis:
-    # SonarCloud runs on master only. The job-level `if` avoids referencing the
-    # secret in a step-level `if`, which broke workflow startup before (secrets are
-    # not allowed in `if:` conditions).
+    # SonarCloud analyzes both master pushes and pull requests. For PRs the scanner
+    # needs the pull-request parameters plus GITHUB_TOKEN (used to decorate the PR
+    # with the quality gate). The job-level `if` avoids referencing the secret in a
+    # step-level `if`, which broke workflow startup before (secrets are not allowed
+    # in `if:` conditions).
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v5
         with:
@@ -122,7 +130,12 @@ jobs:
       # job builds and tests the solution itself rather than reusing modern's
       # reports (whose relative file paths would not resolve here).
       - name: Begin SonarCloud analysis
-        run: dotnet-sonarscanner begin /k:manuc66_JsonSubTypes /o:manuc66-github /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url=https://sonarcloud.io /d:sonar.cs.cobertura.reportsPaths=TestResults/**/coverage.cobertura.xml /d:sonar.exclusions=**/*Tests*/**/*,**/JsonSubTypes.Benchmarks/**/*,**/JsonSubTypes.Aot.Sample/**/*
+        run: |
+          pr_args=""
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            pr_args="/d:sonar.pullrequest.key=${{ github.event.pull_request.number }} /d:sonar.pullrequest.branch=${{ github.head_ref }} /d:sonar.pullrequest.base=${{ github.base_ref }}"
+          fi
+          dotnet-sonarscanner begin /k:manuc66_JsonSubTypes /o:manuc66-github /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url=https://sonarcloud.io /d:sonar.cs.cobertura.reportsPaths=TestResults/**/coverage.cobertura.xml /d:sonar.exclusions=**/*Tests*/**/*,**/JsonSubTypes.Benchmarks/**/*,**/JsonSubTypes.Aot.Sample/**/* /d:sonar.cpd.exclusions=**/*.g.cs $pr_args
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
@@ -134,8 +147,10 @@ jobs:
           dotnet test JsonSubTypes.Tests/JsonSubTypes.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/newtonsoft
           dotnet test JsonSubTypes.Text.Json.Tests/JsonSubTypes.Text.Json.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/textjson
           dotnet test JsonSubTypes.Aot.Tests/JsonSubTypes.Aot.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/aot
+          dotnet test JsonSubTypes.Aot.Generator.Tests/JsonSubTypes.Aot.Generator.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/generator
 
       - name: End SonarCloud analysis
         run: dotnet-sonarscanner end /d:sonar.token="$SONAR_TOKEN"
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
