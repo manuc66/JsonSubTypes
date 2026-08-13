@@ -302,6 +302,115 @@ namespace JsonSubTypes.Text.Json.Aot.Tests
     {
         public int Lives { get; set; }
     }
+
+    [TestFixture]
+    public class GeneratedDeepHierarchyTests
+{
+    // A four-level hierarchy where every intermediate is a registered base itself and
+    // none of them is a direct subtype of the root: the leaf is only reachable through
+    // the whole chain, which stresses the ancestor BFS and the outer-first chain build.
+    private static JsonSerializerOptions Options()
+    {
+        return new JsonSerializerOptions { Converters = { JsonSubTypesAotConverters.RootDeep } };
+    }
+
+    [Test]
+    public void RootDeep_SerializeLeaf_WritesFullChain()
+    {
+        string json = JsonSerializer.Serialize<RootDeep>(new DeepLeaf { Mark = 5 }, Options());
+
+        Assert.AreEqual("{\"kind\":\"mid1\",\"kind\":\"mid2\",\"kind\":\"leaf\",\"Mark\":5}", json);
+    }
+
+    [Test]
+    public void RootDeep_DeserializeFirstDiscriminator_ReturnsDeepMid1()
+    {
+        // TryGetProperty reads the first discriminator occurrence; with a single "kind"
+        // the chain resolves to the registered intermediate.
+        var result = JsonSerializer.Deserialize<RootDeep>("{\"kind\":\"mid1\",\"Mark\":5}", Options());
+
+        Assert.IsInstanceOf<DeepMid1>(result);
+    }
+}
+
+[JsonSubTypesAotConverter("kind")]
+[KnownSubType(typeof(DeepMid1), "mid1")]
+public class RootDeep
+{
+}
+
+[JsonSubTypesAotConverter("kind")]
+[KnownSubType(typeof(DeepMid2), "mid2")]
+public class DeepMid1 : RootDeep
+{
+}
+
+[JsonSubTypesAotConverter("kind")]
+[KnownSubType(typeof(DeepLeaf), "leaf")]
+public class DeepMid2 : DeepMid1
+{
+}
+
+public class DeepLeaf : DeepMid2
+{
+    public int Mark { get; set; }
+}
+
+[TestFixture]
+public class GeneratedOverlappingHierarchyTests
+{
+    // IShared implements two registered roots (IRootA and IRootB), which is only
+    // possible with interfaces: the same type sits in two overlapping hierarchies.
+    // Each root must serialize a leaf with its OWN discriminator for IShared, not a
+    // mixed chain.
+    private static JsonSerializerOptions RootAOptions()
+    {
+        return new JsonSerializerOptions { Converters = { JsonSubTypesAotConverters.IRootA } };
+    }
+
+    private static JsonSerializerOptions RootBOptions()
+    {
+        return new JsonSerializerOptions { Converters = { JsonSubTypesAotConverters.IRootB } };
+    }
+
+    [Test]
+    public void RootA_SerializeLeaf_WritesOwnChain()
+    {
+        string json = JsonSerializer.Serialize<IRootA>(new Leaf(), RootAOptions());
+
+        Assert.AreEqual("{\"kind\":\"shared\",\"kind\":\"leaf\"}", json);
+    }
+
+    [Test]
+    public void RootB_SerializeLeaf_WritesOwnChain()
+    {
+        string json = JsonSerializer.Serialize<IRootB>(new Leaf(), RootBOptions());
+
+        Assert.AreEqual("{\"kind\":\"other\",\"kind\":\"leaf\"}", json);
+    }
+}
+
+[JsonSubTypesAotConverter("kind")]
+[KnownSubType(typeof(IShared), "shared")]
+public interface IRootA
+{
+}
+
+[JsonSubTypesAotConverter("kind")]
+[KnownSubType(typeof(IShared), "other")]
+public interface IRootB
+{
+}
+
+[JsonSubTypesAotConverter("kind")]
+[KnownSubType(typeof(Leaf), "leaf")]
+public interface IShared : IRootA, IRootB
+{
+}
+
+public class Leaf : IShared
+{
+}
 }
 
 [TestFixture]
@@ -453,114 +562,3 @@ public class DNLeaf : DNMid
     public int Mark { get; set; }
 }
 
-namespace JsonSubTypes.Text.Json.Aot.Tests
-{
-    [TestFixture]
-    public class GeneratedDeepHierarchyTests
-{
-    // A four-level hierarchy where every intermediate is a registered base itself and
-    // none of them is a direct subtype of the root: the leaf is only reachable through
-    // the whole chain, which stresses the ancestor BFS and the outer-first chain build.
-    private static JsonSerializerOptions Options()
-    {
-        return new JsonSerializerOptions { Converters = { JsonSubTypesAotConverters.RootDeep } };
-    }
-
-    [Test]
-    public void RootDeep_SerializeLeaf_WritesFullChain()
-    {
-        string json = JsonSerializer.Serialize<RootDeep>(new DeepLeaf { Mark = 5 }, Options());
-
-        Assert.AreEqual("{\"kind\":\"mid1\",\"kind\":\"mid2\",\"kind\":\"leaf\",\"Mark\":5}", json);
-    }
-
-    [Test]
-    public void RootDeep_DeserializeFirstDiscriminator_ReturnsDeepMid1()
-    {
-        // TryGetProperty reads the first discriminator occurrence; with a single "kind"
-        // the chain resolves to the registered intermediate.
-        var result = JsonSerializer.Deserialize<RootDeep>("{\"kind\":\"mid1\",\"Mark\":5}", Options());
-
-        Assert.IsInstanceOf<DeepMid1>(result);
-    }
-}
-
-[JsonSubTypesAotConverter("kind")]
-[KnownSubType(typeof(DeepMid1), "mid1")]
-public class RootDeep
-{
-}
-
-[JsonSubTypesAotConverter("kind")]
-[KnownSubType(typeof(DeepMid2), "mid2")]
-public class DeepMid1 : RootDeep
-{
-}
-
-[JsonSubTypesAotConverter("kind")]
-[KnownSubType(typeof(DeepLeaf), "leaf")]
-public class DeepMid2 : DeepMid1
-{
-}
-
-public class DeepLeaf : DeepMid2
-{
-    public int Mark { get; set; }
-}
-
-[TestFixture]
-public class GeneratedOverlappingHierarchyTests
-{
-    // IShared implements two registered roots (IRootA and IRootB), which is only
-    // possible with interfaces: the same type sits in two overlapping hierarchies.
-    // Each root must serialize a leaf with its OWN discriminator for IShared, not a
-    // mixed chain.
-    private static JsonSerializerOptions RootAOptions()
-    {
-        return new JsonSerializerOptions { Converters = { JsonSubTypesAotConverters.IRootA } };
-    }
-
-    private static JsonSerializerOptions RootBOptions()
-    {
-        return new JsonSerializerOptions { Converters = { JsonSubTypesAotConverters.IRootB } };
-    }
-
-    [Test]
-    public void RootA_SerializeLeaf_WritesOwnChain()
-    {
-        string json = JsonSerializer.Serialize<IRootA>(new Leaf(), RootAOptions());
-
-        Assert.AreEqual("{\"kind\":\"shared\",\"kind\":\"leaf\"}", json);
-    }
-
-    [Test]
-    public void RootB_SerializeLeaf_WritesOwnChain()
-    {
-        string json = JsonSerializer.Serialize<IRootB>(new Leaf(), RootBOptions());
-
-        Assert.AreEqual("{\"kind\":\"other\",\"kind\":\"leaf\"}", json);
-    }
-}
-
-[JsonSubTypesAotConverter("kind")]
-[KnownSubType(typeof(IShared), "shared")]
-public interface IRootA
-{
-}
-
-[JsonSubTypesAotConverter("kind")]
-[KnownSubType(typeof(IShared), "other")]
-public interface IRootB
-{
-}
-
-[JsonSubTypesAotConverter("kind")]
-[KnownSubType(typeof(Leaf), "leaf")]
-public interface IShared : IRootA, IRootB
-{
-}
-
-public class Leaf : IShared
-{
-}
-}
