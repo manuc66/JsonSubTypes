@@ -1,0 +1,22 @@
+# Codecov configuration.
+#
+# The JsonSubTypes.Aot.Generated project is the golden master: committed output of the
+# source generator, used to test the generator and to let Sonar analyze generated code.
+# Its coverage is not a meaningful project-level metric (it is exercised only partially
+# by the generator tests), so it is excluded from the Codecov project and patch checks.
+
+ignore:
+  - "JsonSubTypes.Aot.Generated/**"
+  - "JsonSubTypes.Aot.Generator.Tests/**"
+  - "**/*Tests*/**"
+  - "**/*.g.cs"
+
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 5%
+    patch:
+      default:
+        target: 80%
