@@ -130,14 +130,17 @@ jobs:
       # job builds and tests the solution itself rather than reusing modern's
       # reports (whose relative file paths would not resolve here).
       - name: Begin SonarCloud analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          PR_KEY: ${{ github.event.pull_request.number }}
+          PR_BRANCH: ${{ github.head_ref }}
+          PR_BASE: ${{ github.base_ref }}
         run: |
           pr_args=""
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            pr_args="/d:sonar.pullrequest.key=${{ github.event.pull_request.number }} /d:sonar.pullrequest.branch=${{ github.head_ref }} /d:sonar.pullrequest.base=${{ github.base_ref }}"
+            pr_args="/d:sonar.pullrequest.key=$PR_KEY /d:sonar.pullrequest.branch=$PR_BRANCH /d:sonar.pullrequest.base=$PR_BASE"
           fi
           dotnet-sonarscanner begin /k:manuc66_JsonSubTypes /o:manuc66-github /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url=https://sonarcloud.io /d:sonar.cs.cobertura.reportsPaths=TestResults/**/coverage.cobertura.xml /d:sonar.exclusions=**/*Tests*/**/*,**/JsonSubTypes.Benchmarks/**/*,**/JsonSubTypes.Aot.Sample/**/* /d:sonar.cpd.exclusions=**/*.g.cs $pr_args
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Build for SonarCloud analysis
         run: dotnet build JsonSubTypes.sln -c Release
