@@ -229,11 +229,18 @@ namespace JsonSubTypes.Aot
             }
             else
             {
-                spc.ReportDiagnostic(Diagnostic.Create(UnsupportedDiscriminator,
-                    attr.ApplicationSyntaxReference?.GetSyntax().GetLocation(),
-                    attr.ConstructorArguments[1].Type?.Name ?? "null",
-                    subtype.Name));
+                ReportUnsupportedDiscriminator(spc, attr, subtype, cancellationToken);
             }
+        }
+
+        private static void ReportUnsupportedDiscriminator(SourceProductionContext spc, AttributeData attr,
+            ITypeSymbol subtype, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            spc.ReportDiagnostic(Diagnostic.Create(UnsupportedDiscriminator,
+                attr.ApplicationSyntaxReference?.GetSyntax().GetLocation(),
+                attr.ConstructorArguments[1].Type?.Name ?? "null",
+                subtype.Name));
         }
 
         private static void ProcessKnownSubTypeWithProperty(AttributeData attr, BaseTypeInfo info)
