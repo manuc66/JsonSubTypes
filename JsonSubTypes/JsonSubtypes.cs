@@ -312,9 +312,11 @@ namespace JsonSubTypes
             var knownSubTypeAttributes = GetTypesByPropertyPresence(parentType);
 
             HashSet<Type> typesFound = new HashSet<Type>();
+
             foreach (TypeWithPropertyMatchingAttributes knownTypeItem in knownSubTypeAttributes)
             {
                 Type matchingKnownType = null;
+
                 if (TryGetValueInJson(jObject, knownTypeItem.JsonPropertyName, out JToken _))
                 {
                     matchingKnownType = knownTypeItem.Type;
@@ -328,34 +330,24 @@ namespace JsonSubTypes
                     }
                 }
 
-                if (matchingKnownType != null)
-                {
-                    if (knownTypeItem.StopLookupOnMatch)
-                    {
-                        return knownTypeItem.Type;
-                    }
-                    typesFound.Add(matchingKnownType);
-                }
+                if (matchingKnownType == null)
+                    continue;
+
+                if (knownTypeItem.StopLookupOnMatch)
+                    return knownTypeItem.Type;
+
+                typesFound.Add(matchingKnownType);
             }
 
-            Type result = null;
-            bool ambiguous = false;
-            foreach (Type matchingType in typesFound)
+            if (typesFound.Count > 1)
             {
-                if (result != null)
-                {
-                    ambiguous = true;
-                    break;
-                }
-                result = matchingType;
+                throw new JsonSerializationException(
+                    "Ambiguous type resolution, expected only one type but got: " +
+                    string.Join(", ", typesFound.Select(t => t.FullName).ToArray())
+                );
             }
 
-            if (ambiguous)
-            {
-                throw new JsonSerializationException("Ambiguous type resolution, expected only one type but got: " + String.Join(", ", typesFound.Select(t => t.FullName).ToArray()));
-            }
-
-            return result;
+            return typesFound.SingleOrDefault();
         }
 
         internal virtual List<TypeWithPropertyMatchingAttributes> GetTypesByPropertyPresence(Type parentType)
