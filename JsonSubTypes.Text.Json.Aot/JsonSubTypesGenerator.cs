@@ -344,37 +344,7 @@ namespace JsonSubTypes.Text.Json.Aot
                 // WriteBaseObject and DeserializeBase, while a conditionally-ignored one
                 // (WhenWritingNull / WhenWritingDefault) is still read and written unless
                 // the condition holds. Getters drive the write, setters the read.
-                string ignoreCondition = "Never";
-                string? jsonName = null;
-                foreach (AttributeData attr in property.GetAttributes())
-                {
-                    if (IsAttribute(attr, SystemTextJsonSerializationNamespace, "JsonIgnoreAttribute"))
-                    {
-                        ignoreCondition = "Always";
-                        foreach (KeyValuePair<string, TypedConstant> namedArg in attr.NamedArguments)
-                        {
-                            if (namedArg is { Key: "Condition", Value.Value: int condition })
-                            {
-                                ignoreCondition = condition switch
-                                {
-                                    0 => "Never",
-                                    1 => "Always",
-                                    2 => "WhenWritingDefault",
-                                    3 => "WhenWritingNull",
-                                    _ => "Always"
-                                };
-                            }
-                        }
-                    }
-                    else if (IsAttribute(attr, SystemTextJsonSerializationNamespace, "JsonPropertyNameAttribute") &&
-                        attr.ConstructorArguments.Length > 0 &&
-                        attr.ConstructorArguments[0].Value is string name)
-                    {
-                        jsonName = name;
-                    }
-                }
-
-                if (ignoreCondition == "Always")
+                if (TryReadPropertyMetadata(property, out string ignoreCondition, out string? jsonName))
                 {
                     continue;
                 }
@@ -393,6 +363,54 @@ namespace JsonSubTypes.Text.Json.Aot
                     IsReferenceType = !property.Type.IsValueType
                 });
             }
+        }
+
+        // Returns true when the property must be excluded entirely (JsonIgnore with the
+        // default Always condition). Otherwise it reports the ignore condition and the
+        // JsonPropertyName, if any.
+        private static bool TryReadPropertyMetadata(IPropertySymbol property, out string ignoreCondition, out string? jsonName)
+        {
+            ignoreCondition = "Never";
+            jsonName = null;
+            foreach (AttributeData attr in property.GetAttributes())
+            {
+                if (IsAttribute(attr, SystemTextJsonSerializationNamespace, "JsonIgnoreAttribute"))
+                {
+                    ignoreCondition = ReadIgnoreCondition(attr);
+                    if (ignoreCondition == "Always")
+                    {
+                        return true;
+                    }
+                }
+                else if (IsAttribute(attr, SystemTextJsonSerializationNamespace, "JsonPropertyNameAttribute") &&
+                    attr.ConstructorArguments.Length > 0 &&
+                    attr.ConstructorArguments[0].Value is string name)
+                {
+                    jsonName = name;
+                }
+            }
+
+            return false;
+        }
+
+        private static string ReadIgnoreCondition(AttributeData attr)
+        {
+            foreach (KeyValuePair<string, TypedConstant> namedArg in attr.NamedArguments)
+            {
+                if (namedArg is { Key: "Condition", Value.Value: int condition })
+                {
+                    return condition switch
+                    {
+                        0 => "Never",
+                        1 => "Always",
+                        2 => "WhenWritingDefault",
+                        3 => "WhenWritingNull",
+                        _ => "Always"
+                    };
+                }
+            }
+
+            return "Always"; // the JsonIgnoreAttribute default
         }
 
         private static bool TryGetDiscriminator(TypedConstant value, SubtypeRegistration registration)
