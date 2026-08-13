@@ -13,7 +13,7 @@ namespace JsonSubTypes.Aot.Generator.Tests
     public class GoldenMasterTests
     {
         private const string DomainPath = "JsonSubTypes.Aot.Generated/TestDomain.cs";
-        private const string GeneratedDir = "JsonSubTypes.Aot.Generated/Generated";
+        private const string GeneratedDir = "JsonSubTypes.Aot.Generated/GoldenMaster";
 
         private static string FindRepoRoot()
         {

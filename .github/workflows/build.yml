@@ -140,7 +140,7 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             pr_args="/d:sonar.pullrequest.key=$PR_KEY /d:sonar.pullrequest.branch=$PR_BRANCH /d:sonar.pullrequest.base=$PR_BASE"
           fi
-          dotnet-sonarscanner begin /k:manuc66_JsonSubTypes /o:manuc66-github /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url=https://sonarcloud.io /d:sonar.cs.cobertura.reportsPaths=TestResults/**/coverage.cobertura.xml /d:sonar.exclusions=**/*Tests*/**/*,**/JsonSubTypes.Benchmarks/**/*,**/JsonSubTypes.Aot.Sample/**/* /d:sonar.cpd.exclusions=**/*.g.cs $pr_args
+          dotnet-sonarscanner begin /k:manuc66_JsonSubTypes /o:manuc66-github /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url=https://sonarcloud.io /d:sonar.cs.cobertura.reportsPaths=TestResults/**/coverage.cobertura.xml /d:sonar.exclusions=**/*Tests*/**/*,**/JsonSubTypes.Benchmarks/**/*,**/JsonSubTypes.Aot.Sample/**/*,**/JsonSubTypes.Aot.Generated/TestDomain.cs /d:sonar.cpd.exclusions=**/*.g.cs $pr_args
 
       - name: Build for SonarCloud analysis
         run: dotnet build JsonSubTypes.sln -c Release
