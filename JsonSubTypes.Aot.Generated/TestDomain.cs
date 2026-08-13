@@ -107,4 +107,23 @@ namespace JsonSubTypes.Aot.Generated.TestDomain
     public class Walk : Game
     {
     }
+
+    [JsonSerializable(typeof(Animal))]
+    [JsonSerializable(typeof(Cat))]
+    [JsonSerializable(typeof(Dog))]
+    [JsonSerializable(typeof(Person))]
+    [JsonSerializable(typeof(Employee))]
+    [JsonSerializable(typeof(Artist))]
+    [JsonSerializable(typeof(Gadget))]
+    [JsonSerializable(typeof(ElectronicCat))]
+    [JsonSerializable(typeof(DottedGadget))]
+    [JsonSerializable(typeof(DottedElectronic))]
+    [JsonSerializable(typeof(Payload))]
+    [JsonSerializable(typeof(Com))]
+    [JsonSerializable(typeof(Game))]
+    [JsonSerializable(typeof(Run))]
+    [JsonSerializable(typeof(Walk))]
+    public partial class TestDomainJsonContext : JsonSerializerContext
+    {
+    }
 }
