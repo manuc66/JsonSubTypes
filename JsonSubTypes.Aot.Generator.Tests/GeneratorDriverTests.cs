@@ -88,5 +88,42 @@ public class Artist : Person { public string? Skill { get; set; } }
             StringAssert.Contains("TryGetProperty(\"JobTitle\"", text!);
             StringAssert.Contains("TryGetProperty(\"Skill\"", text!);
         }
+
+        [Test]
+        public void Generate_TwoBasesWithSameNameInDifferentNamespaces_ProducesDistinctConverters()
+        {
+            const string twoAnimals = @"
+using System.Text.Json.Serialization;
+using JsonSubTypes.Text.Json;
+
+namespace A
+{
+    [JsonSubTypesAotConverter(""type"")]
+    [KnownSubType(typeof(Cat), ""cat"")]
+    public class Animal { public int Age { get; set; } }
+    public class Cat : Animal { }
+}
+
+namespace B
+{
+    [JsonSubTypesAotConverter(""type"")]
+    [KnownSubType(typeof(Dog), ""dog"")]
+    public class Animal { public int Age { get; set; } }
+    public class Dog : Animal { }
+}
+";
+            GeneratorRun run = GeneratorDriverRunner.GetRun(twoAnimals);
+
+            string[] hints = run.DriverResults.Results
+                .SelectMany(r => r.GeneratedSources)
+                .Select(s => s.HintName).OrderBy(h => h).ToArray();
+
+            // Both converters are emitted under distinct qualified names, not one
+            // overwriting the other.
+            Assert.That(hints, Does.Contain("global__A_AnimalJsonSubTypesConverter.g.cs"));
+            Assert.That(hints, Does.Contain("global__B_AnimalJsonSubTypesConverter.g.cs"));
+            Assert.That(hints.Count(h => h.StartsWith("Animal")), Is.EqualTo(0),
+                "unqualified Animal converter should not exist when names collide");
+        }
     }
 }

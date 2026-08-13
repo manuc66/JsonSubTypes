@@ -7,7 +7,7 @@ using NUnit.Framework;
 
 namespace JsonSubTypes.Aot.Generator.Tests
 {
-    // Exercises the committed golden-master converters (the .g.cs files in
+    // Exercises the committed golden-master converters (the Generated/ files in
     // JsonSubTypes.Aot.Generated). Because those files are compiled as real sources,
     // coverlet measures them here and Sonar analyzes them.
     [TestFixture]

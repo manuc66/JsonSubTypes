@@ -5,11 +5,12 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <IsPackable>false</IsPackable>
-    <!-- The .g.cs files under Generated/ are the golden master: committed output of the
+    <!-- The files under Generated/ are the golden master: committed output of the
          JsonSubTypes.Aot generator for the domain in TestDomain.cs. They are compiled as
-         real sources so Sonar analyzes them and coverlet measures them. Regenerate them
-         (temporarily re-adding the generator with EmitCompilerGeneratedFiles) whenever the
-         generator changes, and let the golden-master tests in
+         real sources so Sonar analyzes them and coverlet measures them. They are committed
+         without the generator's .g.cs suffix so Sonar does not treat them as generated code.
+         Regenerate them (temporarily re-adding the generator with EmitCompilerGeneratedFiles)
+         whenever the generator changes, and let the golden-master tests in
          JsonSubTypes.Aot.Generator.Tests verify the committed files still match. -->
   </PropertyGroup>
 
