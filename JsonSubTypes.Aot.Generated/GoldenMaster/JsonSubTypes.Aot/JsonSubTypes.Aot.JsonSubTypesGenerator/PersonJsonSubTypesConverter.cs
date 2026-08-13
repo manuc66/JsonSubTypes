@@ -11,24 +11,24 @@ namespace JsonSubTypes.Aot.Generated
     {
         protected override Type SelectType(JsonElement root, JsonSerializerOptions options)
         {
-    System.Collections.Generic.HashSet<Type> matches = new System.Collections.Generic.HashSet<Type>();
-if (root.TryGetProperty("JobTitle", out _))
-{
-    matches.Add(typeof(global::JsonSubTypes.Aot.Generated.TestDomain.Employee));
-}
-if (root.TryGetProperty("Skill", out _))
-{
-    matches.Add(typeof(global::JsonSubTypes.Aot.Generated.TestDomain.Artist));
-}
-    if (matches.Count == 1)
-    {
-        return matches.First();
-    }
-    if (matches.Count > 1)
-    {
-        throw new JsonException("Ambiguous type resolution, expected only one type but got: " + string.Join(", ", matches.Select(t => t.FullName)));
-    }
-    return typeof(global::JsonSubTypes.Aot.Generated.TestDomain.Person);
+            System.Collections.Generic.HashSet<Type> matches = new System.Collections.Generic.HashSet<Type>();
+        if (root.TryGetProperty("JobTitle", out _))
+        {
+            matches.Add(typeof(global::JsonSubTypes.Aot.Generated.TestDomain.Employee));
+        }
+        if (root.TryGetProperty("Skill", out _))
+        {
+            matches.Add(typeof(global::JsonSubTypes.Aot.Generated.TestDomain.Artist));
+        }
+            if (matches.Count == 1)
+            {
+                return matches.First();
+            }
+            if (matches.Count > 1)
+            {
+                throw new JsonException("Ambiguous type resolution, expected only one type but got: " + string.Join(", ", matches.Select(t => t.FullName)));
+            }
+            return typeof(global::JsonSubTypes.Aot.Generated.TestDomain.Person);
         }
 
         protected override void WriteBaseObject(Utf8JsonWriter writer, global::JsonSubTypes.Aot.Generated.TestDomain.Person value, JsonSerializerOptions options)

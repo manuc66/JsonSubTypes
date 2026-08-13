@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -59,7 +60,7 @@ namespace JsonSubTypes.Aot.Generated
         // presence-mode converters.
         protected virtual string DiscriminatorPropertyName => "";
 
-        public readonly System.Collections.Concurrent.ConcurrentDictionary<object, Type> DynamicSubtypes = new System.Collections.Concurrent.ConcurrentDictionary<object, Type>();
+        public System.Collections.Concurrent.ConcurrentDictionary<object, Type> DynamicSubtypes { get; } = new System.Collections.Concurrent.ConcurrentDictionary<object, Type>();
         private readonly System.Collections.Concurrent.ConcurrentDictionary<Type, object> _dynamicReverse = new System.Collections.Concurrent.ConcurrentDictionary<Type, object>();
 
         public void RegisterDynamicSubtype(object discriminator, Type type)
@@ -154,13 +155,10 @@ namespace JsonSubTypes.Aot.Generated
             }
             if (options.PropertyNameCaseInsensitive)
             {
-                foreach (JsonProperty property in root.EnumerateObject())
+                foreach (JsonProperty property in root.EnumerateObject().Where(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase)))
                 {
-                    if (string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase))
-                    {
-                        value = property.Value;
-                        return true;
-                    }
+                    value = property.Value;
+                    return true;
                 }
             }
             return false;
@@ -172,7 +170,7 @@ namespace JsonSubTypes.Aot.Generated
             {
                 return true;
             }
-            if (propertyName.IndexOf('.') >= 0)
+            if (propertyName.Contains('.'))
             {
                 string[] segments = propertyName.Split('.');
                 JsonElement current = root;
@@ -216,12 +214,9 @@ namespace JsonSubTypes.Aot.Generated
                 writer.WritePropertyName(discriminatorName);
                 WriteDiscriminatorValue(writer, runtimeType, options);
             }
-            foreach (JsonProperty property in payloadDocument.RootElement.EnumerateObject())
+            foreach (JsonProperty property in payloadDocument.RootElement.EnumerateObject().Where(p => !p.NameEquals(discriminatorName)))
             {
-                if (!property.NameEquals(discriminatorName))
-                {
-                    property.WriteTo(writer);
-                }
+                property.WriteTo(writer);
             }
             if (!AddDiscriminatorFirst)
             {

@@ -26,6 +26,7 @@ namespace JsonSubTypes.Aot.Generator.Tests
             MetadataReference.CreateFromFile(Assembly.Load("System.Private.CoreLib").Location),
             MetadataReference.CreateFromFile(Assembly.Load("netstandard").Location),
             MetadataReference.CreateFromFile(typeof(System.Collections.Generic.List<>).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(System.Linq.Enumerable).Assembly.Location),
             MetadataReference.CreateFromFile(Assembly.Load("System.Memory").Location),
             MetadataReference.CreateFromFile(Assembly.Load("System.Collections.Concurrent").Location),
             MetadataReference.CreateFromFile(Assembly.Load("System.Text.Json").Location),
