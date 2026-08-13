@@ -7,7 +7,7 @@ using NUnit.Framework;
 namespace JsonSubTypes.Aot.Generator.Tests
 {
     // Golden-master test: runs the generator over the committed test domain and
-    // compares every produced file against the committed .g.cs files. Any change
+    // compares every produced file against the committed golden-master files. Any change
     // in the generator's output breaks this test, forcing a conscious regeneration.
     [TestFixture]
     public class GoldenMasterTests
