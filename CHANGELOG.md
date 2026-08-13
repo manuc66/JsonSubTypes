@@ -15,11 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### JsonSubTypes.Text.Json
 #### Added
-- New `JsonSubTypesAotConverterAttribute` opting a base type into the `JsonSubTypes.Aot` source generator.
+- New `JsonSubTypesAotConverterAttribute` opting a base type into the `JsonSubTypes.Text.Json.Aot` source generator.
 
-### JsonSubTypes.Aot
+### JsonSubTypes.Text.Json.Aot
 #### Added
-- New package `JsonSubTypes.Aot` (1.0.0-rc.1): a Roslyn source generator emitting compiled subtype converters. Routing (property presence, fallback, enums, nested hierarchies, dynamic registration) is compiled, so it works in Native AOT / trimmed binaries without reflection.
+- New package `JsonSubTypes.Text.Json.Aot` (1.0.0-rc.1): a Roslyn source generator emitting compiled subtype converters. Routing (property presence, fallback, enums, nested hierarchies, dynamic registration) is compiled, so it works in Native AOT / trimmed binaries without reflection.
 
 ## [1.0.0-rc.2] - 2026-08-10
 ### Changed

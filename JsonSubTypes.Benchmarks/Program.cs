@@ -5,7 +5,7 @@ using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
 using BenchmarkDotNet.Toolchains.NativeAot;
-using JsonSubTypes.Aot.Generated;
+using JsonSubTypes.Text.Json.Aot.Generated;
 using JsonSubTypes.Text.Json;
 
 namespace JsonSubTypes.Benchmarks

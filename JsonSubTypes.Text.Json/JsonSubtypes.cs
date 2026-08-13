@@ -54,7 +54,7 @@ public class FallBackSubTypeAttribute(Type subType) : Attribute
 }
 
 /// <summary>
-/// Opts a base type into the JsonSubTypes.Aot source generator, which emits a compiled
+/// Opts a base type into the JsonSubTypes.Text.Json.Aot source generator, which emits a compiled
 /// <see cref="JsonConverter{T}"/> that routes subtypes without reflection (Native AOT friendly).
 /// Unlike <see cref="JsonSubTypeConverterAttribute"/>, this attribute is not a
 /// <see cref="JsonConverterAttribute"/> and does not interfere with the System.Text.Json source

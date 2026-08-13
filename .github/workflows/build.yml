@@ -31,7 +31,7 @@ jobs:
         run: dotnet test JsonSubTypes.Text.Json.Tests/JsonSubTypes.Text.Json.Tests.csproj -c Release
 
       - name: Test Aot (net8 + net10)
-        run: dotnet test JsonSubTypes.Aot.Tests/JsonSubTypes.Aot.Tests.csproj -c Release
+        run: dotnet test JsonSubTypes.Text.Json.Aot.Tests/JsonSubTypes.Text.Json.Aot.Tests.csproj -c Release
 
       # The Newtonsoft tests run on net10 too (the library targets netstandard1.3/2.0),
       # which lets coverlet measure the JsonSubTypes package on Linux.
@@ -42,10 +42,10 @@ jobs:
         run: dotnet test JsonSubTypes.Text.Json.Tests/JsonSubTypes.Text.Json.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/textjson
 
       - name: Test Aot with coverage (net10)
-        run: dotnet test JsonSubTypes.Aot.Tests/JsonSubTypes.Aot.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/aot
+        run: dotnet test JsonSubTypes.Text.Json.Aot.Tests/JsonSubTypes.Text.Json.Aot.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/aot
 
       - name: Test Aot generator with coverage (net10)
-        run: dotnet test JsonSubTypes.Aot.Generator.Tests/JsonSubTypes.Aot.Generator.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/generator
+        run: dotnet test JsonSubTypes.Text.Json.Aot.Generator.Tests/JsonSubTypes.Text.Json.Aot.Generator.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/generator
 
       - name: Install gpg (required by codecov-action v5)
         run: sudo apt-get install -y gpg
@@ -67,16 +67,16 @@ jobs:
       # building it catches generated-code conflicts that unit tests cannot (e.g. a
       # top-level `_` variable colliding with `out _` emitted by the generator).
       - name: Build Aot sample (top-level statements consumer)
-        run: dotnet build JsonSubTypes.Aot.Sample/JsonSubTypes.Aot.Sample.csproj -c Release -f net8.0
+        run: dotnet build JsonSubTypes.Text.Json.Aot.Sample/JsonSubTypes.Text.Json.Aot.Sample.csproj -c Release -f net8.0
 
       # Native AOT end-to-end check: publish the sample as a native binary and run
       # it. This is the only check that proves the generated converters work in a
       # trimmed/AOT binary, not just under the JIT.
       - name: Publish Aot sample as native binary
-        run: dotnet publish JsonSubTypes.Aot.Sample/JsonSubTypes.Aot.Sample.csproj -c Release -f net8.0 -r linux-x64 -p:StripSymbols=true
+        run: dotnet publish JsonSubTypes.Text.Json.Aot.Sample/JsonSubTypes.Text.Json.Aot.Sample.csproj -c Release -f net8.0 -r linux-x64 -p:StripSymbols=true
 
       - name: Run the native Aot sample
-        run: ./JsonSubTypes.Aot.Sample/bin/Release/net8.0/linux-x64/publish/JsonSubTypes.Aot.Sample
+        run: ./JsonSubTypes.Text.Json.Aot.Sample/bin/Release/net8.0/linux-x64/publish/JsonSubTypes.Text.Json.Aot.Sample
 
   framework:
     # The Newtonsoft library targets net35/40/45/46/47 (.NET Framework), which runs
@@ -140,7 +140,7 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             pr_args="/d:sonar.pullrequest.key=$PR_KEY /d:sonar.pullrequest.branch=$PR_BRANCH /d:sonar.pullrequest.base=$PR_BASE"
           fi
-          dotnet-sonarscanner begin /k:manuc66_JsonSubTypes /o:manuc66-github /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url=https://sonarcloud.io /d:sonar.cs.cobertura.reportsPaths=TestResults/**/coverage.cobertura.xml /d:sonar.exclusions=**/*Tests*/**/*,**/JsonSubTypes.Benchmarks/**/*,**/JsonSubTypes.Aot.Sample/**/*,**/JsonSubTypes.Aot.Generated/TestDomain.cs /d:sonar.cpd.exclusions=**/*.g.cs $pr_args
+          dotnet-sonarscanner begin /k:manuc66_JsonSubTypes /o:manuc66-github /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url=https://sonarcloud.io /d:sonar.cs.cobertura.reportsPaths=TestResults/**/coverage.cobertura.xml /d:sonar.exclusions=**/*Tests*/**/*,**/JsonSubTypes.Benchmarks/**/*,**/JsonSubTypes.Text.Json.Aot.Sample/**/*,**/JsonSubTypes.Text.Json.Aot.Generated/TestDomain.cs /d:sonar.cpd.exclusions=**/*.g.cs $pr_args
 
       - name: Build for SonarCloud analysis
         run: dotnet build JsonSubTypes.sln -c Release
@@ -149,8 +149,8 @@ jobs:
         run: |
           dotnet test JsonSubTypes.Tests/JsonSubTypes.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/newtonsoft
           dotnet test JsonSubTypes.Text.Json.Tests/JsonSubTypes.Text.Json.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/textjson
-          dotnet test JsonSubTypes.Aot.Tests/JsonSubTypes.Aot.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/aot
-          dotnet test JsonSubTypes.Aot.Generator.Tests/JsonSubTypes.Aot.Generator.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/generator
+          dotnet test JsonSubTypes.Text.Json.Aot.Tests/JsonSubTypes.Text.Json.Aot.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/aot
+          dotnet test JsonSubTypes.Text.Json.Aot.Generator.Tests/JsonSubTypes.Text.Json.Aot.Generator.Tests.csproj -c Release -f net10.0 --collect:"XPlat Code Coverage" --results-directory TestResults/generator
 
       - name: End SonarCloud analysis
         run: dotnet-sonarscanner end /d:sonar.token="$SONAR_TOKEN"
