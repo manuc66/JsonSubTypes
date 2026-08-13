@@ -155,9 +155,10 @@ namespace JsonSubTypes.Text.Json.Aot.Generated
             }
             if (options.PropertyNameCaseInsensitive)
             {
-                foreach (JsonProperty property in root.EnumerateObject().Where(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase)))
+                JsonProperty match = root.EnumerateObject().FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+                if (match.Value.ValueKind != JsonValueKind.Undefined)
                 {
-                    value = property.Value;
+                    value = match.Value;
                     return true;
                 }
             }
