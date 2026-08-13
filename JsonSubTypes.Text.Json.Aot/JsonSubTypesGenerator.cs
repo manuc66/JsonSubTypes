@@ -248,7 +248,7 @@ namespace JsonSubTypes.Text.Json.Aot
             {
                 // presence mode ignores value registrations; say so instead of staying silent
                 spc.ReportDiagnostic(Diagnostic.Create(PresenceModeIgnoresValueRegistration,
-                    attr.ApplicationSyntaxReference?.GetSyntax().GetLocation(),
+                    attr.ApplicationSyntaxReference?.GetSyntax(cancellationToken).GetLocation(),
                     subtype.Name));
                 return;
             }
@@ -377,7 +377,7 @@ namespace JsonSubTypes.Text.Json.Aot
                 if (IsAttribute(attr, SystemTextJsonSerializationNamespace, "JsonIgnoreAttribute"))
                 {
                     ignoreCondition = ReadIgnoreCondition(attr);
-                    if (ignoreCondition == "Always")
+                    if (ignoreCondition == AlwaysIgnore)
                     {
                         return true;
                     }
@@ -402,15 +402,15 @@ namespace JsonSubTypes.Text.Json.Aot
                     return condition switch
                     {
                         0 => "Never",
-                        1 => "Always",
+                        1 => AlwaysIgnore,
                         2 => "WhenWritingDefault",
                         3 => "WhenWritingNull",
-                        _ => "Always"
+                        _ => AlwaysIgnore
                     };
                 }
             }
 
-            return "Always"; // the JsonIgnoreAttribute default
+            return AlwaysIgnore; // the JsonIgnoreAttribute default
         }
 
         private static bool TryGetDiscriminator(TypedConstant value, SubtypeRegistration registration)
@@ -681,6 +681,7 @@ namespace JsonSubTypes.Text.Json.Aot
 
         private const string MemberOpenBrace = "        {\n";
         private const string MemberCloseBrace = "        }";
+        private const string AlwaysIgnore = "Always";
 
         // The shared skeleton: emitted once, exercised by every converter test.
         // Presence-mode converters inherit JsonSubTypesAotConverterBase<T> (its Write

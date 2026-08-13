@@ -339,20 +339,7 @@ namespace JsonSubTypes
                 typesFound.Add(matchingKnownType);
             }
 
-            Type result = null;
-            bool ambiguous = false;
-            foreach (Type matchingType in typesFound)
-            {
-                if (result != null)
-                {
-                    ambiguous = true;
-                    break;
-                }
-
-                result = matchingType;
-            }
-
-            if (ambiguous)
+            if (typesFound.Count > 1)
             {
                 throw new JsonSerializationException(
                     "Ambiguous type resolution, expected only one type but got: " +
@@ -360,7 +347,7 @@ namespace JsonSubTypes
                 );
             }
 
-            return result;
+            return typesFound.SingleOrDefault();
         }
 
         internal virtual List<TypeWithPropertyMatchingAttributes> GetTypesByPropertyPresence(Type parentType)

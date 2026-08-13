@@ -11,5 +11,8 @@ namespace JsonSubTypes.Text.Json.Aot.Generated
         public static readonly DottedGadgetJsonSubTypesConverter DottedGadget = new DottedGadgetJsonSubTypesConverter();
         public static readonly PayloadJsonSubTypesConverter Payload = new PayloadJsonSubTypesConverter();
         public static readonly GameJsonSubTypesConverter Game = new GameJsonSubTypesConverter();
+        public static readonly NullDiscriminatorAnimalJsonSubTypesConverter NullDiscriminatorAnimal = new NullDiscriminatorAnimalJsonSubTypesConverter();
+        public static readonly DiscriminatorLastJsonSubTypesConverter DiscriminatorLast = new DiscriminatorLastJsonSubTypesConverter();
+        public static readonly DynamicShapeJsonSubTypesConverter DynamicShape = new DynamicShapeJsonSubTypesConverter();
     }
 }

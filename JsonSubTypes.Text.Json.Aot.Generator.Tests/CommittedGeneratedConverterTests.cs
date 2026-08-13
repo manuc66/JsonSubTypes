@@ -148,5 +148,297 @@ namespace JsonSubTypes.Text.Json.Aot.Generator.Tests
                 "{\"$PayloadKind\":1}", PayloadOptions);
             Assert.That(result, Is.InstanceOf<Com>());
         }
+
+        [Test]
+        public void Payload_SerializeRun_WritesNestedChain()
+        {
+            string json = JsonSerializer.Serialize<Payload>(new Run(), PayloadAndGameOptions);
+
+            Assert.That(json, Is.EqualTo("{\"$PayloadKind\":0,\"$GameKind\":0}"));
+        }
+
+        [Test]
+        public void Payload_SerializeWalk_WritesNestedChain()
+        {
+            string json = JsonSerializer.Serialize<Payload>(new Walk(), PayloadAndGameOptions);
+
+            Assert.That(json, Is.EqualTo("{\"$PayloadKind\":0,\"$GameKind\":1}"));
+        }
+
+        [Test]
+        public void Payload_SerializeCom_WritesDirectDiscriminator()
+        {
+            string json = JsonSerializer.Serialize<Payload>(new Com(), PayloadOptions);
+
+            Assert.That(json, Is.EqualTo("{\"$PayloadKind\":1}"));
+        }
+
+        [Test]
+        public void Game_SerializeRun_WritesDiscriminator()
+        {
+            string json = JsonSerializer.Serialize<Game>(new Run(), PayloadAndGameOptions);
+
+            Assert.That(json, Is.EqualTo("{\"$GameKind\":0}"));
+        }
+
+        [Test]
+        public void Game_DeserializeRun_ReturnsRun()
+        {
+            Game? result = JsonSerializer.Deserialize<Game>("{\"$GameKind\":0}", PayloadAndGameOptions);
+
+            Assert.That(result, Is.InstanceOf<Run>());
+        }
+
+        [Test]
+        public void Game_DeserializeWalk_ReturnsWalk()
+        {
+            Game? result = JsonSerializer.Deserialize<Game>("{\"$GameKind\":1}", PayloadAndGameOptions);
+
+            Assert.That(result, Is.InstanceOf<Walk>());
+        }
+
+        [Test]
+        public void Game_SerializeBase_WritesBaseObject()
+        {
+            string json = JsonSerializer.Serialize<Game>(new Game(), PayloadAndGameOptions);
+
+            Assert.That(json, Is.EqualTo("{}"));
+        }
+
+        [Test]
+        public void Gadget_SerializeBase_WritesBaseObject()
+        {
+            string json = JsonSerializer.Serialize<Gadget>(new Gadget { Age = 3 }, Options<Gadget>());
+
+            Assert.That(json, Is.EqualTo("{\"Age\":3}"));
+        }
+
+        [Test]
+        public void Gadget_DeserializeUnknown_FallsBackToBase()
+        {
+            Gadget? result = JsonSerializer.Deserialize<Gadget>("{\"kind\":\"fish\",\"Age\":3}", Options<Gadget>());
+
+            Assert.That(result, Is.InstanceOf<Gadget>());
+        }
+
+        [Test]
+        public void DottedGadget_SerializeBase_WritesBaseObject()
+        {
+            string json = JsonSerializer.Serialize<DottedGadget>(new DottedGadget { Age = 3 }, Options<DottedGadget>());
+
+            Assert.That(json, Is.EqualTo("{\"Age\":3}"));
+        }
+
+        [Test]
+        public void DottedGadget_DeserializeUnknown_FallsBackToBase()
+        {
+            DottedGadget? result = JsonSerializer.Deserialize<DottedGadget>("{\"Age\":3}", Options<DottedGadget>());
+
+            Assert.That(result, Is.InstanceOf<DottedGadget>());
+        }
+
+        [Test]
+        public void DottedGadget_SerializeElectronic_WritesDiscriminator()
+        {
+            string json = JsonSerializer.Serialize<DottedGadget>(new DottedElectronic { Age = 3, Lives = 9 }, Options<DottedGadget>());
+
+            Assert.That(json, Is.EqualTo("{\"nested.type\":\"electronic\",\"Lives\":9,\"Age\":3}"));
+        }
+
+        [Test]
+        public void Person_SerializeBase_WritesBaseObject()
+        {
+            string json = JsonSerializer.Serialize<Person>(new Person { FirstName = "A" }, Options<Person>());
+
+            Assert.That(json, Is.EqualTo("{\"FirstName\":\"A\"}"));
+        }
+
+        [Test]
+        public void DynamicShape_DeserializeCat_ReturnsCat()
+        {
+            DynamicShape? result = JsonSerializer.Deserialize<DynamicShape>("{\"kind\":\"cat\",\"Lives\":9,\"Age\":3}", Options<DynamicShape>());
+
+            Assert.That(result, Is.InstanceOf<DynamicCat>());
+        }
+
+        // ---- edge paths on the shared skeleton ----
+
+        [Test]
+        public void Animal_SerializeNull_WritesNull()
+        {
+            string json = JsonSerializer.Serialize<Animal?>(null, Options<Animal>());
+
+            Assert.That(json, Is.EqualTo("null"));
+        }
+
+        [Test]
+        public void Animal_DeserializeNull_ReturnsNull()
+        {
+            Animal? result = JsonSerializer.Deserialize<Animal>("null", Options<Animal>());
+
+            Assert.That(result, Is.Null);
+        }
+
+        [Test]
+        public void Animal_DeserializeNonObject_Throws()
+        {
+            Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<Animal>("[1,2]", Options<Animal>()));
+        }
+
+        [Test]
+        public void Animal_SerializeBase_WritesBaseObjectWithoutDiscriminator()
+        {
+            string json = JsonSerializer.Serialize<Animal>(new Animal { Age = 3 }, Options<Animal>());
+
+            Assert.That(json, Is.EqualTo("{\"Age\":3}"));
+        }
+
+        // ---- null discriminator ----
+
+        [Test]
+        public void NullDiscriminatorAnimal_SerializeBase_WritesNullDiscriminator()
+        {
+            string json = JsonSerializer.Serialize<NullDiscriminatorAnimal>(new NullDiscriminatorAnimal { Age = 3 }, Options<NullDiscriminatorAnimal>());
+
+            Assert.That(json, Is.EqualTo("{\"type\":null,\"Age\":3}"));
+        }
+
+        [Test]
+        public void NullDiscriminatorAnimal_DeserializeNullDiscriminator_ReturnsBase()
+        {
+            NullDiscriminatorAnimal? result = JsonSerializer.Deserialize<NullDiscriminatorAnimal>("{\"type\":null,\"Age\":3}", Options<NullDiscriminatorAnimal>());
+
+            Assert.That(result, Is.InstanceOf<NullDiscriminatorAnimal>());
+        }
+
+        [Test]
+        public void NullDiscriminatorAnimal_SerializeDeer_WritesDiscriminator()
+        {
+            string json = JsonSerializer.Serialize<NullDiscriminatorAnimal>(new Deer { Age = 3, AntlerSize = 5 }, Options<NullDiscriminatorAnimal>());
+
+            Assert.That(json, Is.EqualTo("{\"type\":\"deer\",\"AntlerSize\":5,\"Age\":3}"));
+        }
+
+        [Test]
+        public void NullDiscriminatorAnimal_DeserializeDeer_ReturnsDeer()
+        {
+            NullDiscriminatorAnimal? result = JsonSerializer.Deserialize<NullDiscriminatorAnimal>("{\"type\":\"deer\",\"AntlerSize\":5,\"Age\":3}", Options<NullDiscriminatorAnimal>());
+
+            Assert.That(result, Is.InstanceOf<Deer>());
+        }
+
+        // ---- AddDiscriminatorFirst = false ----
+
+        [Test]
+        public void DiscriminatorLast_SerializeWritesDiscriminatorLast()
+        {
+            string json = JsonSerializer.Serialize<DiscriminatorLast>(new Mammoth { Age = 3, Tusks = 2 }, Options<DiscriminatorLast>());
+
+            Assert.That(json, Is.EqualTo("{\"Tusks\":2,\"Age\":3,\"type\":\"mammoth\"}"));
+        }
+
+        [Test]
+        public void DiscriminatorLast_DeserializeStillWorks()
+        {
+            DiscriminatorLast? result = JsonSerializer.Deserialize<DiscriminatorLast>("{\"type\":\"mammoth\",\"Tusks\":2,\"Age\":3}", Options<DiscriminatorLast>());
+
+            Assert.That(result, Is.InstanceOf<Mammoth>());
+        }
+
+        [Test]
+        public void DiscriminatorLast_SerializeBase_WritesBaseObject()
+        {
+            string json = JsonSerializer.Serialize<DiscriminatorLast>(new DiscriminatorLast { Age = 3 }, Options<DiscriminatorLast>());
+
+            Assert.That(json, Is.EqualTo("{\"Age\":3}"));
+        }
+
+        // ---- get-only property and conditional JsonIgnore ----
+
+        [Test]
+        public void DynamicShape_SerializeBase_WritesGetterOnlyAndSkipsNullNickname()
+        {
+            string json = JsonSerializer.Serialize<DynamicShape>(new DynamicShape { Age = 3 }, Options<DynamicShape>());
+
+            Assert.That(json, Is.EqualTo("{\"Age\":3,\"Computed\":\"computed\"}"));
+        }
+
+        [Test]
+        public void DynamicShape_SerializeBase_WritesNicknameWhenNotNull()
+        {
+            string json = JsonSerializer.Serialize<DynamicShape>(new DynamicShape { Age = 3, Nickname = "N" }, Options<DynamicShape>());
+
+            Assert.That(json, Is.EqualTo("{\"Age\":3,\"Computed\":\"computed\",\"Nickname\":\"N\"}"));
+        }
+
+        [Test]
+        public void DynamicShape_DeserializeBase_PopulatesSettablePropertiesOnly()
+        {
+            DynamicShape? result = JsonSerializer.Deserialize<DynamicShape>("{\"Age\":3,\"Computed\":\"other\",\"Nickname\":\"N\"}", Options<DynamicShape>());
+
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result!.Age, Is.EqualTo(3));
+            Assert.That(result.Nickname, Is.EqualTo("N"));
+            Assert.That(result.Computed, Is.EqualTo("computed"), "get-only property must not be overwritten on read");
+        }
+
+        [Test]
+        public void DynamicShape_SerializeCat_WritesDiscriminator()
+        {
+            string json = JsonSerializer.Serialize<DynamicShape>(new DynamicCat { Age = 3, Lives = 9 }, Options<DynamicShape>());
+
+            Assert.That(json, Is.EqualTo("{\"kind\":\"cat\",\"Lives\":9,\"Age\":3,\"Computed\":\"computed\"}"));
+        }
+
+        // ---- dynamic subtype and custom resolver on the committed Animal converter ----
+
+        [Test]
+        public void Animal_SerializeDynamicSubtype_WritesDiscriminator()
+        {
+            JsonSubTypesAotConverters.Animal.RegisterDynamicSubtype("fish", typeof(Fox));
+
+            try
+            {
+                string json = JsonSerializer.Serialize<Animal>(new Fox { Speed = 20, Age = 3 }, Options<Animal>());
+                Assert.That(json, Is.EqualTo("{\"type\":\"fish\",\"Speed\":20,\"Age\":3}"));
+            }
+            finally
+            {
+                JsonSubTypesAotConverters.Animal.DynamicSubtypes.TryRemove("fish", out _);
+            }
+        }
+
+        [Test]
+        public void Animal_DeserializeDynamicDiscriminator_ReturnsDynamicType()
+        {
+            JsonSubTypesAotConverters.Animal.DynamicSubtypes["fish"] = typeof(Fox);
+
+            try
+            {
+                Animal? result = JsonSerializer.Deserialize<Animal>("{\"type\":\"fish\",\"Speed\":20,\"Age\":3}", Options<Animal>());
+                Assert.That(result, Is.InstanceOf<Fox>());
+            }
+            finally
+            {
+                JsonSubTypesAotConverters.Animal.DynamicSubtypes.TryRemove("fish", out _);
+            }
+        }
+
+        [Test]
+        public void Animal_DeserializeCustomResolver_ResolvesArbitraryName()
+        {
+            JsonSubTypesAotConverters.Animal.CustomTypeNameResolver = name =>
+                name as string == "bird" ? typeof(Fox) : null;
+
+            try
+            {
+                Animal? result = JsonSerializer.Deserialize<Animal>("{\"type\":\"bird\",\"Speed\":20,\"Age\":3}", Options<Animal>());
+                Assert.That(result, Is.InstanceOf<Fox>());
+            }
+            finally
+            {
+                JsonSubTypesAotConverters.Animal.CustomTypeNameResolver = null;
+            }
+        }
     }
 }

@@ -22,6 +22,11 @@ namespace JsonSubTypes.Text.Json.Aot.Generated.TestDomain
         public bool CanHunt { get; set; }
     }
 
+    public class Fox : Animal
+    {
+        public int Speed { get; set; }
+    }
+
     [JsonSubTypesAotConverter]
     [KnownSubTypeWithProperty(typeof(Employee), "JobTitle")]
     [KnownSubTypeWithProperty(typeof(Artist), "Skill")]
@@ -108,9 +113,55 @@ namespace JsonSubTypes.Text.Json.Aot.Generated.TestDomain
     {
     }
 
+    [JsonSubTypesAotConverter("type")]
+    [KnownSubType(typeof(NullDiscriminatorAnimal), null)]
+    [KnownSubType(typeof(Deer), "deer")]
+    public class NullDiscriminatorAnimal
+    {
+        public int Age { get; set; }
+    }
+
+    public class Deer : NullDiscriminatorAnimal
+    {
+        public int AntlerSize { get; set; }
+    }
+
+    [JsonSubTypesAotConverter("type", AddDiscriminatorFirst = false)]
+    [KnownSubType(typeof(Mammoth), "mammoth")]
+    public class DiscriminatorLast
+    {
+        public int Age { get; set; }
+    }
+
+    public class Mammoth : DiscriminatorLast
+    {
+        public int Tusks { get; set; }
+    }
+
+    [JsonSubTypesAotConverter("kind")]
+    [KnownSubType(typeof(DynamicCat), "cat")]
+    public class DynamicShape
+    {
+        public int Age { get; set; }
+
+        public string Computed { get; } = "computed";
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Nickname { get; set; }
+    }
+
+    public class DynamicCat : DynamicShape
+    {
+        public int Lives { get; set; }
+    }
+
     [JsonSerializable(typeof(Animal))]
     [JsonSerializable(typeof(Cat))]
     [JsonSerializable(typeof(Dog))]
+    [JsonSerializable(typeof(Fox))]
+    [JsonSerializable(typeof(GadgetKind))]
+    [JsonSerializable(typeof(PayloadDiscriminator))]
+    [JsonSerializable(typeof(GameDiscriminator))]
     [JsonSerializable(typeof(Person))]
     [JsonSerializable(typeof(Employee))]
     [JsonSerializable(typeof(Artist))]
@@ -123,6 +174,12 @@ namespace JsonSubTypes.Text.Json.Aot.Generated.TestDomain
     [JsonSerializable(typeof(Game))]
     [JsonSerializable(typeof(Run))]
     [JsonSerializable(typeof(Walk))]
+    [JsonSerializable(typeof(NullDiscriminatorAnimal))]
+    [JsonSerializable(typeof(Deer))]
+    [JsonSerializable(typeof(DiscriminatorLast))]
+    [JsonSerializable(typeof(Mammoth))]
+    [JsonSerializable(typeof(DynamicShape))]
+    [JsonSerializable(typeof(DynamicCat))]
     public partial class TestDomainJsonContext : JsonSerializerContext
     {
     }

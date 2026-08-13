@@ -453,8 +453,10 @@ public class DNLeaf : DNMid
     public int Mark { get; set; }
 }
 
-[TestFixture]
-public class GeneratedDeepHierarchyTests
+namespace JsonSubTypes.Text.Json.Aot.Tests
+{
+    [TestFixture]
+    public class GeneratedDeepHierarchyTests
 {
     // A four-level hierarchy where every intermediate is a registered base itself and
     // none of them is a direct subtype of the root: the leaf is only reachable through
@@ -560,4 +562,5 @@ public interface IShared : IRootA, IRootB
 
 public class Leaf : IShared
 {
+}
 }
