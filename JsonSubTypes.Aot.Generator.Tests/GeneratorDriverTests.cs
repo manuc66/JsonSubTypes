@@ -23,6 +23,11 @@ public class Cat : Animal { public int Lives { get; set; } }
 public class Dog : Animal { public bool CanHunt { get; set; } }
 ";
 
+        private static readonly string[] SingleBaseExpectedHints =
+        {
+            "AnimalJsonSubTypesConverter.g.cs", "JsonSubTypesAotConverterBases.g.cs", "JsonSubTypesAotConverters.g.cs"
+        };
+
         [Test]
         public void Generate_SingleBase_EmitsConverterAndRegistry()
         {
@@ -31,9 +36,7 @@ public class Dog : Animal { public bool CanHunt { get; set; } }
             string[] hints = run.DriverResults.Results
                 .SelectMany(r => r.GeneratedSources)
                 .Select(s => s.HintName).OrderBy(h => h).ToArray();
-            CollectionAssert.AreEqual(
-                new[] { "AnimalJsonSubTypesConverter.g.cs", "JsonSubTypesAotConverters.g.cs" },
-                hints);
+            CollectionAssert.AreEqual(SingleBaseExpectedHints, hints);
         }
 
         [Test]
@@ -53,7 +56,7 @@ public class Dog : Animal { public bool CanHunt { get; set; } }
 
             string? text = GeneratorDriverRunner.GetGeneratedSource(run, "AnimalJsonSubTypesConverter.g.cs");
             Assert.That(text, Is.Not.Null);
-            StringAssert.Contains("class AnimalJsonSubTypesConverter : JsonConverter<", text!);
+            StringAssert.Contains("class AnimalJsonSubTypesConverter : JsonSubTypesAotValueConverterBase<", text!);
             StringAssert.Contains("\"cat\"", text!);
             StringAssert.Contains("\"dog\"", text!);
         }

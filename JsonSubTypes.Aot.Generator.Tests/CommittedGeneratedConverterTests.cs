@@ -117,29 +117,35 @@ namespace JsonSubTypes.Aot.Generator.Tests
 
         // ---- Payload / Game (nested multi-level hierarchy) ----
 
+        private static readonly JsonSerializerOptions PayloadAndGameOptions = new()
+        {
+            TypeInfoResolver = TestDomainJsonContext.Default,
+            Converters =
+            {
+                (JsonConverter)RegistryConverter(typeof(Payload)),
+                (JsonConverter)RegistryConverter(typeof(Game))
+            }
+        };
+
+        private static readonly JsonSerializerOptions PayloadOptions = new()
+        {
+            TypeInfoResolver = TestDomainJsonContext.Default,
+            Converters = { (JsonConverter)RegistryConverter(typeof(Payload)) }
+        };
+
         [Test]
         public void Payload_DeserializeNestedGameKind_ReturnsRun()
         {
-            var options = new JsonSerializerOptions
-            {
-                TypeInfoResolver = TestDomainJsonContext.Default,
-                Converters = { (JsonConverter)RegistryConverter(typeof(Payload)), (JsonConverter)RegistryConverter(typeof(Game)) }
-            };
             Payload? result = JsonSerializer.Deserialize<Payload>(
-                "{\"$PayloadKind\":0,\"$GameKind\":0}", options);
+                "{\"$PayloadKind\":0,\"$GameKind\":0}", PayloadAndGameOptions);
             Assert.That(result, Is.InstanceOf<Run>());
         }
 
         [Test]
         public void Payload_DeserializeCom_ReturnsCom()
         {
-            var options = new JsonSerializerOptions
-            {
-                TypeInfoResolver = TestDomainJsonContext.Default,
-                Converters = { (JsonConverter)RegistryConverter(typeof(Payload)) }
-            };
             Payload? result = JsonSerializer.Deserialize<Payload>(
-                "{\"$PayloadKind\":1}", options);
+                "{\"$PayloadKind\":1}", PayloadOptions);
             Assert.That(result, Is.InstanceOf<Com>());
         }
     }

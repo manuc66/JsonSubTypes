@@ -31,6 +31,15 @@ public class Cat : Animal { public int Lives { get; set; } }
 public class Dog : Animal { public bool CanHunt { get; set; } }
 ";
 
+        private static readonly (Type AnimalType, Type CatType, object Converter) Loaded = CompileAndLoad();
+
+        // The converter is a static singleton (the fixture compiles and loads once);
+        // the options instance is shared by every test so it is created only once.
+        private static readonly JsonSerializerOptions Options = new()
+        {
+            Converters = { (JsonConverter)Loaded.Converter }
+        };
+
         private static (Type animalType, Type catType, object converter) CompileAndLoad()
         {
             GeneratorRun run = GeneratorDriverRunner.GetRun(Hierarchy);
@@ -57,13 +66,11 @@ public class Dog : Animal { public bool CanHunt { get; set; } }
         [Test]
         public void Serialize_Cat_WritesDiscriminator()
         {
-            (Type animalType, Type catType, object converter) = CompileAndLoad();
-            object cat = Activator.CreateInstance(catType)!;
-            catType.GetProperty("Age")!.SetValue(cat, 3);
-            catType.GetProperty("Lives")!.SetValue(cat, 9);
+            object cat = Activator.CreateInstance(Loaded.CatType)!;
+            Loaded.CatType.GetProperty("Age")!.SetValue(cat, 3);
+            Loaded.CatType.GetProperty("Lives")!.SetValue(cat, 9);
 
-            var options = new JsonSerializerOptions { Converters = { (JsonConverter)converter } };
-            string json = JsonSerializer.Serialize(cat, animalType, options);
+            string json = JsonSerializer.Serialize(cat, Loaded.AnimalType, Options);
 
             Assert.That(json, Does.Contain("\"type\":\"cat\""));
         }
@@ -71,10 +78,7 @@ public class Dog : Animal { public bool CanHunt { get; set; } }
         [Test]
         public void Deserialize_CatDiscriminator_ReturnsCat()
         {
-            (Type animalType, _, object converter) = CompileAndLoad();
-
-            var options = new JsonSerializerOptions { Converters = { (JsonConverter)converter } };
-            object? result = JsonSerializer.Deserialize("{\"type\":\"cat\",\"Lives\":9,\"Age\":3}", animalType, options);
+            object? result = JsonSerializer.Deserialize("{\"type\":\"cat\",\"Lives\":9,\"Age\":3}", Loaded.AnimalType, Options);
 
             Assert.That(result, Is.Not.Null);
             Assert.That(result!.GetType().Name, Is.EqualTo("Cat"));
@@ -83,10 +87,7 @@ public class Dog : Animal { public bool CanHunt { get; set; } }
         [Test]
         public void Deserialize_UnknownDiscriminator_FallsBackToBase()
         {
-            (Type animalType, _, object converter) = CompileAndLoad();
-
-            var options = new JsonSerializerOptions { Converters = { (JsonConverter)converter } };
-            object? result = JsonSerializer.Deserialize("{\"type\":\"fish\",\"Age\":3}", animalType, options);
+            object? result = JsonSerializer.Deserialize("{\"type\":\"fish\",\"Age\":3}", Loaded.AnimalType, Options);
 
             Assert.That(result, Is.Not.Null);
             Assert.That(result!.GetType().Name, Is.EqualTo("Animal"));
