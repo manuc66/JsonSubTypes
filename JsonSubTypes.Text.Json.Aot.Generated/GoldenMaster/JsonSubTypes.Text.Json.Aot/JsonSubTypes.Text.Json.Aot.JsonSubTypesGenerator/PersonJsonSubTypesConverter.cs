@@ -35,7 +35,7 @@ namespace JsonSubTypes.Text.Json.Aot.Generated
         {
             writer.WriteStartObject();
             string nameFirstName = "FirstName";
-            if (options.PropertyNamingPolicy != null && true)
+            if (options.PropertyNamingPolicy != null)
             {
                 nameFirstName = options.PropertyNamingPolicy.ConvertName(nameFirstName);
             }

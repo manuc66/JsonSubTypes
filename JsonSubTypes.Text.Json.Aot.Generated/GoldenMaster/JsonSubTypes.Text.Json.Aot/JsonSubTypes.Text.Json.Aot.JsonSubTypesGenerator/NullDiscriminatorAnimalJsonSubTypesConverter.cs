@@ -63,7 +63,7 @@ namespace JsonSubTypes.Text.Json.Aot.Generated
         {
             writer.WriteStartObject();
             string nameAge = "Age";
-            if (options.PropertyNamingPolicy != null && true)
+            if (options.PropertyNamingPolicy != null)
             {
                 nameAge = options.PropertyNamingPolicy.ConvertName(nameAge);
             }

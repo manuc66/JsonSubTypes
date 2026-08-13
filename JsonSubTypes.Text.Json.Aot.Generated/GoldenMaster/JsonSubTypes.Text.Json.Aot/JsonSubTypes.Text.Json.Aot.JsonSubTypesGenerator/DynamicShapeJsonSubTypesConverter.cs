@@ -60,14 +60,14 @@ namespace JsonSubTypes.Text.Json.Aot.Generated
         {
             writer.WriteStartObject();
             string nameAge = "Age";
-            if (options.PropertyNamingPolicy != null && true)
+            if (options.PropertyNamingPolicy != null)
             {
                 nameAge = options.PropertyNamingPolicy.ConvertName(nameAge);
             }
             writer.WritePropertyName(nameAge);
             JsonSerializer.Serialize(writer, value.Age, options.GetTypeInfo(typeof(int)));
             string nameComputed = "Computed";
-            if (options.PropertyNamingPolicy != null && true)
+            if (options.PropertyNamingPolicy != null)
             {
                 nameComputed = options.PropertyNamingPolicy.ConvertName(nameComputed);
             }
@@ -76,7 +76,7 @@ namespace JsonSubTypes.Text.Json.Aot.Generated
             if (value.Nickname != null)
             {
                 string nameNickname = "Nickname";
-                if (options.PropertyNamingPolicy != null && true)
+                if (options.PropertyNamingPolicy != null)
                 {
                     nameNickname = options.PropertyNamingPolicy.ConvertName(nameNickname);
                 }

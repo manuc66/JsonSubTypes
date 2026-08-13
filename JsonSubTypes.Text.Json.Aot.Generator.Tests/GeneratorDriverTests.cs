@@ -128,5 +128,40 @@ namespace B
             Assert.That(hints.Count(h => h.StartsWith("Animal")), Is.EqualTo(0),
                 "unqualified Animal converter should not exist when names collide");
         }
+
+        [Test]
+        public void Generate_BaseProperties_HonorIgnoreConditionsAndGetterOnly()
+        {
+            const string domain = @"
+using System.Text.Json.Serialization;
+using JsonSubTypes.Text.Json;
+
+[JsonSubTypesAotConverter(""kind"")]
+[KnownSubType(typeof(Sub), ""sub"")]
+public class Base
+{
+    public int Age { get; set; }
+    public string Computed { get { return ""x""; } }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Nickname { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int Serial { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public string? Note { get; set; }
+    [JsonIgnore]
+    public string? Secret { get; set; }
+}
+public class Sub : Base { }
+";
+            GeneratorRun run = GeneratorDriverRunner.GetRun(domain);
+
+            string? text = GeneratorDriverRunner.GetGeneratedSource(run, "BaseJsonSubTypesConverter.g.cs");
+            Assert.That(text, Is.Not.Null);
+            StringAssert.Contains("value.Computed", text!, "get-only property must be written");
+            StringAssert.Contains("value.Nickname != null", text!, "WhenWritingNull must guard the write");
+            StringAssert.Contains("EqualityComparer<int>.Default.Equals(value.Serial, default)", text!, "WhenWritingDefault must guard the write");
+            StringAssert.Contains("value.Note", text!, "Never must write the property");
+            StringAssert.DoesNotContain("value.Secret", text!, "Always must drop the property");
+        }
     }
 }

@@ -1234,15 +1234,17 @@ namespace JsonSubTypes.Text.Json.Aot
                     continue;
                 }
 
-                string applyPolicy = prop.HasCustomName ? "false" : "true";
                 string write =
-                    "            string name" + prop.Name + " = " + SymbolDisplay.FormatLiteral(prop.JsonName, quote: true) + ";\n" +
-                    "            if (options.PropertyNamingPolicy != null && " + applyPolicy + ")\n" +
-                    "            {\n" +
-                    "                name" + prop.Name + " = options.PropertyNamingPolicy.ConvertName(name" + prop.Name + ");\n" +
-                    "            }\n" +
-                    "            writer.WritePropertyName(name" + prop.Name + ");\n" +
-                    "            JsonSerializer.Serialize(writer, value." + prop.Name + ", options.GetTypeInfo(typeof(" + prop.PropertyTypeName + ")));";
+                    "            string name" + prop.Name + " = " + SymbolDisplay.FormatLiteral(prop.JsonName, quote: true) + ";\n";
+                if (!prop.HasCustomName)
+                {
+                    write += "            if (options.PropertyNamingPolicy != null)\n" +
+                             "            {\n" +
+                             "                name" + prop.Name + " = options.PropertyNamingPolicy.ConvertName(name" + prop.Name + ");\n" +
+                             "            }\n";
+                }
+                write += "            writer.WritePropertyName(name" + prop.Name + ");\n" +
+                         "            JsonSerializer.Serialize(writer, value." + prop.Name + ", options.GetTypeInfo(typeof(" + prop.PropertyTypeName + ")));";
 
                 // JsonIgnoreCondition.WhenWritingNull/WhenWritingDefault only skip the
                 // write when the condition holds; the property is still read on
