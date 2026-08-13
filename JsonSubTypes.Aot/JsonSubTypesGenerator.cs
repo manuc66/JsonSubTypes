@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
@@ -151,7 +152,7 @@ namespace JsonSubTypes.Aot
 
             ReadMarkerAttribute(baseType, info);
             ProcessRegistrationAttributes(baseType, info, spc);
-            ReportDuplicateDiscriminators(baseType, info, spc);
+            ReportDuplicateDiscriminators(baseType, info, spc, spc.CancellationToken);
             CollectBaseProperties(baseType, info);
 
             return info;
@@ -190,7 +191,7 @@ namespace JsonSubTypes.Aot
                 switch (attr.AttributeClass?.Name)
                 {
                     case KnownSubTypeAttributeName:
-                        ProcessKnownSubType(attr, info, spc);
+                        ProcessKnownSubType(attr, info, spc, spc.CancellationToken);
                         break;
                     case KnownSubTypeWithPropertyAttributeName:
                         ProcessKnownSubTypeWithProperty(attr, info);
@@ -202,7 +203,8 @@ namespace JsonSubTypes.Aot
             }
         }
 
-        private static void ProcessKnownSubType(AttributeData attr, BaseTypeInfo info, SourceProductionContext spc)
+        private static void ProcessKnownSubType(AttributeData attr, BaseTypeInfo info, SourceProductionContext spc,
+            CancellationToken cancellationToken)
         {
             ITypeSymbol? subtype = attr.ConstructorArguments[0].Value as ITypeSymbol;
             if (subtype == null)
@@ -215,6 +217,8 @@ namespace JsonSubTypes.Aot
                 return; // presence mode ignores value registrations
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             SubtypeRegistration registration = new()
             {
                 FullyQualifiedName = subtype.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
@@ -225,7 +229,6 @@ namespace JsonSubTypes.Aot
             }
             else
             {
-                spc.CancellationToken.ThrowIfCancellationRequested();
                 spc.ReportDiagnostic(Diagnostic.Create(UnsupportedDiscriminator,
                     attr.ApplicationSyntaxReference?.GetSyntax().GetLocation(),
                     attr.ConstructorArguments[1].Type?.Name ?? "null",
@@ -267,11 +270,11 @@ namespace JsonSubTypes.Aot
         }
 
         private static void ReportDuplicateDiscriminators(INamedTypeSymbol baseType, BaseTypeInfo info,
-            SourceProductionContext spc)
+            SourceProductionContext spc, CancellationToken cancellationToken)
         {
             foreach (IGrouping<string, SubtypeRegistration> duplicates in info.Subtypes.GroupBy(s => s.FullyQualifiedName))
             {
-                spc.CancellationToken.ThrowIfCancellationRequested();
+                cancellationToken.ThrowIfCancellationRequested();
                 if (duplicates.Count() > 1)
                 {
                     spc.ReportDiagnostic(Diagnostic.Create(DuplicateDiscriminators,

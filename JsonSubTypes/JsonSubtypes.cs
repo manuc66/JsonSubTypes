@@ -338,15 +338,24 @@ namespace JsonSubTypes
                 }
             }
 
-            switch (typesFound.Count)
+            Type result = null;
+            bool ambiguous = false;
+            foreach (Type matchingType in typesFound)
             {
-                case 0:
-                    return null;
-                case 1:
-                    return typesFound.First();
-                default:
-                    throw new JsonSerializationException("Ambiguous type resolution, expected only one type but got: " + String.Join(", ", typesFound.Select(t => t.FullName).ToArray()));
+                if (result != null)
+                {
+                    ambiguous = true;
+                    break;
+                }
+                result = matchingType;
             }
+
+            if (ambiguous)
+            {
+                throw new JsonSerializationException("Ambiguous type resolution, expected only one type but got: " + String.Join(", ", typesFound.Select(t => t.FullName).ToArray()));
+            }
+
+            return result;
         }
 
         internal virtual List<TypeWithPropertyMatchingAttributes> GetTypesByPropertyPresence(Type parentType)
