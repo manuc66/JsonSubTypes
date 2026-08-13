@@ -163,5 +163,179 @@ public class Sub : Base { }
             StringAssert.Contains("value.Note", text!, "Never must write the property");
             StringAssert.DoesNotContain("value.Secret", text!, "Always must drop the property");
         }
+
+        [Test]
+        public void Generate_ExplicitAlwaysIgnore_DropsProperty()
+        {
+            const string domain = @"
+using System.Text.Json.Serialization;
+using JsonSubTypes.Text.Json;
+
+[JsonSubTypesAotConverter(""kind"")]
+[KnownSubType(typeof(Sub), ""sub"")]
+public class Base
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+    public string? Secret { get; set; }
+}
+public class Sub : Base { }
+";
+            GeneratorRun run = GeneratorDriverRunner.GetRun(domain);
+
+            string? text = GeneratorDriverRunner.GetGeneratedSource(run, "BaseJsonSubTypesConverter.g.cs");
+            Assert.That(text, Is.Not.Null);
+            StringAssert.DoesNotContain("value.Secret", text!);
+        }
+
+        [Test]
+        public void Generate_JsonPropertyName_EmitsCustomName()
+        {
+            const string domain = @"
+using System.Text.Json.Serialization;
+using JsonSubTypes.Text.Json;
+
+[JsonSubTypesAotConverter(""kind"")]
+[KnownSubType(typeof(Sub), ""sub"")]
+public class Base
+{
+    [JsonPropertyName(""age"")]
+    public int Age { get; set; }
+}
+public class Sub : Base { }
+";
+            GeneratorRun run = GeneratorDriverRunner.GetRun(domain);
+
+            string? text = GeneratorDriverRunner.GetGeneratedSource(run, "BaseJsonSubTypesConverter.g.cs");
+            Assert.That(text, Is.Not.Null);
+            StringAssert.Contains("= \"age\";", text!);
+        }
+
+        [Test]
+        public void Generate_UnsupportedDiscriminator_ReportsJSTAOT001()
+        {
+            const string domain = @"
+using JsonSubTypes.Text.Json;
+
+[JsonSubTypesAotConverter(""type"")]
+[KnownSubType(typeof(Sub), 1.5)]
+public class Base { }
+public class Sub : Base { }
+";
+            GeneratorRun run = GeneratorDriverRunner.GetRun(domain);
+
+            Assert.That(run.DriverResults.Diagnostics.Select(d => d.Id), Does.Contain("JSTAOT001"));
+        }
+
+        [Test]
+        public void Generate_BoolDiscriminator_ReportsJSTAOT001()
+        {
+            const string domain = @"
+using JsonSubTypes.Text.Json;
+
+[JsonSubTypesAotConverter(""type"")]
+[KnownSubType(typeof(Sub), true)]
+public class Base { }
+public class Sub : Base { }
+";
+            GeneratorRun run = GeneratorDriverRunner.GetRun(domain);
+
+            Assert.That(run.DriverResults.Diagnostics.Select(d => d.Id), Does.Contain("JSTAOT001"));
+        }
+
+        [Test]
+        public void Generate_EnumWithoutMatchingMember_ReportsJSTAOT001()
+        {
+            const string domain = @"
+using JsonSubTypes.Text.Json;
+
+public enum Kind { A, B }
+
+[JsonSubTypesAotConverter(""type"")]
+[KnownSubType(typeof(Sub), (Kind)99)]
+public class Base { }
+public class Sub : Base { }
+";
+            GeneratorRun run = GeneratorDriverRunner.GetRun(domain);
+
+            Assert.That(run.DriverResults.Diagnostics.Select(d => d.Id), Does.Contain("JSTAOT001"));
+        }
+
+        [Test]
+        public void Generate_DuplicateDiscriminators_ReportsJSTAOT002()
+        {
+            const string domain = @"
+#pragma warning disable JSTAOT002
+using JsonSubTypes.Text.Json;
+
+[JsonSubTypesAotConverter(""type"")]
+[KnownSubType(typeof(Sub), ""a"")]
+[KnownSubType(typeof(Sub), ""b"")]
+public class Base { }
+public class Sub : Base { }
+#pragma warning restore JSTAOT002
+";
+            GeneratorRun run = GeneratorDriverRunner.GetRun(domain);
+
+            Assert.That(run.DriverResults.Diagnostics.Select(d => d.Id), Does.Contain("JSTAOT002"));
+        }
+
+        [Test]
+        public void Generate_PresenceModeValueRegistration_ReportsJSTAOT003()
+        {
+            const string domain = @"
+using JsonSubTypes.Text.Json;
+
+[JsonSubTypesAotConverter]
+[KnownSubType(typeof(Sub), ""a"")]
+[KnownSubTypeWithProperty(typeof(Sub), ""Marker"")]
+public class Base { }
+public class Sub : Base { public int Marker { get; set; } }
+";
+            GeneratorRun run = GeneratorDriverRunner.GetRun(domain);
+
+            Assert.That(run.DriverResults.Diagnostics.Select(d => d.Id), Does.Contain("JSTAOT003"));
+        }
+
+        [Test]
+        public void Generate_AbstractBase_EmitsThrowingDeserializeBase()
+        {
+            const string domain = @"
+using JsonSubTypes.Text.Json;
+
+[JsonSubTypesAotConverter(""type"")]
+[KnownSubType(typeof(Sub), ""sub"")]
+public abstract class Base { }
+public class Sub : Base { }
+";
+            GeneratorRun run = GeneratorDriverRunner.GetRun(domain);
+
+            string? text = GeneratorDriverRunner.GetGeneratedSource(run, "BaseJsonSubTypesConverter.g.cs");
+            Assert.That(text, Is.Not.Null);
+            StringAssert.Contains("interface or abstract class", text!);
+        }
+
+        [Test]
+        public void Generate_ParameterizedBase_EmitsRequiringParameterlessCtor()
+        {
+            const string domain = @"
+using JsonSubTypes.Text.Json;
+
+[JsonSubTypesAotConverter(""type"")]
+[KnownSubType(typeof(Sub), ""sub"")]
+public class Base
+{
+    public Base(string name) { }
+}
+public class Sub : Base
+{
+    public Sub() : base(""x"") { }
+}
+";
+            GeneratorRun run = GeneratorDriverRunner.GetRun(domain);
+
+            string? text = GeneratorDriverRunner.GetGeneratedSource(run, "BaseJsonSubTypesConverter.g.cs");
+            Assert.That(text, Is.Not.Null);
+            StringAssert.Contains("parameterless constructor", text!);
+        }
     }
 }
