@@ -32,7 +32,7 @@ public class Dog : Animal { public bool CanHunt { get; set; } }
                 .SelectMany(r => r.GeneratedSources)
                 .Select(s => s.HintName).OrderBy(h => h).ToArray();
             CollectionAssert.AreEqual(
-                new[] { "AnimalJsonSubTypesConverter.g.cs", "JsonSubTypesAotConverters.g.cs" },
+                new[] { "AnimalJsonSubTypesConverter.g.cs", "JsonSubTypesAotConverterBases.g.cs", "JsonSubTypesAotConverters.g.cs" },
                 hints);
         }
 
@@ -53,7 +53,7 @@ public class Dog : Animal { public bool CanHunt { get; set; } }
 
             string? text = GeneratorDriverRunner.GetGeneratedSource(run, "AnimalJsonSubTypesConverter.g.cs");
             Assert.That(text, Is.Not.Null);
-            StringAssert.Contains("class AnimalJsonSubTypesConverter : JsonConverter<", text!);
+            StringAssert.Contains("class AnimalJsonSubTypesConverter : JsonSubTypesAotValueConverterBase<", text!);
             StringAssert.Contains("\"cat\"", text!);
             StringAssert.Contains("\"dog\"", text!);
         }
