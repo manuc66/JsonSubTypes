@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -7,7 +8,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -211,8 +211,12 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         {
             if (_serializeDiscriminatorProperty && TryGetDiscriminatorValue(runtimeType, out object? discriminatorValue))
             {
-                string json = JsonSerializer.Serialize(value, runtimeType, serializer);
-                WriteObjectWithDiscriminator(writer, json, discriminatorValue, serializer);
+                ArrayBufferWriter<byte> buffer = new();
+                using (Utf8JsonWriter bufferWriter = new(buffer))
+                {
+                    JsonSerializer.Serialize(bufferWriter, value, runtimeType, serializer);
+                }
+                WriteObjectWithDiscriminator(writer, buffer.WrittenMemory, discriminatorValue, serializer);
                 return;
             }
 
@@ -229,13 +233,12 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         {
             Action<Utf8JsonWriter, object, JsonSerializerOptions> baseWriter =
                 BaseTypeWriterCache.GetOrAdd(typeof(T), static type => BuildBaseTypeWriter(type));
-            using MemoryStream stream = new();
-            using (Utf8JsonWriter bufferWriter = new(stream))
+            ArrayBufferWriter<byte> buffer = new();
+            using (Utf8JsonWriter bufferWriter = new(buffer))
             {
                 baseWriter(bufferWriter, value, serializer);
             }
-            WriteObjectWithDiscriminator(writer, Encoding.UTF8.GetString(stream.ToArray()), baseDiscriminatorValue,
-                serializer);
+            WriteObjectWithDiscriminator(writer, buffer.WrittenMemory, baseDiscriminatorValue, serializer);
             return;
         }
 
@@ -284,8 +287,8 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
             $"Impossible to serialize type: {runtimeType.FullName} because there is no registered mapping for the discriminator property");
     }
 
-    private void WriteObjectWithDiscriminator(Utf8JsonWriter writer, string json, object? discriminatorValue,
-        JsonSerializerOptions serializer)
+    private void WriteObjectWithDiscriminator(Utf8JsonWriter writer, ReadOnlyMemory<byte> json,
+        object? discriminatorValue, JsonSerializerOptions serializer)
     {
         string discriminatorName = JsonDiscriminatorPropertyName!;
         if (serializer.PropertyNamingPolicy != null)
