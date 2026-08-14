@@ -562,7 +562,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
             return ReadPlainObject(ref readerAtStart, targetType, serializer);
         }
 
-        return (T?)DeserializerHelper<T>.Deserialize(ref readerAtStart, targetType, serializer);
+        return (T?)JsonSerializer.Deserialize(jObject.RootElement, targetType, serializer);
     }
 
     Type IJsonSubtypes.GetType(JsonDocument jObject, Type parentType, JsonSerializerOptions jsonSerializerOptions)
