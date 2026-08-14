@@ -95,6 +95,25 @@ internal interface IJsonSubtypes
 
 [RequiresUnreferencedCode("JsonSubtypes uses reflection to discover sub-types and properties.")]
 [RequiresDynamicCode("JsonSubtypes requires dynamic code for runtime type creation.")]
+/// <summary>
+/// A JSON converter that deserializes a polymorphic hierarchy from a discriminator property.
+/// The concrete subtype is resolved from an explicit mapping (<see cref="KnownSubTypeAttribute"/>)
+/// or, when no mapping is declared, by matching the discriminator string against a type name.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Name-based resolution (used only when no <see cref="KnownSubTypeAttribute"/> mapping is
+/// declared) instantiates the type whose name matches the discriminator, provided it is
+/// assignable from the polymorphic base type and lives in the base type's assembly or in an
+/// assembly registered via <see cref="JsonSubTypesTypeResolution"/>. Any such type present in
+/// those assemblies can be instantiated with attacker-controlled JSON.
+/// </para>
+/// <para>
+/// Do not expose a name-based hierarchy to untrusted JSON without validating the payload
+/// upstream; prefer an explicit <see cref="KnownSubTypeAttribute"/> mapping whenever the
+/// discriminator can come from outside your own code.
+/// </para>
+/// </remarks>
 public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
 {
     private static readonly ConcurrentDictionary<Type, Action<Utf8JsonWriter, object, JsonSerializerOptions>>
