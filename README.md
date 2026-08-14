@@ -406,6 +406,16 @@ Only types assignable from the polymorphic base type can be resolved, but any su
 2. **Resolver (`BuildResolver()`)** — the thin native bridge: simplest and fastest, but limited to the subset the native contract model can express.
 3. **Generator (`JsonSubTypes.Text.Json.Aot`)** — a Roslyn source generator emitting compiled converters: the Native AOT answer, with routing compiled instead of reflected.
 
+**The decisive difference is not speed, it is when the hierarchy is known:**
+
+| | Converter (`Build()`) | Generator (`JsonSubTypes.Text.Json.Aot`) |
+| :--- | :--- | :--- |
+| Subtypes known at **compile time** (attributes on your own types) | ✅ | ✅ |
+| Subtypes known only at **runtime** (plugins, loaded assemblies, config) | ✅ | ✅ (via `RegisterDynamicSubtype` / resolver hooks) |
+| Subtypes in **third-party assemblies** you cannot annotate | ✅ (builder, no attribute needed) | ❌ (generator only sees the source-gen context) |
+
+The generator reads its registrations from `[JsonSubTypesAotConverter]`/`[KnownSubType]`-style **attributes at compile time** (`JsonSubTypesGenerator.cs`). It can only route types visible to the compilation it runs in. The converter's `Build()` accepts a **runtime** registration through the builder, so it is the only engine that can handle hierarchies whose subtypes are discovered at runtime — plugins, assemblies loaded dynamically, or types you do not own. The generator is the better fit when the hierarchy is fixed and known at build time, and the only engine compatible with trimming/Native AOT.
+
 ### Converter known scope & fallback path
 
 To preserve full compatibility with advanced features while delegating object serialization to `System.Text.Json`, the converter isolates base-type serialization to a narrow path (when serializing the base type directly or reading an unregistered fallback type):
