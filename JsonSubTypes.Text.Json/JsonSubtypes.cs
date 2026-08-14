@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -130,6 +131,13 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
 
     private static readonly ConcurrentDictionary<(Type OuterType, Type TargetType), IJsonSubtypes>
         AttributeResolverCache = new();
+
+    // The converter resolution walk scans serializer.Converters for IJsonSubtypes
+    // instances. The result is stable for the lifetime of the options (System.Text.Json
+    // freezes JsonSerializerOptions on first use), so cache it instead of re-scanning
+    // and re-allocating a list on every deserialized object.
+    private static readonly ConditionalWeakTable<JsonSerializerOptions, IJsonSubtypes[]>
+        OptionsConverterCache = new();
 
     protected readonly string? JsonDiscriminatorPropertyName;
 
@@ -574,20 +582,35 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
 
     private Type GetType(JsonDocument jObject, Type parentType, JsonSerializerOptions serializer)
     {
+        IJsonSubtypes[] converters = OptionsConverterCache.GetValue(serializer, static s =>
+            [.. s.Converters.OfType<IJsonSubtypes>()]);
+
         Type targetType = parentType;
-        IJsonSubtypes? lastTypeResolver = null;
-        List<IJsonSubtypes> converters = [];
-        foreach (JsonConverter converter in serializer.Converters)
+        IJsonSubtypes? currentTypeResolver = GetTypeResolver(targetType.GetTypeInfo(), converters);
+        if (currentTypeResolver == null)
         {
-            if (converter is IJsonSubtypes jsonSubtypes)
-            {
-                converters.Add(jsonSubtypes);
-            }
+            return targetType;
         }
 
-        IJsonSubtypes? currentTypeResolver = GetTypeResolver(targetType.GetTypeInfo(), converters);
-        HashSet<Type> visitedTypes = [targetType];
+        targetType = currentTypeResolver.GetType(jObject, targetType, serializer);
+        if (targetType == parentType)
+        {
+            return targetType;
+        }
 
+        // Single-level resolution is the common case: only allocate the nested
+        // walk (and its cycle-protection set) when the resolved type carries its
+        // own resolver, i.e. for multi-level hierarchies.
+        IJsonSubtypes? nestedResolver = GetTypeResolver(targetType.GetTypeInfo(),
+            converters.Where(c => c != currentTypeResolver));
+        if (nestedResolver == null)
+        {
+            return targetType;
+        }
+
+        IJsonSubtypes lastTypeResolver = currentTypeResolver;
+        HashSet<Type> visitedTypes = [parentType, targetType];
+        currentTypeResolver = nestedResolver;
         while (currentTypeResolver != null && currentTypeResolver != lastTypeResolver)
         {
             targetType = currentTypeResolver.GetType(jObject, targetType, serializer);
@@ -597,8 +620,8 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
             }
 
             lastTypeResolver = currentTypeResolver;
-            converters = [.. converters.Where(c => c != currentTypeResolver)];
-            currentTypeResolver = GetTypeResolver(targetType.GetTypeInfo(), converters);
+            currentTypeResolver = GetTypeResolver(targetType.GetTypeInfo(),
+                converters.Where(c => c != currentTypeResolver));
         }
 
         return targetType;
@@ -821,6 +844,29 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         object? key = typeMapping.NotNullKeys().FirstOrDefault();
         if (key != null)
         {
+            // Fast path: for the dominant string/int mappings, compare the token directly
+            // instead of round-tripping through GetRawText() + JsonSerializer.Deserialize.
+            if (key is string && discriminatorToken.ValueKind == JsonValueKind.String)
+            {
+                string? stringValue = discriminatorToken.GetString();
+                if (stringValue != null && typeMapping.TryGetValue(stringValue, out Type? stringTarget))
+                {
+                    return stringTarget;
+                }
+
+                return null;
+            }
+
+            if (key is int && discriminatorToken.TryGetInt32(out int intValue))
+            {
+                if (typeMapping.TryGetValue(intValue, out Type? intTarget))
+                {
+                    return intTarget;
+                }
+
+                return null;
+            }
+
             Type targetLookupValueType = key.GetType();
             object? lookupValue;
             try
