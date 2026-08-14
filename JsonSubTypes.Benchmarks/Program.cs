@@ -17,7 +17,7 @@ namespace JsonSubTypes.Benchmarks
             IConfig config = ManualConfig.Create(DefaultConfig.Instance)
                 .AddJob(Job.Default)
                 .AddJob(Job.Default
-                    .WithToolchain(NativeAotToolchain.CreateBuilder().UseNuGet("8.0.28").ToToolchain())
+                    .WithToolchain(NativeAotToolchain.Net10_0)
                     .WithId("NativeAOT"));
 
             BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args, config);
