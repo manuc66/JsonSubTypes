@@ -10,8 +10,15 @@ __JsonSubTypes__ is a discriminated Json sub-type Converter implementation for .
 [![CodeFactor](https://www.codefactor.io/repository/github/manuc66/JsonSubTypes/badge)](https://www.codefactor.io/repository/github/manuc66/JsonSubTypes)
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fmanuc66%2FJsonSubTypes.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fmanuc66%2FJsonSubTypes?ref=badge_shield)
 
-> **Note:** this library is built around `Json.NET`/`Newtonsoft.Json` — that is where its API and reputation come from, and the `JsonSubTypes` NuGet package targets it. A `System.Text.Json` port exists as the `JsonSubTypes.Text.Json` package (`.NET 8+`): it shares the same API but is **experimental**. Full documentation, differences and known limitations are in the dedicated section at the bottom: [System.Text.Json variant](#systemtextjson-variant).
->
+## Which package? State and choices
+
+`JsonSubTypes` exists in two packages that share the same API and registration model (attributes and `JsonSubtypesConverterBuilder`):
+
+- **`JsonSubTypes`** — for `Newtonsoft.Json`, the original and stable package.
+- **`JsonSubTypes.Text.Json`** (`.NET 8+`) — for `System.Text.Json`. **Experimental**: the API is complete and the code fully tested, but the stable `1.0.0` release is still pending.
+
+The examples below use the Newtonsoft.Json package; the API is the same for `System.Text.Json`, so read them either way. If you are targeting `System.Text.Json`, then after these examples jump to the [System.Text.Json variant](#systemtextjson-variant) section, which explains the engines available there (`Build()` converter, `BuildResolver()`, AOT generator) and their differences and limitations.
+
 > **Security:** unless a subtype mapping is explicitly declared, the converter resolves subtypes by *name* from the JSON discriminator (only types assignable from the base are considered). See the [security section](#security) before exposing a name-based hierarchy to untrusted JSON.
 
 ## DeserializeObject with custom type property name
