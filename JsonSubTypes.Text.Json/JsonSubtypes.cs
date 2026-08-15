@@ -813,7 +813,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
             ? null
             : parentTypeFullName.Substring(0, parentTypeFullName.Length - parentType.Name.Length);
 
-        foreach (Assembly assembly in JsonSubTypesTypeResolution.GetSearchAssemblies(parentType.Assembly))
+        foreach (Assembly assembly in TypeResolution.GetSearchAssemblies(parentType))
         {
             Type? typeByName = assembly.GetType(typeName);
             if (typeByName == null && searchLocation != null)

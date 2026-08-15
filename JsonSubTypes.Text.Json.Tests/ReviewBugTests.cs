@@ -208,37 +208,27 @@ namespace JsonSubTypes.Tests
         [Test]
         public void CrossAssemblyResolvedWhenAssemblyRegistered()
         {
-            JsonSubTypesTypeResolution.ClearAssemblies();
-            JsonSubTypesTypeResolution.AddAssembly(typeof(PluginDog).Assembly);
-            try
-            {
-                var dog = JsonSerializer.Deserialize<SharedAnimal>(
-                    $"{{\"Kind\":\"{typeof(PluginDog).FullName}\",\"CanBark\":true}}");
+            var dog = JsonSerializer.Deserialize<SharedAnimal>(
+                $"{{\"Kind\":\"{typeof(PluginDog).FullName}\",\"CanBark\":true}}");
 
-                Assert.IsInstanceOf<PluginDog>(dog);
-                Assert.IsTrue((dog as PluginDog)?.CanBark == true);
-            }
-            finally
-            {
-                JsonSubTypesTypeResolution.ClearAssemblies();
-            }
+            Assert.IsInstanceOf<PluginDog>(dog);
+            Assert.IsTrue((dog as PluginDog)?.CanBark == true);
         }
 
         [Test]
         public void CrossAssemblyNotResolvedByDefault()
         {
-            JsonSubTypesTypeResolution.ClearAssemblies();
-            try
-            {
-                var animal = JsonSerializer.Deserialize<SharedAnimal>(
-                    $"{{\"Kind\":\"{typeof(PluginDog).FullName}\",\"CanBark\":true}}");
+            var animal = JsonSerializer.Deserialize<OtherBase>(
+                $"{{\"Kind\":\"{typeof(PluginDog).FullName}\",\"CanBark\":true}}");
 
-                Assert.IsInstanceOf<SharedAnimal>(animal);
-            }
-            finally
-            {
-                JsonSubTypesTypeResolution.ClearAssemblies();
-            }
+            Assert.IsInstanceOf<OtherBase>(animal);
+        }
+
+        // A base type without the attribute: name-based resolution stays in its own assembly.
+        [JsonSubTypeConverter(typeof(JsonSubtypes<OtherBase>), "Kind")]
+        public class OtherBase
+        {
+            public string Kind { get; set; }
         }
     }
 }
