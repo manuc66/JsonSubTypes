@@ -15,7 +15,7 @@ namespace JsonSubTypes.Text.Json.Aot
         private const string JsonSubTypesAotConverterAttributeName = "JsonSubTypesAotConverterAttribute";
         private const string KnownSubTypeAttributeName = "KnownSubTypeAttribute";
         private const string KnownSubTypeWithPropertyAttributeName = "KnownSubTypeWithPropertyAttribute";
-        private const string FallBackSubTypeAttributeName = "FallBackSubTypeAttribute";
+        private const string FallbackSubTypeAttributeName = "FallbackSubTypeAttribute";
         private const string SystemTextJsonSerializationNamespace = "System.Text.Json.Serialization";
         private const string DiagnosticId = "JSTAOT001";
         private const string DuplicateDiscriminatorDiagnosticId = "JSTAOT002";
@@ -228,8 +228,8 @@ namespace JsonSubTypes.Text.Json.Aot
                     case KnownSubTypeWithPropertyAttributeName:
                         ProcessKnownSubTypeWithProperty(attr, info);
                         break;
-                    case FallBackSubTypeAttributeName:
-                        ProcessFallBackSubType(attr, info);
+                    case FallbackSubTypeAttributeName:
+                        ProcessFallbackSubType(attr, info);
                         break;
                 }
             }
@@ -304,7 +304,7 @@ namespace JsonSubTypes.Text.Json.Aot
             });
         }
 
-        private static void ProcessFallBackSubType(AttributeData attr, BaseTypeInfo info)
+        private static void ProcessFallbackSubType(AttributeData attr, BaseTypeInfo info)
         {
             if (attr.ConstructorArguments[0].Value is ITypeSymbol fallback)
             {

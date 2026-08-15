@@ -318,9 +318,9 @@ var options = new JsonSerializerOptions
 
 The resolver delegates all serialization work to `System.Text.Json`, so it only supports a subset of the converter configuration and throws at build time otherwise: `string` or `int` discriminator values, a single level of hierarchy per base type, and the discriminator always written first. The following native behaviors are exposed as opt-in builder methods:
 
-- `FallBackToNearestAncestor()`: an unregistered derived type is serialized as its nearest registered ancestor instead of throwing.
+- `FallbackToNearestAncestor()`: an unregistered derived type is serialized as its nearest registered ancestor instead of throwing.
 - `IgnoreUnrecognizedTypeDiscriminators()`: an unknown type discriminator falls back to the base type instead of throwing. `SetFallbackSubtype(baseType)` enables the same behavior.
-- When no subtype is registered explicitly, `[KnownSubType]` and `[FallBackSubType]` attributes on the base type are honored.
+- When no subtype is registered explicitly, `[KnownSubType]` and `[FallbackSubType]` attributes on the base type are honored.
 
 For several base type hierarchies, combine builders with `JsonSubtypesConverterBuilder.BuildResolvers(...)`. Combining resolvers through `JsonSerializerOptions.TypeInfoResolverChain` does not work, because each resolver answers for every type and only the first one would be applied.
 
@@ -357,7 +357,7 @@ public class Person { }
 ```csharp
 [JsonSubTypeConverter(typeof(JsonSubtypes<IExpression>), "Type")]
 [KnownSubType(typeof(ConstantExpression), "Constant")]
-[FallBackSubType(typeof(UnknownExpression))]
+[FallbackSubType(typeof(UnknownExpression))]
 public interface IExpression { }
 ```
 
@@ -392,7 +392,7 @@ Only types assignable from the polymorphic base type can be resolved, but any su
 | Enum / `null` discriminator values | ❌ | ❌ | ✅ | ✅ |
 | Custom discriminator property name | ✅ | ✅ | ✅ | ✅ |
 | Property presence matching (`KnownSubTypeWithProperty`) | ❌ | ❌ | ✅ | ✅ |
-| Fallback subtype (`FallBackSubType`) | ❌ | base only | ✅ | ✅ |
+| Fallback subtype (`FallbackSubType`) | ❌ | base only | ✅ | ✅ |
 | Discriminator written last | ❌ | ❌ | ✅ | ✅ |
 | Naming policy / case-insensitive on the discriminator name | ❌ | ⚠️ | ✅ | ✅ |
 | Dotted / nested discriminator path (`"nested.type"`) | ❌ | ❌ | ✅ | ✅ |

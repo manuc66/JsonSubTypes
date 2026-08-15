@@ -49,7 +49,7 @@ public class KnownSubTypeAttribute(Type subType, object? associatedValue) : Attr
 }
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface)]
-public class FallBackSubTypeAttribute(Type subType) : Attribute
+public class FallbackSubTypeAttribute(Type subType) : Attribute
 {
     public Type SubType { get; } = subType;
 }
@@ -932,7 +932,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
 
     internal virtual Type? GetFallbackSubType(Type type)
     {
-        return _fallbackType ?? GetAttribute<FallBackSubTypeAttribute>(type.GetTypeInfo())?.SubType;
+        return _fallbackType ?? GetAttribute<FallbackSubTypeAttribute>(type.GetTypeInfo())?.SubType;
     }
 
     private static IEnumerable<TAttribute> GetAttributes<TAttribute>(TypeInfo typeInfo) where TAttribute : Attribute
