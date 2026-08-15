@@ -71,9 +71,10 @@ public class JsonSubtypesWithPropertyConverterBuilder
                 typeof(List<TypeWithPropertyMatchingAttributes>),
                 typeof(Type),
                 typeof(bool),
-                typeof(bool)
+                typeof(bool),
+                typeof(Assembly[])
             ], null)!;
         return (JsonConverter)constructor.Invoke(
-            [null, null, _types.Values.ToList(), _fallbackType, false, false]);
+            [null, null, _types.Values.ToList(), _fallbackType, false, false, Array.Empty<Assembly>()]);
     }
 }

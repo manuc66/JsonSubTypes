@@ -147,9 +147,11 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
     private readonly bool _serializeDiscriminatorProperty;
     private readonly bool _addDiscriminatorFirst;
     private readonly Dictionary<Type, object?>? _runtimeTypeToDiscriminator;
+    private readonly Assembly[] _additionalAssemblies;
 
     public JsonSubtypes()
     {
+        _additionalAssemblies = [];
     }
 
     public JsonSubtypes(string? jsonDiscriminatorPropertyName)
@@ -157,6 +159,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         JsonDiscriminatorPropertyName = jsonDiscriminatorPropertyName;
         _serializeDiscriminatorProperty = jsonDiscriminatorPropertyName != null;
         _addDiscriminatorFirst = true;
+        _additionalAssemblies = [];
     }
 
     internal JsonSubtypes(string? jsonDiscriminatorPropertyName,
@@ -164,13 +167,15 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         List<TypeWithPropertyMatchingAttributes>? typesByPropertyPresence,
         Type? fallbackType,
         bool serializeDiscriminatorProperty,
-        bool addDiscriminatorFirst) : this(jsonDiscriminatorPropertyName)
+        bool addDiscriminatorFirst,
+        Assembly[] additionalAssemblies) : this(jsonDiscriminatorPropertyName)
     {
         _subTypeMapping = subTypeMapping;
         _typesByPropertyPresence = typesByPropertyPresence;
         _fallbackType = fallbackType;
         _serializeDiscriminatorProperty = serializeDiscriminatorProperty;
         _addDiscriminatorFirst = addDiscriminatorFirst;
+        _additionalAssemblies = additionalAssemblies;
         if (subTypeMapping != null)
         {
             _runtimeTypeToDiscriminator = new Dictionary<Type, object?>();
@@ -733,7 +738,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
             JsonValueKind.String => discriminatorValue.GetString(),
             _ => discriminatorValue.ToString()
         };
-        return GetTypeByName(discriminatorStringValue, parentType.GetTypeInfo());
+        return GetTypeByName(discriminatorStringValue, parentType.GetTypeInfo(), _additionalAssemblies);
     }
 
     private static bool TryGetValueInJson(JsonElement root, string propertyName,
@@ -801,7 +806,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         return false;
     }
 
-    private static Type? GetTypeByName(string? typeName, TypeInfo parentType)
+    private static Type? GetTypeByName(string? typeName, TypeInfo parentType, Assembly[] instanceAssemblies)
     {
         if (typeName == null)
         {
@@ -813,7 +818,10 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
             ? null
             : parentTypeFullName.Substring(0, parentTypeFullName.Length - parentType.Name.Length);
 
-        foreach (Assembly assembly in TypeResolution.GetSearchAssemblies(parentType))
+        Assembly[] attributeAssemblies = TypeResolution.GetSearchAssemblies(parentType);
+        IEnumerable<Assembly> assemblies = attributeAssemblies
+            .Concat(instanceAssemblies.Where(a => !attributeAssemblies.Contains(a)));
+        foreach (Assembly assembly in assemblies)
         {
             Type? typeByName = assembly.GetType(typeName);
             if (typeByName == null && searchLocation != null)

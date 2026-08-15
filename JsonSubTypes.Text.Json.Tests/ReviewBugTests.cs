@@ -230,5 +230,41 @@ namespace JsonSubTypes.Tests
         {
             public string Kind { get; set; }
         }
+
+        [Test]
+        public void SelfDeclaredSubtypeResolvedViaRegisteredAssembly()
+        {
+            // SelfDeclaredDog declares itself through [KnownSubTypeOf(typeof(SelfDeclaredBase), "Dog")]
+            // in the plugin assembly. The host registers that assembly at runtime; the base type
+            // knows nothing about the subtype or its assembly. The scan picks up the mapping.
+            var options = new JsonSerializerOptions();
+            options.Converters.Add(JsonSubtypesConverterBuilder
+                .Of<SelfDeclaredBase>("Kind")
+                .RegisterSubtypeAssembly(typeof(SelfDeclaredDog).Assembly)
+                .Build());
+
+            var dog = JsonSerializer.Deserialize<SelfDeclaredBase>("{\"Kind\":\"Dog\",\"CanBark\":true}", options);
+
+            Assert.IsInstanceOf<SelfDeclaredDog>(dog);
+            Assert.IsTrue((dog as SelfDeclaredDog)?.CanBark == true);
+        }
+
+        [Test]
+        public void SelfDeclaredSubtypeResolvedByNameInRegisteredAssembly()
+        {
+            // SelfDeclaredCat declares itself without a value, so it is resolved by type name in
+            // the registered plugin assembly rather than by a discriminator value.
+            var options = new JsonSerializerOptions();
+            options.Converters.Add(JsonSubtypesConverterBuilder
+                .Of<SelfDeclaredCatBase>("Kind")
+                .RegisterSubtypeAssembly(typeof(SelfDeclaredCat).Assembly)
+                .Build());
+
+            var cat = JsonSerializer.Deserialize<SelfDeclaredCatBase>(
+                $"{{\"Kind\":\"{typeof(SelfDeclaredCat).FullName}\",\"Purrs\":true}}", options);
+
+            Assert.IsInstanceOf<SelfDeclaredCat>(cat);
+            Assert.IsTrue((cat as SelfDeclaredCat)?.Purrs == true);
+        }
     }
 }
