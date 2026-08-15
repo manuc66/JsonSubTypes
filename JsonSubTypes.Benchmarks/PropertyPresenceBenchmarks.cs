@@ -41,16 +41,16 @@ namespace JsonSubTypes.Benchmarks
         }
 
         [Benchmark]
-        public string Converter_Serialize() => JsonSerializer.Serialize<ConvPerson>(_convEmployee, _converterOptions!);
+        public string Pres_Converter_Serialize() => JsonSerializer.Serialize<ConvPerson>(_convEmployee, _converterOptions!);
 
         [Benchmark]
-        public string Generated_Serialize() => JsonSerializer.Serialize<PresencePerson>(_presenceEmployee, _generatedOptions);
+        public string Pres_Generated_Serialize() => JsonSerializer.Serialize<PresencePerson>(_presenceEmployee, _generatedOptions);
 
         [Benchmark]
-        public ConvPerson? Converter_Deserialize() => JsonSerializer.Deserialize<ConvPerson>(_converterJson!, _converterOptions!);
+        public ConvPerson? Pres_Converter_Deserialize() => JsonSerializer.Deserialize<ConvPerson>(_converterJson!, _converterOptions!);
 
         [Benchmark]
-        public PresencePerson? Generated_Deserialize() => JsonSerializer.Deserialize<PresencePerson>(_generatedJson, _generatedOptions);
+        public PresencePerson? Pres_Generated_Deserialize() => JsonSerializer.Deserialize<PresencePerson>(_generatedJson, _generatedOptions);
     }
 
     public class ConvPerson

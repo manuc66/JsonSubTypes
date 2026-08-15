@@ -76,22 +76,22 @@ namespace JsonSubTypes.Benchmarks
         }
 
         [Benchmark]
-        public string Converter_Serialize() => JsonSerializer.Serialize(_convAnimals, _converterOptions!);
+        public string Col_Converter_Serialize() => JsonSerializer.Serialize(_convAnimals, _converterOptions!);
 
         [Benchmark]
-        public string Resolver_Serialize() => JsonSerializer.Serialize(_resAnimals, _resolverOptions!);
+        public string Col_Resolver_Serialize() => JsonSerializer.Serialize(_resAnimals, _resolverOptions!);
 
         [Benchmark]
-        public string Generated_Serialize() => JsonSerializer.Serialize(_generatedAnimals, _generatedOptions);
+        public string Col_Generated_Serialize() => JsonSerializer.Serialize(_generatedAnimals, _generatedOptions);
 
         [Benchmark]
-        public List<ColConvAnimal>? Converter_Deserialize() => JsonSerializer.Deserialize<List<ColConvAnimal>>(_converterJson!, _converterOptions!);
+        public List<ColConvAnimal>? Col_Converter_Deserialize() => JsonSerializer.Deserialize<List<ColConvAnimal>>(_converterJson!, _converterOptions!);
 
         [Benchmark]
-        public List<ColResAnimal>? Resolver_Deserialize() => JsonSerializer.Deserialize<List<ColResAnimal>>(_resolverJson!, _resolverOptions!);
+        public List<ColResAnimal>? Col_Resolver_Deserialize() => JsonSerializer.Deserialize<List<ColResAnimal>>(_resolverJson!, _resolverOptions!);
 
         [Benchmark]
-        public List<ColAnimal>? Generated_Deserialize() => JsonSerializer.Deserialize<List<ColAnimal>>(_generatedJson, _generatedOptions);
+        public List<ColAnimal>? Col_Generated_Deserialize() => JsonSerializer.Deserialize<List<ColAnimal>>(_generatedJson, _generatedOptions);
     }
 
     public class ColConvAnimal { public int Age { get; set; } }

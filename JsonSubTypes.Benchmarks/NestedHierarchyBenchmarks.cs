@@ -46,13 +46,13 @@ namespace JsonSubTypes.Benchmarks
         }
 
         [Benchmark]
-        public string Generated_Serialize() => JsonSerializer.Serialize<NestedPayload>(_nestedRun, _generatedOptions);
+        public string Nested_Generated_Serialize() => JsonSerializer.Serialize<NestedPayload>(_nestedRun, _generatedOptions);
 
         [Benchmark]
-        public ConvPayload? Converter_Deserialize() => JsonSerializer.Deserialize<ConvPayload>(_converterJson!, _converterOptions!);
+        public ConvPayload? Nested_Converter_Deserialize() => JsonSerializer.Deserialize<ConvPayload>(_converterJson!, _converterOptions!);
 
         [Benchmark]
-        public NestedPayload? Generated_Deserialize() => JsonSerializer.Deserialize<NestedPayload>(_generatedJson, _generatedOptions);
+        public NestedPayload? Nested_Generated_Deserialize() => JsonSerializer.Deserialize<NestedPayload>(_generatedJson, _generatedOptions);
     }
 
     public enum PayloadDiscriminator
