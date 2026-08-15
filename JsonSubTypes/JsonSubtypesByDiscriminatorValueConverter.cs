@@ -138,7 +138,21 @@ namespace JsonSubTypes
                                                          " because there is no registered mapping for the discriminator property");
                 }
             }
-            JToken typeMappingPropertyValue = JToken.FromObject(supportedType, serializer);
+            JToken typeMappingPropertyValue;
+            if ((supportedType is string || supportedType is int) &&
+                !serializer.Converters.Any(c => c.CanConvert(supportedType.GetType())))
+            {
+                // Fast path for the dominant string/int discriminators, taken only when no
+                // converter registered on the serializer handles the discriminator type. In that
+                // case JToken.FromObject would produce a plain JValue anyway, so the output is
+                // identical. A converter for the type (custom int/string converters, ...) keeps
+                // the serializer-aware path below.
+                typeMappingPropertyValue = new JValue(supportedType);
+            }
+            else
+            {
+                typeMappingPropertyValue = JToken.FromObject(supportedType, serializer);
+            }
             if (_addDiscriminatorFirst)
             {
                 jsonObj.AddFirst(new JProperty(JsonDiscriminatorPropertyName, typeMappingPropertyValue));
