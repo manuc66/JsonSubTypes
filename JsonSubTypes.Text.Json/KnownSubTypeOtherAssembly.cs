@@ -6,10 +6,11 @@ using System.Reflection;
 namespace JsonSubTypes.Text.Json;
 
 /// <summary>
-/// Declares an additional assembly to search when resolving subtypes by name from the JSON
-/// discriminator for the decorated polymorphic base type. The assembly is referenced by name so
-/// the base type does not need a compile-time reference to it, which is what keeps the plugin
-/// pattern cycle-free: the plugin references the base, the base merely names the plugin.
+/// Declares another assembly to search, in addition to the base type's own assembly, when
+/// resolving subtypes by name from the JSON discriminator for the decorated polymorphic base
+/// type. The assembly is referenced by name so the base type does not need a compile-time
+/// reference to it, which is what keeps the plugin pattern cycle-free: the plugin references the
+/// base, the base merely names the plugin.
 /// </summary>
 /// <remarks>
 /// The assignability guard still applies: only types assignable from the base type are
@@ -18,7 +19,7 @@ namespace JsonSubTypes.Text.Json;
 /// base type and cached per type.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
-public class JsonSubTypesTypeResolution(string assemblyName) : Attribute
+public class KnownSubTypeOtherAssembly(string assemblyName) : Attribute
 {
     public string AssemblyName { get; } = assemblyName;
 }
@@ -34,9 +35,9 @@ internal static class TypeResolution
             List<Assembly> assemblies = [type.Assembly];
             foreach (object attribute in type.GetCustomAttributes(false))
             {
-                if (attribute is JsonSubTypesTypeResolution resolution)
+                if (attribute is KnownSubTypeOtherAssembly otherAssembly)
                 {
-                    Assembly? assembly = FindAssembly(resolution.AssemblyName);
+                    Assembly? assembly = FindAssembly(otherAssembly.AssemblyName);
                     if (assembly != null && !assemblies.Contains(assembly))
                     {
                         assemblies.Add(assembly);

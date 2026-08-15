@@ -106,7 +106,7 @@ internal interface IJsonSubtypes
 /// Name-based resolution (used only when no <see cref="KnownSubTypeAttribute"/> mapping is
 /// declared) instantiates the type whose name matches the discriminator, provided it is
 /// assignable from the polymorphic base type and lives in the base type's assembly or in an
-/// assembly registered via <see cref="JsonSubTypesTypeResolution"/>. Any such type present in
+/// assembly registered via <see cref="KnownSubTypeOtherAssembly"/>. Any such type present in
 /// those assemblies can be instantiated with attacker-controlled JSON.
 /// </para>
 /// <para>

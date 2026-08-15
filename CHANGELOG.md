@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### JsonSubTypes.Text.Json
 #### Changed
-- Replaced the global `JsonSubTypesTypeResolution.AddAssembly` registry with a declarative `[JsonSubTypesTypeResolution("AssemblyName")]` attribute on the base type. Resolution is now per-type instead of process-wide, so it no longer leaks across serialization profiles. The attribute takes an assembly name, keeping the base type free of a compile-time reference to the plugin.
+- Replaced the global `JsonSubTypesTypeResolution.AddAssembly` registry with a declarative `[KnownSubTypeOtherAssembly("AssemblyName")]` attribute on the base type. Resolution is now per-type instead of process-wide, so it no longer leaks across serialization profiles. The attribute takes an assembly name, keeping the base type free of a compile-time reference to the plugin.
 - Renamed `FallBackSubTypeAttribute` to `FallbackSubTypeAttribute` and `FallBackToNearestAncestor()` to `FallbackToNearestAncestor()` for consistent capitalization. The `FallBack*` names still work in `JsonSubTypes` (Newtonsoft), which keeps its historical API.
 
 ### JsonSubTypes
