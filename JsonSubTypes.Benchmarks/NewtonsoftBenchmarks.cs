@@ -51,16 +51,16 @@ namespace JsonSubTypes.Benchmarks
         }
 
         [Benchmark]
-        public string Single_Serialize() => JsonConvert.SerializeObject(_animal, _settings);
+        public string Nw_Single_Serialize() => JsonConvert.SerializeObject(_animal, _settings);
 
         [Benchmark]
-        public NwAnimal? Single_Deserialize() => JsonConvert.DeserializeObject<NwAnimal>(_singleJson, _settings);
+        public NwAnimal? Nw_Single_Deserialize() => JsonConvert.DeserializeObject<NwAnimal>(_singleJson, _settings);
 
         [Benchmark]
-        public string Collection_Serialize() => JsonConvert.SerializeObject(_animals, _settings);
+        public string Nw_Collection_Serialize() => JsonConvert.SerializeObject(_animals, _settings);
 
         [Benchmark]
-        public List<NwAnimal>? Collection_Deserialize() => JsonConvert.DeserializeObject<List<NwAnimal>>(_collectionJson, _settings);
+        public List<NwAnimal>? Nw_Collection_Deserialize() => JsonConvert.DeserializeObject<List<NwAnimal>>(_collectionJson, _settings);
     }
 
     public class NwAnimal { public int Age { get; set; } }

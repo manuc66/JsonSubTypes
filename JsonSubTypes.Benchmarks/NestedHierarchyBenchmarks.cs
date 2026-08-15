@@ -14,7 +14,11 @@ namespace JsonSubTypes.Benchmarks
         private readonly JsonSerializerOptions _generatedOptions = new JsonSerializerOptions
         {
             TypeInfoResolver = NestedContext.Default,
-            Converters = { JsonSubTypesAotConverters.NestedPayload }
+            Converters =
+            {
+                JsonSubTypesAotConverters.NestedPayload,
+                JsonSubTypesAotConverters.NestedGame
+            }
         };
 
         private readonly ConvRun _convRun = new ConvRun();
