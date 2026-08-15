@@ -115,7 +115,7 @@ var options = new JsonSerializerOptions
 public partial class MyContext : JsonSerializerContext { }
 ```
 
-If you do not own the types (plugins, third-party assemblies) or the subtypes are only known at runtime, the generator cannot see them — keep the converter (or use `RegisterDynamicSubtype` where supported).
+If you do not own the types (plugins, third-party assemblies) or the subtypes are only known at runtime, the generator cannot see them — keep the converter. Register the plugin's assembly at runtime with `RegisterSubtypeAssembly(assembly)` and declare the subtypes with `[KnownSubTypeOf(typeof(Base), "value")]` (see the README's plugin section), or register single subtypes directly with `RegisterDynamicSubtype("value", typeof(Sub))`.
 
 ### Resolver → Generator
 

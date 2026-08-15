@@ -300,6 +300,32 @@ var result = JsonSerializer.Deserialize<Animal>("{\"catLives\":6,\"type\":2,\"ag
 Assert.AreEqual(typeof(Cat), result.GetType());
 ```
 
+### Plugins: subtypes registered at runtime
+
+For hierarchies whose subtypes live in another assembly loaded at runtime (plugins, config-driven types), the subtype declares itself and the host registers the assembly:
+
+```csharp
+// In the plugin assembly:
+[KnownSubTypeOf(typeof(Animal), "dog")]
+public class PluginDog : Animal { }
+
+// In the host, after loading the plugin assembly:
+var options = new JsonSerializerOptions();
+options.Converters.Add(JsonSubtypesConverterBuilder
+    .Of<Animal>("type")
+    .RegisterSubtypeAssembly(pluginAssembly)
+    .Build());
+
+var dog = JsonSerializer.Deserialize<Animal>("{\"type\":\"dog\",\"CanBark\":true}", options);
+// dog is a PluginDog
+```
+
+- `[KnownSubTypeOf(typeof(Base), "value")]` on the subtype declares it; with a value it is mapped to that discriminator, without one it is resolved by type name in the registered assembly. `[KnownSubTypeWithPropertyOf]` is the property-presence equivalent.
+- `RegisterSubtypeAssembly(assembly)` scans the assembly for those declarations, so the base type does not need to reference the plugin. It mirrors `[KnownSubTypeOtherAssembly]` but accepts an assembly loaded at runtime, whose name is not known at compile time.
+- `RegisterDynamicSubtype(object discriminator, Type type)` on a builder-built converter registers one subtype directly, without scanning: call it during setup, before the converter is used, as it mutates the mapping.
+
+The security note about name-based resolution applies here too: only types assignable from the base are instantiated, but a plugin assembly declares its own subtypes, so only register assemblies you trust.
+
 ### Native resolver via `BuildResolver()`
 
 `JsonSubtypesConverterBuilder` also exposes the native `System.Text.Json` polymorphic contract model (`JsonPolymorphismOptions`) as an alternative to `Build()`. Assign the result to `JsonSerializerOptions.TypeInfoResolver` instead of `Converters`:
