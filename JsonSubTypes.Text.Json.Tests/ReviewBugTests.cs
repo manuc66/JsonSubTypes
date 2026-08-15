@@ -266,5 +266,24 @@ namespace JsonSubTypes.Tests
             Assert.IsInstanceOf<SelfDeclaredCat>(cat);
             Assert.IsTrue((cat as SelfDeclaredCat)?.Purrs == true);
         }
+
+        [Test]
+        public void DynamicSubtypeRegisteredAtRuntime()
+        {
+            // The runtime hook: register a subtype after the converter is built, without editing
+            // the plugin or scanning an assembly. Mirrors the generator's RegisterDynamicSubtype.
+            var converter = (JsonSubtypes<SelfDeclaredBase>)JsonSubtypesConverterBuilder
+                .Of<SelfDeclaredBase>("Kind")
+                .Build();
+            converter.RegisterDynamicSubtype("dog", typeof(SelfDeclaredDog));
+
+            var options = new JsonSerializerOptions();
+            options.Converters.Add(converter);
+
+            var dog = JsonSerializer.Deserialize<SelfDeclaredBase>("{\"Kind\":\"dog\",\"CanBark\":true}", options);
+
+            Assert.IsInstanceOf<SelfDeclaredDog>(dog);
+            Assert.IsTrue((dog as SelfDeclaredDog)?.CanBark == true);
+        }
     }
 }

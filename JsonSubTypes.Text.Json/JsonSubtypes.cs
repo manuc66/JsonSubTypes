@@ -191,6 +191,27 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         return objectType == typeof(T);
     }
 
+    /// <summary>
+    /// Registers a subtype at runtime, after the converter is built. This is the runtime hook for
+    /// hierarchies whose subtypes are only known at runtime (plugins, loaded assemblies): it maps
+    /// <paramref name="discriminator"/> to <paramref name="type"/> without editing the plugin or
+    /// scanning an assembly. The last registration for a discriminator wins, like the builder.
+    /// </summary>
+    public void RegisterDynamicSubtype(object discriminator, Type type)
+    {
+        if (_subTypeMapping == null)
+        {
+            throw new InvalidOperationException(
+                "RegisterDynamicSubtype requires a builder-built converter. Build one with JsonSubtypesConverterBuilder.Of(...).Build() first.");
+        }
+
+        _subTypeMapping.Set(discriminator, type);
+        if (_runtimeTypeToDiscriminator != null)
+        {
+            _runtimeTypeToDiscriminator[type] = discriminator;
+        }
+    }
+
     public override T? Read(ref Utf8JsonReader reader, Type objectType, JsonSerializerOptions serializer)
     {
         return ReadJson(ref reader, objectType, serializer);
