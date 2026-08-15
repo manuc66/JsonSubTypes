@@ -7,6 +7,7 @@ using BenchmarkDotNet.Running;
 using BenchmarkDotNet.Toolchains.NativeAot;
 using JsonSubTypes.Text.Json.Aot.Generated;
 using JsonSubTypes.Text.Json;
+using StjBuilder = JsonSubTypes.Text.Json.JsonSubtypesConverterBuilder;
 
 namespace JsonSubTypes.Benchmarks
 {
@@ -48,14 +49,14 @@ namespace JsonSubTypes.Benchmarks
             if (JsonSerializer.IsReflectionEnabledByDefault)
             {
                 _converterOptions = new JsonSerializerOptions();
-                _converterOptions.Converters.Add(JsonSubtypesConverterBuilder.Of<ConvAnimal>("type")
+                _converterOptions.Converters.Add(StjBuilder.Of<ConvAnimal>("type")
                     .RegisterSubtype<ConvCat>("cat")
                     .RegisterSubtype<ConvDog>("dog")
                     .SerializeDiscriminatorProperty()
                     .Build());
                 _resolverOptions = new JsonSerializerOptions
                 {
-                    TypeInfoResolver = JsonSubtypesConverterBuilder.Of<ResAnimal>("type")
+                    TypeInfoResolver = StjBuilder.Of<ResAnimal>("type")
                         .RegisterSubtype<ResCat>("cat")
                         .RegisterSubtype<ResDog>("dog")
                         .SerializeDiscriminatorProperty()

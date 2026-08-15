@@ -426,23 +426,60 @@ To preserve full compatibility with advanced features while delegating object se
 
 ### Performance (measured)
 
-Measured with BenchmarkDotNet (`JsonSubTypes.Benchmarks`, DefaultJob, .NET 8.0, one machine; serializing/deserializing a `Cat` declared as its `Animal` base). Numbers are machine-specific but reproducible by running that project.
+Measured with BenchmarkDotNet (`JsonSubTypes.Benchmarks`, `DefaultJob`, **.NET 10.0**, one run per scenario). The numbers below are from a single representative run on the machine listed below; they vary across machines and runs, but the benchmark project is self-contained and you can reproduce them:
+
+```bash
+dotnet run -c Release --project JsonSubTypes.Benchmarks
+```
+
+**Machine** (what BenchmarkDotNet reported): Intel Core i7-4790 CPU 3.60 GHz (Haswell), 8 logical / 4 physical cores, Linux (Manjaro), .NET 10.0.9.
+
+The scenarios: a flat `Cat` declared as its `Animal` base ("single object"), a list of four mixed animals ("collection"), a two-level hierarchy (`Payload → Game → Run`, "nested"), and property-presence discrimination. The nested write scenario is measured on the generated engine only: the converter falls back to the plain runtime-type contract there and writes no discriminator, so its write number would not measure discriminator injection.
+
+**Single object** (JIT):
 
 | Benchmark | Converter (`Build()`) | Resolver (`BuildResolver()`) | Generator (`JsonSubTypes.Text.Json.Aot`) |
 | :--- | ---: | ---: | ---: |
-| Serialize | 1.65–1.70 µs / 648 B | 0.40–0.41 µs / 400 B | 1.43–1.47 µs / 440 B |
-| Deserialize | 2.63–2.71 µs / 1264 B | 0.51–0.55 µs / 56 B | 1.50–1.56 µs / 216 B |
+| Serialize | 1.14 µs / 856 B | 0.33 µs / 400 B | 1.18 µs / 656 B |
+| Deserialize | 1.50 µs / 648 B | 0.43 µs / 56 B | 0.98 µs / 152 B |
 
-Reading: the resolver is the fastest (native streaming, no double parse). The generated converter beats the runtime converter on deserialization, and allocates ~6× less (compiled routing, no per-call converter scan).
+**Collection of 4 objects** (JIT):
 
-**Native AOT** (generated engine, measured with a BenchmarkDotNet NativeAOT job in the same benchmark project):
+| Benchmark | Converter (`Build()`) | Resolver (`BuildResolver()`) | Generator (`JsonSubTypes.Text.Json.Aot`) |
+| :--- | ---: | ---: | ---: |
+| Serialize | 4.16 µs / 3288 B | 0.99 µs / 624 B | 4.29 µs / 2600 B |
+| Deserialize | 5.64 µs / 2744 B | 1.87 µs / 784 B | 4.54 µs / 696 B |
 
-| Benchmark | DefaultJob (JIT) | Native AOT |
+**Nested hierarchy and property presence** (JIT):
+
+| Benchmark | Converter (`Build()`) | Generator (`JsonSubTypes.Text.Json.Aot`) |
 | :--- | ---: | ---: |
-| Generated_Serialize | 1.47–1.52 µs / 440 B | 1.63–1.74 µs / 440 B |
-| Generated_Deserialize | 1.46–1.54 µs / 216 B | 1.74–1.82 µs / 216 B |
+| Nested deserialize | 1.73 µs / 1152 B | 1.15 µs / 144 B |
+| Nested serialize | — (no discriminator written) | 1.54 µs / 1016 B |
+| Property-presence deserialize | 1.21 µs / 776 B | 1.00 µs / 312 B |
+| Property-presence serialize | 0.27 µs / 96 B | 0.27 µs / 96 B |
+
+Reading: the resolver is the fastest (native streaming, no double parse, no `JsonDocument`). The generated converter beats the runtime converter on deserialization and allocates far less (compiled routing instead of per-call converter scans and type resolution). On serialization the converter and the generator are close; both write the discriminator by round-tripping the payload through a `JsonDocument`, which is also why deeply nested graphs need `MaxDepth` one level higher (see above).
+
+**Native AOT** (generated engine, BenchmarkDotNet NativeAOT job in the same project):
+
+| Benchmark | JIT | Native AOT |
+| :--- | ---: | ---: |
+| Generated_Serialize (single) | 1.18 µs / 656 B | 1.43 µs / 640 B |
+| Generated_Deserialize (single) | 0.98 µs / 152 B | 1.29 µs / 152 B |
 
 In steady state, Native AOT is comparable to (slightly slower than) JIT for this workload. The real AOT advantage is trimming compatibility and startup time, not steady-state throughput.
+
+**Newtonsoft.Json comparison** (JIT, same machine and scenarios): the original `JsonSubTypes` package, through `JsonConvert`. It is a different runtime (reflection-based, no `Utf8JsonWriter`), so treat these as an order-of-magnitude reference, not a like-for-like benchmark:
+
+| Benchmark | Newtonsoft (`JsonSubTypes`) | STJ Converter (`Build()`) |
+| :--- | ---: | ---: |
+| Single serialize | 1.54 µs / 3.07 KB | 1.14 µs / 856 B |
+| Single deserialize | 2.54 µs / 5.26 KB | 1.50 µs / 648 B |
+| Collection serialize (4) | 5.51 µs / 7.53 KB | 4.16 µs / 3288 B |
+| Collection deserialize (4) | 10.21 µs / 12.96 KB | 5.64 µs / 2744 B |
+
+Newtonsoft is slower and allocates several times more on every scenario. The STJ converter is not a drop-in replacement at the API level, but if you are on .NET 8+ the `JsonSubTypes.Text.Json` package is the faster option for the same scenarios.
 
 ### Decision matrix
 | Use case | Recommended |
