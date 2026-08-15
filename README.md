@@ -15,7 +15,7 @@ __JsonSubTypes__ is a discriminated Json sub-type Converter implementation for .
 `JsonSubTypes` exists in two packages that share the same API and registration model (attributes and `JsonSubtypesConverterBuilder`):
 
 - **`JsonSubTypes`** — for `Newtonsoft.Json`, the original and stable package.
-- **`JsonSubTypes.Text.Json`** (`.NET 8+`) — for `System.Text.Json`. **Experimental**: the API is complete and the code fully tested, but the stable `1.0.0` release is still pending.
+- **`JsonSubTypes.Text.Json`** (`.NET 8+`) — for `System.Text.Json`. **Experimental**: the API is complete and the code fully tested, but the stable `1.0.0` release is still pending, and the public API may still change until then. Pin to a specific package version if you rely on it.
 
 The examples below use the Newtonsoft.Json package; the API is the same for `System.Text.Json`, so read them either way. If you are targeting `System.Text.Json`, then after these examples jump to the [System.Text.Json variant](#systemtextjson-variant) section, which explains the engines available there (`Build()` converter, `BuildResolver()`, AOT generator) and their differences and limitations.
 
@@ -237,7 +237,7 @@ settings.Converters.Add(JsonSubtypesWithPropertyConverterBuilder
 
 ## System.Text.Json variant
 
-> **Status: experimental.** The `JsonSubTypes.Text.Json` package is a **release candidate** (`1.0.0-rc.x`) and not yet part of the project's stable offering. The code is fully tested (196 unit tests) and the API is complete, but the stable `1.0.0` release will follow once the package has been exercised in more real-world projects.
+> **Status: experimental.** The `JsonSubTypes.Text.Json` package is a **release candidate** (`1.0.0-rc.x`) and not yet part of the project's stable offering. The code is fully tested (196 unit tests) and the API is complete, but the stable `1.0.0` release will follow once the package has been exercised in more real-world projects. Until then the public API is not frozen: it can still change between releases.
 
 A variant of the library for `System.Text.Json` (.NET 8+) is available in the `JsonSubTypes.Text.Json` namespace and package. It supports the same attribute-driven and builder-driven API, adapted to `System.Text.Json` idioms.
 
