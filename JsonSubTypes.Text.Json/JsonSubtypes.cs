@@ -220,6 +220,15 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
                 "RegisterDynamicSubtype requires a builder-built converter. Build one with JsonSubtypesConverterBuilder.Of(...).Build() first.");
         }
 
+        // All discriminators of one converter must share a type (the mapping is resolved by key
+        // type). Registering a different key type would make the cached key type inconsistent.
+        object? existingKey = _subTypeMapping.NotNullKeys().FirstOrDefault();
+        if (existingKey != null && !existingKey.GetType().IsInstanceOfType(discriminator))
+        {
+            throw new ArgumentException(
+                $"Discriminator type {discriminator.GetType().FullName} does not match the existing discriminators of type {existingKey.GetType().FullName}.", nameof(discriminator));
+        }
+
         _subTypeMapping.Set(discriminator, type);
         _mappingKeyType = null;
         if (_runtimeTypeToDiscriminator != null)
@@ -475,7 +484,10 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
                 }
 
                 writer.WritePropertyName(name);
-                JsonSerializer.Serialize(writer, propertyValue, serializer);
+                // Use the declared property type, not the runtime type: System.Text.Json
+                // serializes a property according to its declared contract, and a polymorphic
+                // converter on that declared type must be applied.
+                JsonSerializer.Serialize(writer, propertyValue, item.Property.PropertyType, serializer);
             }
             writer.WriteEndObject();
         };
