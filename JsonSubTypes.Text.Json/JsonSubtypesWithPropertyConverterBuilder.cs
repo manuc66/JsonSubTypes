@@ -58,6 +58,38 @@ public class JsonSubtypesWithPropertyConverterBuilder
         return SetFallbackSubtype(typeof(T));
     }
 
+    /// <summary>
+    /// Adds an assembly whose self-declared subtypes are registered by property presence. Types
+    /// in the assembly that carry <c>[KnownSubTypeWithPropertyOf(base, "Property")]</c> are added
+    /// as subtypes of the base type, identified by the presence of that property in the JSON.
+    /// </summary>
+    public JsonSubtypesWithPropertyConverterBuilder RegisterSubtypeAssembly(Assembly assembly)
+    {
+        Type[] types;
+        try
+        {
+            types = assembly.GetTypes();
+        }
+        catch (ReflectionTypeLoadException e)
+        {
+            // Skip unloadable types; a self-declared subtype must be loadable to be instantiated.
+            types = e.Types.Where(t => t != null).Cast<Type>().ToArray();
+        }
+
+        foreach (Type type in types)
+        {
+            foreach (KnownSubTypeWithPropertyOfAttribute attribute in type.GetCustomAttributes<KnownSubTypeWithPropertyOfAttribute>(inherit: false))
+            {
+                if (attribute.BaseType == _baseType)
+                {
+                    _types[attribute.PropertyName] = new TypeWithPropertyMatchingAttributes(type, attribute.PropertyName, false);
+                }
+            }
+        }
+
+        return this;
+    }
+
     [RequiresUnreferencedCode("JsonSubTypes.Text.Json uses reflection to create the subtype converter.")]
     [RequiresDynamicCode("JsonSubTypes.Text.Json uses reflection to create the subtype converter.")]
     public JsonConverter Build()

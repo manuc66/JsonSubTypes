@@ -285,5 +285,24 @@ namespace JsonSubTypes.Tests
             Assert.IsInstanceOf<SelfDeclaredDog>(dog);
             Assert.IsTrue((dog as SelfDeclaredDog)?.CanBark == true);
         }
+
+        [Test]
+        public void SelfDeclaredSubtypeByPropertyPresence()
+        {
+            // SelfDeclaredEmployee declares itself through
+            // [KnownSubTypeWithPropertyOf(typeof(SelfDeclaredEmployeeBase), "JobTitle")]. The host
+            // registers the plugin assembly; the scan maps the property presence.
+            var options = new JsonSerializerOptions();
+            options.Converters.Add(JsonSubtypesWithPropertyConverterBuilder
+                .Of<SelfDeclaredEmployeeBase>()
+                .RegisterSubtypeAssembly(typeof(SelfDeclaredEmployee).Assembly)
+                .Build());
+
+            var employee = JsonSerializer.Deserialize<SelfDeclaredEmployeeBase>(
+                "{\"FirstName\":\"A\",\"JobTitle\":\"Dev\"}", options);
+
+            Assert.IsInstanceOf<SelfDeclaredEmployee>(employee);
+            Assert.AreEqual("Dev", (employee as SelfDeclaredEmployee)?.JobTitle);
+        }
     }
 }

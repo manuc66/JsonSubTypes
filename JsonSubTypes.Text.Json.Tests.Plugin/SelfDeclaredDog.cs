@@ -25,4 +25,17 @@ namespace JsonSubTypes.Text.Json.Tests.Plugin
     {
         public string? Kind { get; set; }
     }
+
+    // Self-declared by property presence: identified by the presence of "JobTitle" in the JSON,
+    // in an assembly the host registers at runtime. The base type knows nothing about it.
+    [KnownSubTypeWithPropertyOf(typeof(SelfDeclaredEmployeeBase), "JobTitle")]
+    public class SelfDeclaredEmployee : SelfDeclaredEmployeeBase
+    {
+        public string? JobTitle { get; set; }
+    }
+
+    public class SelfDeclaredEmployeeBase
+    {
+        public string? FirstName { get; set; }
+    }
 }
