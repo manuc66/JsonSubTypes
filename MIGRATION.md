@@ -51,7 +51,7 @@ Behaviour that actually differs — check your tests against these:
 - **The attribute-based STJ converter writes the discriminator by default**; the Newtonsoft one never does from attributes (`CanWrite = false`). If you relied on attributes for read-only, the JSON shape changes.
 - **The converter applies only when the static type is the base type.** A property declared with a base/interface type serializes with the declared type's contract; subtype members are omitted unless a converter claims the declared type. Newtonsoft serialized the runtime type by default.
 - **Property order differs.** STJ emits most-derived-first; there is no `[JsonProperty(Order = N)]` support.
-- **`MaxDepth` needs one more level** because the write path round-trips through a `JsonDocument`.
+- **`MaxDepth` needs one more level with the generator**: its write path round-trips through a `JsonDocument`. The converter's write path is streamed and does not.
 - **Fallback paths are narrower**: serializing the base type directly or an unknown discriminator uses a reflection-based path that honors `[JsonIgnore]`, `[JsonPropertyName]`, naming policy and `DefaultIgnoreCondition`, but not per-property `[JsonConverter]`, `[JsonInclude]` fields, `required` members or parameterized constructors.
 - **Cross-assembly subtypes** require opt-in: `[KnownSubTypeOtherAssembly("AssemblyName")]` on the base type; Newtonsoft never supported them.
 - **Security**: the name-based resolution warning in the README applies to both; see the [security section](./#security) there.

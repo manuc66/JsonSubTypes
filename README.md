@@ -237,7 +237,7 @@ settings.Converters.Add(JsonSubtypesWithPropertyConverterBuilder
 
 ## System.Text.Json variant
 
-> **Status: experimental.** The `JsonSubTypes.Text.Json` package is a **release candidate** (`1.0.0-rc.x`) and not yet part of the project's stable offering. The code is fully tested (196 unit tests) and the API is complete, but the stable `1.0.0` release will follow once the package has been exercised in more real-world projects. Until then the public API is not frozen: it can still change between releases.
+> **Status: experimental.** The `JsonSubTypes.Text.Json` package is a **release candidate** (`1.0.0-rc.x`) and not yet part of the project's stable offering. The code is fully tested (202 unit tests) and the API is complete, but the stable `1.0.0` release will follow once the package has been exercised in more real-world projects. Until then the public API is not frozen: it can still change between releases.
 
 A variant of the library for `System.Text.Json` (.NET 8+) is available in the `JsonSubTypes.Text.Json` namespace and package. It supports the same attribute-driven and builder-driven API, adapted to `System.Text.Json` idioms.
 
@@ -393,13 +393,13 @@ public interface IExpression { }
 - With `System.Text.Json`, the converter is only applied when the static type is the polymorphic base type (or a base-typed property/collection), matching the native `[JsonDerivedType]` behavior. The Newtonsoft version also applies converters when serializing a value whose static type is a concrete subtype.
 - A property declared with a base class or interface type is serialized using the **declared type's contract**: subtype members are omitted unless a converter that claims the declared type is applied (attribute on the type, or builder registered in `JsonSerializerOptions`). The Newtonsoft version serialized the runtime type by default.
 - Property order differs: `System.Text.Json` emits properties most-derived-first, while the Newtonsoft version honored `[JsonProperty(Order = N)]`. There is no `Order` support in `System.Text.Json`.
-- Deeply nested graphs need `MaxDepth` about one level higher than with the Newtonsoft/plain serialization: the discriminator write path round-trips through a `JsonDocument`, which consumes one depth level. (A 64-level chain requires `MaxDepth = 66` instead of 65.)
+- Deeply nested graphs need `MaxDepth` about one level higher than with the Newtonsoft/plain serialization when using the **generator**: its write path round-trips the payload through a `JsonDocument` to inject the discriminator, which consumes one depth level. (A 64-level chain requires `MaxDepth = 66` instead of 65.) The converter's write path is streamed (`Utf8JsonReader`) and does not need the extra level.
 - Name-based type resolution stays scoped to the base type's assembly by default. Cross-assembly subtypes require an explicit opt-in: `[KnownSubTypeOtherAssembly("AssemblyName")]` on the base type, a capability the Newtonsoft version does not have.
 - `JsonNamingPolicy` and `PropertyNameCaseInsensitive` are respected when matching the discriminator property, and `JsonStringEnumConverter` is respected when mapping discriminator values. Note that `JsonStringEnumConverter` (.NET 8) does **not** honor `[EnumMember(Value = ...)]` — use enum names or `[JsonStringEnumMemberName]` (.NET 9+).
 - The discriminator is read from anywhere in the object. Native `[JsonDerivedType]` polymorphism requires its `$type` property first, unless you opt into `JsonSerializerOptions.AllowOutOfOrderMetadataProperties`.
 - Dotted or nested discriminator property paths (e.g. `"nested.property"`) are supported.
 - **Fallback paths**: serializing the base type itself (rather than a subtype) and deserializing an unknown discriminator back to the base use a reflection-based writer/reader, because the base type's contract is owned by the converter (`System.Text.Json` exposes no property metadata for converter-owned types). `[JsonPropertyName]`, `[JsonIgnore]` (including `JsonIgnoreCondition`), the naming policy and `DefaultIgnoreCondition` are honored; per-property `[JsonConverter]`, `[JsonInclude]` fields, `required` members and parameterized constructors are not supported on these two paths.
-- **Performance**: writing an object with a discriminator serializes it once, then re-parses the JSON (`JsonDocument`) to inject the discriminator property, so payloads spend roughly 2-3x their size in temporary memory on the write path. This is the cost of the converter architecture and of the `MaxDepth + 1` note above.
+- **Performance**: the generator writes an object with a discriminator by serializing it once and re-parsing the JSON (`JsonDocument`) to inject the discriminator property, so payloads spend roughly 2-3x their size in temporary memory on the write path. This is the cost of the generator's architecture and of the `MaxDepth + 1` note above. The converter's write path is streamed instead.
 - **Security**: see the [security section](#security) at the bottom of this section. It applies to both packages; the only difference is the set of assemblies searched for a name-based hit.
 - The property-presence builder (`JsonSubtypesWithPropertyConverterBuilder`) registers subtypes by property name, so two subtypes cannot share the same property name through the builder (use `[KnownSubTypeWithProperty]` attributes for that case).
 
@@ -459,7 +459,7 @@ Benchmarked with BenchmarkDotNet (`JsonSubTypes.Benchmarks`, .NET 10); the metho
 
 - **Resolver (`BuildResolver()`)** is the fastest: it delegates to `System.Text.Json` native polymorphism, with no `JsonDocument` round-trip and no reflection per call.
 - **Generator (`JsonSubTypes.Text.Json.Aot`)** beats the runtime converter on deserialization and allocates far less (compiled routing instead of per-call converter scans). Its Native AOT steady state is comparable to (slightly slower than) JIT; its real advantage is trimming compatibility and startup time.
-- **Converter (`Build()`)** is the slowest of the three: it keeps the `JsonDocument` round-trip and adds runtime type resolution. It is the only engine for hierarchies whose subtypes are only known at runtime.
+- **Converter (`Build()`)** is the slowest of the three: it adds runtime type resolution (converter scans, mapping lookups) to a streamed write path. It is the only engine for hierarchies whose subtypes are only known at runtime.
 - **Newtonsoft.Json (`JsonSubTypes`)** is slower and allocates several times more than the STJ converter on the same scenarios.
 
 Reproduce the measurements yourself with `dotnet run -c Release --project JsonSubTypes.Benchmarks`.

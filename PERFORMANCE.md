@@ -98,5 +98,5 @@ The Newtonsoft package received the same fast-path treatment as the STJ converte
 The ordering is structural, not a tuning artifact:
 
 - The **resolver** is fastest because it delegates to `System.Text.Json` native polymorphism: the runtime routes the type during streaming, with no `JsonDocument` round-trip and no reflection per call.
-- The **generated converter** eliminates reflection (compiled routing) but still round-trips the payload through a `JsonDocument` to inject the discriminator on write and to read it on deserialize, which is why it sits between the resolver and the converter.
-- The **converter** keeps the same `JsonDocument` round-trip and adds runtime type resolution (converter scans, mapping lookups), making it the slowest of the three — and the only engine for hierarchies whose subtypes are only known at runtime.
+- The **generated converter** eliminates reflection (compiled routing) but still round-trips the payload through a `JsonDocument` on both the write path (injecting the discriminator) and deserialization, which is why it sits between the resolver and the converter.
+- The **converter** streams the write path (`Utf8JsonReader`) and adds runtime type resolution (converter scans, mapping lookups), making it the slowest of the three — and the only engine for hierarchies whose subtypes are only known at runtime.
