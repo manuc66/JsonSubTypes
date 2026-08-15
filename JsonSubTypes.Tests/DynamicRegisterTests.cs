@@ -615,5 +615,87 @@ namespace JsonSubTypes.Tests
             var e2 = Assert.Throws<JsonSerializationException>(() => JsonConvert.SerializeObject(new Cat2(), serializersettings));
             Assert.AreEqual("Impossible to serialize type: JsonSubTypes.Tests.DynamicRegisterTests+Cat2 because there is no registered mapping for the discriminator property", e2.Message);
         }
+
+        [TestFixture]
+        public class TwoResolverProfilesOnSameBaseType
+        {
+            // Two converters registered for the same base type with different discriminator
+            // property names and mappings must not interfere through the shared caches. Each
+            // settings profile resolves its own shape even when used alternately.
+
+            public class Shape
+            {
+                public int Sides { get; set; }
+            }
+
+            public class Circle : Shape
+            {
+                public double Radius { get; set; }
+            }
+
+            public class Square : Shape
+            {
+                public double Side { get; set; }
+            }
+
+            [Test]
+            public void ProfilesWithDifferentDiscriminatorNamesDoNotInterfere()
+            {
+                var kindSettings = new JsonSerializerSettings();
+                kindSettings.Converters.Add(JsonSubtypesConverterBuilder
+                    .Of<Shape>("kind")
+                    .RegisterSubtype<Circle>("circle")
+                    .RegisterSubtype<Square>("square")
+                    .Build());
+
+                var shapeSettings = new JsonSerializerSettings();
+                shapeSettings.Converters.Add(JsonSubtypesConverterBuilder
+                    .Of<Shape>("shape")
+                    .RegisterSubtype<Square>("sq")
+                    .RegisterSubtype<Circle>("ci")
+                    .Build());
+
+                // Alternate between the two profiles so any cache collision would surface.
+                for (int i = 0; i < 3; i++)
+                {
+                    var circle = JsonConvert.DeserializeObject<Shape>("{\"kind\":\"circle\",\"Radius\":2.0}", kindSettings);
+                    Assert.IsInstanceOf<Circle>(circle);
+
+                    var square = JsonConvert.DeserializeObject<Shape>("{\"shape\":\"sq\",\"Side\":4.0}", shapeSettings);
+                    Assert.IsInstanceOf<Square>(square);
+
+                    var squareByKind = JsonConvert.DeserializeObject<Shape>("{\"kind\":\"square\",\"Side\":4.0}", kindSettings);
+                    Assert.IsInstanceOf<Square>(squareByKind);
+
+                    var circleByShape = JsonConvert.DeserializeObject<Shape>("{\"shape\":\"ci\",\"Radius\":2.0}", shapeSettings);
+                    Assert.IsInstanceOf<Circle>(circleByShape);
+                }
+            }
+
+            [Test]
+            public void ProfilesWithSameDiscriminatorNameDifferentMappingsDoNotInterfere()
+            {
+                var settingsA = new JsonSerializerSettings();
+                settingsA.Converters.Add(JsonSubtypesConverterBuilder
+                    .Of<Shape>("type")
+                    .RegisterSubtype<Circle>("c")
+                    .Build());
+
+                var settingsB = new JsonSerializerSettings();
+                settingsB.Converters.Add(JsonSubtypesConverterBuilder
+                    .Of<Shape>("type")
+                    .RegisterSubtype<Square>("s")
+                    .Build());
+
+                for (int i = 0; i < 3; i++)
+                {
+                    var circle = JsonConvert.DeserializeObject<Shape>("{\"type\":\"c\",\"Radius\":2.0}", settingsA);
+                    Assert.IsInstanceOf<Circle>(circle);
+
+                    var square = JsonConvert.DeserializeObject<Shape>("{\"type\":\"s\",\"Side\":4.0}", settingsB);
+                    Assert.IsInstanceOf<Square>(square);
+                }
+            }
+        }
     }
 }
