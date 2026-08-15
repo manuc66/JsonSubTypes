@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using Microsoft.CodeAnalysis;
 using NUnit.Framework;
 
 namespace JsonSubTypes.Text.Json.Aot.Generator.Tests
@@ -60,7 +61,7 @@ namespace JsonSubTypes.Text.Json.Aot.Generator.Tests
                 string producedText = NormalizeGeneratedCode(produced[hintName]);
                 Assert.That(producedText, Is.EqualTo(committedText),
                     "Generator output differs from committed " + committedName +
-                    ".\nRegenerate with: dotnet build JsonSubTypes.Text.Json.Aot.Generated -p:EmitCompilerGeneratedFiles=true");
+                    ".\nRegenerate with: dotnet test --filter RegenerateGoldenMaster");
             }
 
             // No extra files produced that are not committed.
@@ -69,6 +70,37 @@ namespace JsonSubTypes.Text.Json.Aot.Generator.Tests
                 string committedName = hintName.EndsWith(".g.cs") ? hintName.Replace(".g.cs", ".cs") : hintName;
                 Assert.That(committed.Any(f => Path.GetFileName(f) == committedName), Is.True,
                     "Generator produces " + hintName + " but it is not committed");
+            }
+        }
+
+        // Rewrites the golden-master files from the generator's current output. Run explicitly
+        // after a deliberate generator change: dotnet test --filter RegenerateGoldenMaster
+        [Test]
+        [Explicit]
+        public void RegenerateGoldenMaster()
+        {
+            string root = FindRepoRoot();
+            string domain = File.ReadAllText(Path.Combine(root, DomainPath));
+            // Committed files live under the generator's nested hint path (same shape the
+            // EmitCompilerGeneratedFiles build produces), minus the .g.cs suffix.
+            string generatedDir = Path.Combine(root, GeneratedDir,
+                "JsonSubTypes.Text.Json.Aot", "JsonSubTypes.Text.Json.Aot.JsonSubTypesGenerator");
+
+            GeneratorRun run = GeneratorDriverRunner.GetRun(domain);
+            var produced = run.DriverResults.Results
+                .SelectMany(r => r.GeneratedSources);
+
+            foreach (GeneratedSourceResult source in produced)
+            {
+                string committedName = source.HintName.EndsWith(".g.cs")
+                    ? source.HintName.Replace(".g.cs", ".cs")
+                    : source.HintName;
+                string targetPath = Path.Combine(generatedDir, committedName);
+                // UTF-8 without BOM, and without the generated-code markers: the committed files
+                // drop those (so Sonar analyzes them), and NormalizeGeneratedCode ignores them.
+                string text = NormalizeGeneratedCode(source.SourceText.ToString());
+                File.WriteAllText(targetPath, text, new System.Text.UTF8Encoding(false));
+                TestContext.WriteLine("Wrote " + targetPath);
             }
         }
 

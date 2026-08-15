@@ -90,7 +90,10 @@ namespace JsonSubTypes.Text.Json.Aot.Generated
             using JsonDocument payloadDocument = JsonDocument.Parse(payload);
             foreach (JsonProperty property in payloadDocument.RootElement.EnumerateObject())
             {
-                property.WriteTo(writer);
+                if (!property.NameEquals(DiscriminatorPropertyNameValue) && !property.NameEquals("$GameKind"))
+                {
+                    property.WriteTo(writer);
+                }
             }
             writer.WriteEndObject();
             return true;
@@ -106,7 +109,10 @@ namespace JsonSubTypes.Text.Json.Aot.Generated
             using JsonDocument payloadDocument = JsonDocument.Parse(payload);
             foreach (JsonProperty property in payloadDocument.RootElement.EnumerateObject())
             {
-                property.WriteTo(writer);
+                if (!property.NameEquals(DiscriminatorPropertyNameValue) && !property.NameEquals("$GameKind"))
+                {
+                    property.WriteTo(writer);
+                }
             }
             writer.WriteEndObject();
             return true;
