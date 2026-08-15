@@ -370,6 +370,7 @@ public interface IExpression { }
 - Deeply nested graphs need `MaxDepth` about one level higher than with the Newtonsoft/plain serialization: the discriminator write path round-trips through a `JsonDocument`, which consumes one depth level. (A 64-level chain requires `MaxDepth = 66` instead of 65.)
 - Name-based type resolution stays scoped to the base type's assembly by default. Cross-assembly subtypes require an explicit opt-in: `[KnownSubTypeOtherAssembly("AssemblyName")]` on the base type, a capability the Newtonsoft version does not have.
 - `JsonNamingPolicy` and `PropertyNameCaseInsensitive` are respected when matching the discriminator property, and `JsonStringEnumConverter` is respected when mapping discriminator values. Note that `JsonStringEnumConverter` (.NET 8) does **not** honor `[EnumMember(Value = ...)]` — use enum names or `[JsonStringEnumMemberName]` (.NET 9+).
+- The discriminator is read from anywhere in the object. Native `[JsonDerivedType]` polymorphism requires its `$type` property first, unless you opt into `JsonSerializerOptions.AllowOutOfOrderMetadataProperties`.
 - Dotted or nested discriminator property paths (e.g. `"nested.property"`) are supported.
 - **Fallback paths**: serializing the base type itself (rather than a subtype) and deserializing an unknown discriminator back to the base use a reflection-based writer/reader, because the base type's contract is owned by the converter (`System.Text.Json` exposes no property metadata for converter-owned types). `[JsonPropertyName]`, `[JsonIgnore]` (including `JsonIgnoreCondition`), the naming policy and `DefaultIgnoreCondition` are honored; per-property `[JsonConverter]`, `[JsonInclude]` fields, `required` members and parameterized constructors are not supported on these two paths.
 - **Performance**: writing an object with a discriminator serializes it once, then re-parses the JSON (`JsonDocument`) to inject the discriminator property, so payloads spend roughly 2-3x their size in temporary memory on the write path. This is the cost of the converter architecture and of the `MaxDepth + 1` note above.
@@ -406,7 +407,7 @@ Only types assignable from the polymorphic base type can be resolved, but any su
 
 1. **Converter (`Build()`)** — the full-featured runtime engine and the right default for non-AOT applications.
 2. **Resolver (`BuildResolver()`)** — the thin native bridge: simplest and fastest, but limited to the subset the native contract model can express.
-3. **Generator (`JsonSubTypes.Text.Json.Aot`)** — a Roslyn source generator emitting compiled converters: the Native AOT answer, with routing compiled instead of reflected.
+3. **Generator (`JsonSubTypes.Text.Json.Aot`)** — a Roslyn source generator emitting compiled converters: the Native AOT answer, with routing compiled instead of reflected. Note: this still runs in `System.Text.Json`'s metadata mode, not its fast-path mode — `System.Text.Json` only fast-paths types it has no custom converter for.
 
 **The decisive difference is not speed, it is when the hierarchy is known:**
 
