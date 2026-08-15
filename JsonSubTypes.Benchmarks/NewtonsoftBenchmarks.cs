@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using BenchmarkDotNet.Attributes;
 using Newtonsoft.Json;
@@ -38,6 +39,15 @@ namespace JsonSubTypes.Benchmarks
 
             _singleJson = JsonConvert.SerializeObject(_animal, _settings);
             _collectionJson = JsonConvert.SerializeObject(_animals, _settings);
+
+            if (JsonConvert.DeserializeObject<NwAnimal>(_singleJson, _settings) is not NwCat)
+            {
+                throw new InvalidOperationException("Newtonsoft single round-trip validation failed");
+            }
+            if (JsonConvert.DeserializeObject<List<NwAnimal>>(_collectionJson, _settings) is not List<NwAnimal> { Count: 4 })
+            {
+                throw new InvalidOperationException("Newtonsoft collection round-trip validation failed");
+            }
         }
 
         [Benchmark]

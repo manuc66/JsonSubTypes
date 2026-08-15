@@ -63,11 +63,18 @@ namespace JsonSubTypes.Benchmarks
                         .BuildResolver()
                 };
 
-                _converterJson = JsonSerializer.Serialize<ConvAnimal>(new ConvCat { Age = 3, Lives = 9 }, _converterOptions);
-                _resolverJson = JsonSerializer.Serialize<ResAnimal>(new ResCat { Age = 3, Lives = 9 }, _resolverOptions);
+                _converterJson = BenchmarkValidation.SerializeRoundTrips<ConvAnimal>(new ConvCat { Age = 3, Lives = 9 },
+                    "type", "\"cat\"", _converterOptions);
+                BenchmarkValidation.DeserializeRoundTrips<ConvAnimal, ConvCat>(_converterJson, _converterOptions);
+
+                _resolverJson = BenchmarkValidation.SerializeRoundTrips<ResAnimal>(new ResCat { Age = 3, Lives = 9 },
+                    "type", "\"cat\"", _resolverOptions);
+                BenchmarkValidation.DeserializeRoundTrips<ResAnimal, ResCat>(_resolverJson, _resolverOptions);
             }
 
-            _generatedJson = JsonSerializer.Serialize<BenchAnimal>(new BenchCat { Age = 3, Lives = 9 }, _generatedOptions);
+            _generatedJson = BenchmarkValidation.SerializeRoundTrips<BenchAnimal>(new BenchCat { Age = 3, Lives = 9 },
+                "type", "\"cat\"", _generatedOptions);
+            BenchmarkValidation.DeserializeRoundTrips<BenchAnimal, BenchCat>(_generatedJson, _generatedOptions);
         }
 
         [Benchmark]

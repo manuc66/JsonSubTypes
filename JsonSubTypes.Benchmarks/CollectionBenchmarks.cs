@@ -69,10 +69,13 @@ namespace JsonSubTypes.Benchmarks
                 };
 
                 _converterJson = JsonSerializer.Serialize(_convAnimals, _converterOptions);
+                BenchmarkValidation.DeserializeRoundTrips<List<ColConvAnimal>, List<ColConvAnimal>>(_converterJson, _converterOptions);
                 _resolverJson = JsonSerializer.Serialize(_resAnimals, _resolverOptions);
+                BenchmarkValidation.DeserializeRoundTrips<List<ColResAnimal>, List<ColResAnimal>>(_resolverJson, _resolverOptions);
             }
 
             _generatedJson = JsonSerializer.Serialize(_generatedAnimals, _generatedOptions);
+            BenchmarkValidation.DeserializeRoundTrips<List<ColAnimal>, List<ColAnimal>>(_generatedJson, _generatedOptions);
         }
 
         [Benchmark]

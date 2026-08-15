@@ -37,9 +37,11 @@ namespace JsonSubTypes.Benchmarks
                     .Build());
 
                 _converterJson = JsonSerializer.Serialize<ConvBaseAnimal>(_convBase, _converterOptions);
+                BenchmarkValidation.DeserializeRoundTrips<ConvBaseAnimal, ConvBaseAnimal>(_converterJson, _converterOptions);
             }
 
             _generatedJson = JsonSerializer.Serialize<BaseLeafAnimal>(_generatedBase, _generatedOptions);
+            BenchmarkValidation.DeserializeRoundTrips<BaseLeafAnimal, BaseLeafAnimal>(_generatedJson, _generatedOptions);
         }
 
         [Benchmark]

@@ -35,9 +35,11 @@ namespace JsonSubTypes.Benchmarks
                     .Build());
 
                 _converterJson = JsonSerializer.Serialize<ConvPerson>(_convEmployee, _converterOptions);
+                BenchmarkValidation.DeserializeRoundTrips<ConvPerson, ConvEmployee>(_converterJson, _converterOptions);
             }
 
             _generatedJson = JsonSerializer.Serialize<PresencePerson>(_presenceEmployee, _generatedOptions);
+            BenchmarkValidation.DeserializeRoundTrips<PresencePerson, PresenceEmployee>(_generatedJson, _generatedOptions);
         }
 
         [Benchmark]

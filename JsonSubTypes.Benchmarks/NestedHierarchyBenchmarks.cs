@@ -40,9 +40,11 @@ namespace JsonSubTypes.Benchmarks
                     .Build());
 
                 _converterJson = JsonSerializer.Serialize<ConvPayload>(_convRun, _converterOptions);
+                BenchmarkValidation.DeserializeRoundTrips<ConvPayload, ConvRun>(_converterJson, _converterOptions);
             }
 
             _generatedJson = JsonSerializer.Serialize<NestedPayload>(_nestedRun, _generatedOptions);
+            BenchmarkValidation.DeserializeRoundTrips<NestedPayload, NestedRun>(_generatedJson, _generatedOptions);
         }
 
         [Benchmark]
