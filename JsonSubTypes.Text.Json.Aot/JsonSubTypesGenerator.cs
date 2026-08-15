@@ -1176,20 +1176,25 @@ namespace JsonSubTypes.Text.Json.Aot
             foreach (NestedChain nested in info.NestedTypes)
             {
                 List<string> discLines = [];
+                List<string> discriminatorNames = [];
                 foreach (ChainEntry entry in nested.Chain)
                 {
                     string discriminatorName = entry.DiscriminatorName == info.DiscriminatorPropertyName
                     ? "DiscriminatorPropertyNameValue"
                     : SymbolDisplay.FormatLiteral(entry.DiscriminatorName, quote: true);
-                discLines.Add($"                        writer.WritePropertyName({discriminatorName});");
+                    discLines.Add($"                        writer.WritePropertyName({discriminatorName});");
                     discLines.Add($"                        {EmitDiscriminatorValueStatement(entry.Discriminator)}");
+                    discriminatorNames.Add(discriminatorName);
                 }
                 string payload = $$"""
                             string payload = JsonSerializer.Serialize(value, options.GetTypeInfo(runtimeType));
                             using JsonDocument payloadDocument = JsonDocument.Parse(payload);
                             foreach (JsonProperty property in payloadDocument.RootElement.EnumerateObject())
                             {
-                                property.WriteTo(writer);
+                                if ({{string.Join(" && ", discriminatorNames.Select(n => $"!property.NameEquals({n})"))}})
+                                {
+                                    property.WriteTo(writer);
+                                }
                             }
                             writer.WriteEndObject();
                             return true;
