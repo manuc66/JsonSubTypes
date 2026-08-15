@@ -82,10 +82,12 @@ The original `JsonSubTypes` package, through `JsonConvert`. It is a different ru
 
 | Benchmark | Newtonsoft (`JsonSubTypes`) | STJ Converter (`Build()`) |
 | :--- | ---: | ---: |
-| Single serialize | 1.54 µs / 3.07 KB | 1.14 µs / 856 B |
-| Single deserialize | 2.54 µs / 5.26 KB | 1.50 µs / 648 B |
-| Collection serialize (4) | 5.51 µs / 7.53 KB | 4.16 µs / 3288 B |
-| Collection deserialize (4) | 10.21 µs / 12.96 KB | 5.64 µs / 2744 B |
+| Single serialize | 1.41 µs / 2.99 KB | 1.14 µs / 856 B |
+| Single deserialize | 2.03 µs / 4.82 KB | 1.50 µs / 648 B |
+| Collection serialize (4) | 5.25 µs / 7.22 KB | 4.16 µs / 3288 B |
+| Collection deserialize (4) | 8.31 µs / 11.21 KB | 5.64 µs / 2744 B |
+
+The Newtonsoft package received the same fast-path treatment as the STJ converter: single-level type resolution without the multi-level walk, direct string/int discriminator lookup instead of `ToObject` reflection, and a plain `JValue` discriminator write when no converter applies. Its remaining cost is structural — Newtonsoft loads the payload into a `JObject` and re-deserializes through a `JTokenReader`, a double parse we deliberately kept rather than rewrite the read architecture (date parsing, error paths and `Error` events depend on it).
 
 ## Why the engines differ
 
