@@ -4,7 +4,6 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -139,7 +138,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
     private static readonly ConditionalWeakTable<JsonSerializerOptions, IJsonSubtypes[]>
         OptionsConverterCache = new();
 
-    protected readonly string? JsonDiscriminatorPropertyName;
+    private readonly string? _jsonDiscriminatorPropertyName;
 
     private readonly NullableDictionary<object, Type>? _subTypeMapping;
     private readonly List<TypeWithPropertyMatchingAttributes>? _typesByPropertyPresence;
@@ -150,10 +149,8 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
     private readonly Assembly[] _additionalAssemblies;
 
     // Cached discriminator key type, so GetTypeFromMapping does not re-scan the mapping keys on
-    // every object. Invalidate with RegisterDynamicSubtype when the mapping mutates. volatile so a
-    // concurrent registration is visible to readers; a registration racing a deserialization
-    // ("last writer wins") is an unusual usage and only affects the cache, never the mapping.
-    private volatile Type? _mappingKeyType;
+    // every object. Invalidate with RegisterDynamicSubtype when the mapping mutates.
+    private Type? _mappingKeyType;
 
     public JsonSubtypes()
     {
@@ -162,7 +159,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
 
     public JsonSubtypes(string? jsonDiscriminatorPropertyName)
     {
-        JsonDiscriminatorPropertyName = jsonDiscriminatorPropertyName;
+        _jsonDiscriminatorPropertyName = jsonDiscriminatorPropertyName;
         _serializeDiscriminatorProperty = jsonDiscriminatorPropertyName != null;
         _addDiscriminatorFirst = true;
         _additionalAssemblies = [];
@@ -203,6 +200,11 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
     /// <paramref name="discriminator"/> to <paramref name="type"/> without editing the plugin or
     /// scanning an assembly. The last registration for a discriminator wins, like the builder.
     /// </summary>
+    /// <remarks>
+    /// Call this during setup, before the converter is used for serialization. It mutates the
+    /// mapping and its caches, which is not safe concurrently with serialization on another
+    /// thread; the mapping is otherwise read-only once built.
+    /// </remarks>
     public void RegisterDynamicSubtype(object discriminator, Type type)
     {
         ArgumentNullException.ThrowIfNull(discriminator);
@@ -242,7 +244,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         return ReadJson(ref reader, objectType, serializer);
     }
 
-    public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions serializer)
+    public override void Write(Utf8JsonWriter writer, T? value, JsonSerializerOptions serializer)
     {
         if (value is null)
         {
@@ -252,7 +254,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
 
         Type runtimeType = value.GetType();
 
-        if (JsonDiscriminatorPropertyName == null)
+        if (_jsonDiscriminatorPropertyName == null)
         {
             WritePlain(writer, value, runtimeType, serializer);
             return;
@@ -341,7 +343,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
     private void WriteObjectWithDiscriminator(Utf8JsonWriter writer, ReadOnlyMemory<byte> json,
         object? discriminatorValue, JsonSerializerOptions serializer)
     {
-        string discriminatorName = JsonDiscriminatorPropertyName!;
+        string discriminatorName = _jsonDiscriminatorPropertyName!;
         if (serializer.PropertyNamingPolicy != null)
         {
             discriminatorName = serializer.PropertyNamingPolicy.ConvertName(discriminatorName);
@@ -504,7 +506,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
 
     private static bool IsIgnoredOnRead(JsonIgnoreAttribute? jsonIgnore)
     {
-        return jsonIgnore != null && jsonIgnore.Condition == JsonIgnoreCondition.Always;
+        return jsonIgnore is { Condition: JsonIgnoreCondition.Always };
     }
 
     private static bool ShouldIgnore(object? defaultValue, JsonIgnoreAttribute? jsonIgnore,
@@ -546,7 +548,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
     private static readonly ConcurrentDictionary<Type, Func<object>>
         BaseTypeFactoryCache = new();
 
-    private static T? ReadPlainObject(JsonElement jObject, Type targetType, JsonSerializerOptions serializer)
+    private static T ReadPlainObject(JsonElement jObject, Type targetType, JsonSerializerOptions serializer)
     {
         object instance;
         try
@@ -605,7 +607,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         switch (reader.TokenType)
         {
             case JsonTokenType.Null:
-                return default;
+                return null;
             case JsonTokenType.StartObject:
                 return ReadObject(ref reader, objectType, serializer);
             case JsonTokenType.StartArray:
@@ -680,20 +682,12 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
             return ReadPlainObject(jObject.RootElement, targetType, serializer);
         }
 
-        return (T?)JsonSerializer.Deserialize(jObject.RootElement, targetType, serializer);
+        return (T?)jObject.RootElement.Deserialize(targetType, serializer);
     }
 
     Type IJsonSubtypes.GetType(JsonDocument jObject, Type parentType, JsonSerializerOptions jsonSerializerOptions)
     {
-        Type? resolvedType;
-        if (JsonDiscriminatorPropertyName == null)
-        {
-            resolvedType = GetTypeByPropertyPresence(jObject, parentType, jsonSerializerOptions);
-        }
-        else
-        {
-            resolvedType = GetTypeFromDiscriminatorValue(jObject, parentType, jsonSerializerOptions);
-        }
+        Type? resolvedType = _jsonDiscriminatorPropertyName == null ? GetTypeByPropertyPresence(jObject, parentType, jsonSerializerOptions) : GetTypeFromDiscriminatorValue(jObject, parentType, jsonSerializerOptions);
 
         return resolvedType ?? GetFallbackSubType(parentType) ?? parentType;
     }
@@ -755,10 +749,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         JsonSubTypeConverterAttribute? jsonConverterAttribute =
             ConverterAttributeCache.GetOrAdd(target, static type =>
                 GetAttribute<JsonSubTypeConverterAttribute>(type.GetTypeInfo()));
-        if (jsonConverterAttribute != null &&
-            jsonConverterAttribute.ConverterType != null &&
-            jsonConverterAttribute.ConverterType.IsGenericType &&
-            jsonConverterAttribute.ConverterType.GenericTypeArguments.Length > 0 &&
+        if (jsonConverterAttribute?.ConverterType is { IsGenericType: true, GenericTypeArguments.Length: > 0 } &&
             typeof(T).IsAssignableFrom(jsonConverterAttribute.ConverterType.GenericTypeArguments[0]))
         {
             return AttributeResolverCache.GetOrAdd((typeof(T), target),
@@ -841,8 +832,8 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
     private Type? GetTypeFromDiscriminatorValue(JsonDocument jObject, Type parentType,
         JsonSerializerOptions jsonSerializerOptions)
     {
-        if (JsonDiscriminatorPropertyName == null ||
-            !TryGetValueInJson(jObject.RootElement, JsonDiscriminatorPropertyName, jsonSerializerOptions,
+        if (_jsonDiscriminatorPropertyName == null ||
+            !TryGetValueInJson(jObject.RootElement, _jsonDiscriminatorPropertyName, jsonSerializerOptions,
                 out JsonElement discriminatorValue))
         {
             return null;
@@ -936,9 +927,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         }
 
         string? parentTypeFullName = parentType.FullName;
-        string? searchLocation = parentTypeFullName == null
-            ? null
-            : parentTypeFullName.Substring(0, parentTypeFullName.Length - parentType.Name.Length);
+        string? searchLocation = parentTypeFullName?[..^parentType.Name.Length];
 
         Assembly[] attributeAssemblies = TypeResolution.GetSearchAssemblies(parentType);
         IEnumerable<Assembly> assemblies = attributeAssemblies
