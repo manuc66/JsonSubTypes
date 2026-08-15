@@ -149,6 +149,12 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
     private readonly Dictionary<Type, object?>? _runtimeTypeToDiscriminator;
     private readonly Assembly[] _additionalAssemblies;
 
+    // Cached discriminator key type, so GetTypeFromMapping does not re-scan the mapping keys on
+    // every object. Invalidate with RegisterDynamicSubtype when the mapping mutates. volatile so a
+    // concurrent registration is visible to readers; a registration racing a deserialization
+    // ("last writer wins") is an unusual usage and only affects the cache, never the mapping.
+    private volatile Type? _mappingKeyType;
+
     public JsonSubtypes()
     {
         _additionalAssemblies = [];
@@ -199,6 +205,15 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
     /// </summary>
     public void RegisterDynamicSubtype(object discriminator, Type type)
     {
+        ArgumentNullException.ThrowIfNull(discriminator);
+        ArgumentNullException.ThrowIfNull(type);
+
+        if (type.IsAbstract || type.IsInterface || !typeof(T).IsAssignableFrom(type))
+        {
+            throw new ArgumentException(
+                $"Type {type.FullName} is not a concrete subtype assignable from {typeof(T).FullName}.", nameof(type));
+        }
+
         if (_subTypeMapping == null)
         {
             throw new InvalidOperationException(
@@ -206,6 +221,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         }
 
         _subTypeMapping.Set(discriminator, type);
+        _mappingKeyType = null;
         if (_runtimeTypeToDiscriminator != null)
         {
             _runtimeTypeToDiscriminator[type] = discriminator;
@@ -612,7 +628,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
             [.. s.Converters.OfType<IJsonSubtypes>()]);
 
         Type targetType = parentType;
-        IJsonSubtypes? currentTypeResolver = GetTypeResolver(targetType.GetTypeInfo(), converters);
+        IJsonSubtypes? currentTypeResolver = GetTypeResolver(targetType.GetTypeInfo(), converters, null);
         if (currentTypeResolver == null)
         {
             return targetType;
@@ -627,8 +643,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         // Single-level resolution is the common case: only allocate the nested
         // walk (and its cycle-protection set) when the resolved type carries its
         // own resolver, i.e. for multi-level hierarchies.
-        IJsonSubtypes? nestedResolver = GetTypeResolver(targetType.GetTypeInfo(),
-            converters.Where(c => c != currentTypeResolver));
+        IJsonSubtypes? nestedResolver = GetTypeResolver(targetType.GetTypeInfo(), converters, currentTypeResolver);
         if (nestedResolver == null)
         {
             return targetType;
@@ -646,14 +661,14 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
             }
 
             lastTypeResolver = currentTypeResolver;
-            currentTypeResolver = GetTypeResolver(targetType.GetTypeInfo(),
-                converters.Where(c => c != currentTypeResolver));
+            currentTypeResolver = GetTypeResolver(targetType.GetTypeInfo(), converters, currentTypeResolver);
         }
 
         return targetType;
     }
 
-    private IJsonSubtypes? GetTypeResolver(TypeInfo? targetType, IEnumerable<IJsonSubtypes> jsonConverterCollection)
+    private IJsonSubtypes? GetTypeResolver(TypeInfo? targetType, IJsonSubtypes[] jsonConverters,
+        IJsonSubtypes? excluded)
     {
         if (targetType == null)
         {
@@ -674,7 +689,17 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
                 static key => CreateTypeResolver(key.Item2));
         }
 
-        return jsonConverterCollection.FirstOrDefault(c => c.CanConvert(target));
+        // Linear scan without a LINQ Where iterator; the collection is small and this is only
+        // hit on multi-level hierarchies.
+        foreach (IJsonSubtypes converter in jsonConverters)
+        {
+            if (converter != excluded && converter.CanConvert(target))
+            {
+                return converter;
+            }
+        }
+
+        return null;
     }
 
     private static IJsonSubtypes CreateTypeResolver(Type targetType)
@@ -860,58 +885,67 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         return null;
     }
 
-    private static Type? GetTypeFromMapping(NullableDictionary<object, Type> typeMapping,
+    private Type? GetTypeFromMapping(NullableDictionary<object, Type> typeMapping,
         JsonElement discriminatorToken, JsonSerializerOptions jsonSerializerOptions)
     {
         if (discriminatorToken.ValueKind == JsonValueKind.Null)
         {
-            typeMapping.TryGetValue(null, out Type? targetType);
+            typeMapping.TryGetValue(null, out Type? nullTarget);
 
-            return targetType;
+            return nullTarget;
         }
 
-        object? key = typeMapping.NotNullKeys().FirstOrDefault();
-        if (key != null)
+        // The discriminator key type is a property of the mapping, not of the token. Cache it
+        // instead of scanning the keys on every object (the generated converter compiles it).
+        Type? keyType = _mappingKeyType;
+        if (keyType == null)
         {
-            // Fast path: for the dominant string/int mappings, compare the token directly
-            // instead of round-tripping through GetRawText() + JsonSerializer.Deserialize.
-            if (key is string && discriminatorToken.ValueKind == JsonValueKind.String)
-            {
-                string? stringValue = discriminatorToken.GetString();
-                if (stringValue != null && typeMapping.TryGetValue(stringValue, out Type? stringTarget))
-                {
-                    return stringTarget;
-                }
+            keyType = typeMapping.NotNullKeys().FirstOrDefault()?.GetType();
+            _mappingKeyType = keyType;
+        }
 
-                return null;
+        if (keyType == null)
+        {
+            return null;
+        }
+
+        // Fast path: for the dominant string/int mappings, compare the token directly
+        // instead of round-tripping through GetRawText() + JsonSerializer.Deserialize.
+        if (keyType == typeof(string) && discriminatorToken.ValueKind == JsonValueKind.String)
+        {
+            string? stringValue = discriminatorToken.GetString();
+            if (stringValue != null && typeMapping.TryGetValue(stringValue, out Type? stringTarget))
+            {
+                return stringTarget;
             }
 
-            if (key is int && discriminatorToken.TryGetInt32(out int intValue))
-            {
-                if (typeMapping.TryGetValue(intValue, out Type? intTarget))
-                {
-                    return intTarget;
-                }
+            return null;
+        }
 
-                return null;
-            }
-
-            Type targetLookupValueType = key.GetType();
-            object? lookupValue;
-            try
+        if (keyType == typeof(int) && discriminatorToken.TryGetInt32(out int intValue))
+        {
+            if (typeMapping.TryGetValue(intValue, out Type? intTarget))
             {
-                lookupValue = JsonSerializer.Deserialize(discriminatorToken.GetRawText(), targetLookupValueType,
-                    jsonSerializerOptions);
-            }
-            catch (JsonException)
-            {
-                return null;
+                return intTarget;
             }
 
-            if (typeMapping.TryGetValue(lookupValue, out Type? targetType))
-            {
-                return targetType;
-            }
+            return null;
+        }
+
+        object? lookupValue;
+        try
+        {
+            lookupValue = JsonSerializer.Deserialize(discriminatorToken.GetRawText(), keyType,
+                jsonSerializerOptions);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+
+        if (typeMapping.TryGetValue(lookupValue, out Type? targetType))
+        {
+            return targetType;
         }
 
         return null;
