@@ -273,12 +273,25 @@ namespace JsonSubTypes
 
         private Type GetType(JObject jObject, Type parentType, JsonSerializer serializer)
         {
-            Type targetType = parentType;
-            JsonSubtypes lastTypeResolver = null;
-            JsonSubtypes currentTypeResolver = this;
-            var visitedTypes = new HashSet<Type> { targetType };
+            // Single-level resolution is the common case: resolve once with this converter and
+            // only enter the nested walk (converter scan, list, cycle-protection set) when the
+            // resolved type carries its own resolver, i.e. for multi-level hierarchies.
+            Type targetType = ResolveType(jObject, parentType, serializer);
+            if (targetType == null || targetType == parentType)
+            {
+                return targetType ?? parentType;
+            }
 
-            var jsonConverterCollection = serializer.Converters.OfType<JsonSubtypes>().ToList();
+            JsonSubtypes lastTypeResolver = this;
+            JsonSubtypes currentTypeResolver = GetTypeResolver(ToTypeInfo(targetType),
+                serializer.Converters.OfType<JsonSubtypes>().Where(c => c != this));
+            if (currentTypeResolver == null)
+            {
+                return CloseGenericSubtype(targetType, parentType);
+            }
+
+            var visitedTypes = new HashSet<Type> { parentType, targetType };
+            var jsonConverterCollection = serializer.Converters.OfType<JsonSubtypes>().Where(c => c != this).ToList();
             while (currentTypeResolver != null && currentTypeResolver != lastTypeResolver)
             {
                 targetType = currentTypeResolver.ResolveType(jObject, targetType, serializer);
@@ -292,6 +305,11 @@ namespace JsonSubTypes
                 currentTypeResolver = GetTypeResolver(ToTypeInfo(targetType), jsonConverterCollection);
             }
 
+            return CloseGenericSubtype(targetType, parentType);
+        }
+
+        private static Type CloseGenericSubtype(Type targetType, Type parentType)
+        {
             if (targetType != null && ToTypeInfo(targetType).IsGenericTypeDefinition && !ToTypeInfo(parentType).IsGenericTypeDefinition)
             {
                 Type[] parentTypeArguments = GetGenericTypeArguments(parentType).ToArray();
@@ -473,8 +491,7 @@ namespace JsonSubTypes
             var key = typeMapping.NotNullKeys().FirstOrDefault();
             if (key != null)
             {
-                var targetLookupValueType = key.GetType();
-                var lookupValue = discriminatorToken.ToObject(targetLookupValueType, serializer);
+                var lookupValue = GetLookupValue(key, discriminatorToken, serializer);
 
                 if (typeMapping.TryGetValue(lookupValue, out Type targetType))
                 {
@@ -483,6 +500,23 @@ namespace JsonSubTypes
             }
 
             return null;
+        }
+
+        private static object GetLookupValue(object key, JToken discriminatorToken, JsonSerializer serializer)
+        {
+            // Fast path for the dominant string/int mappings: convert the JToken directly
+            // instead of round-tripping through Newtonsoft's full ToObject reflection.
+            if (key is string && discriminatorToken.Type == JTokenType.String)
+            {
+                return discriminatorToken.Value<string>();
+            }
+
+            if (key is int && discriminatorToken.Type == JTokenType.Integer)
+            {
+                return discriminatorToken.Value<int>();
+            }
+
+            return discriminatorToken.ToObject(key.GetType(), serializer);
         }
 
         internal virtual NullableDictionary<object, Type> GetSubTypeMapping(Type type)
