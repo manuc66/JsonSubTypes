@@ -428,9 +428,8 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
     private static readonly ConcurrentDictionary<Type, Func<object>>
         BaseTypeFactoryCache = new();
 
-    private static T? ReadPlainObject(ref Utf8JsonReader reader, Type targetType, JsonSerializerOptions serializer)
+    private static T? ReadPlainObject(JsonElement jObject, Type targetType, JsonSerializerOptions serializer)
     {
-        JsonDocument jObject = JsonDocument.ParseValue(ref reader);
         object instance;
         try
         {
@@ -440,12 +439,12 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         catch (MissingMethodException)
         {
             throw new JsonException(
-                $"Could not create an instance of type {targetType.FullName}: a parameterless constructor is required to fall back to the base type. Position: {reader.Position.GetInteger()}.");
+                $"Could not create an instance of type {targetType.FullName}: a parameterless constructor is required to fall back to the base type.");
         }
 
         Action<object, JsonElement, JsonSerializerOptions> readerFn =
             BaseTypeObjectReaderCache.GetOrAdd(targetType, static type => BuildBaseTypeObjectReader(type));
-        readerFn(instance, jObject.RootElement, serializer);
+        readerFn(instance, jObject, serializer);
         return (T)instance;
     }
 
@@ -549,8 +548,6 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
 
     private T? ReadObject(ref Utf8JsonReader reader, Type objectType, JsonSerializerOptions serializer)
     {
-        Utf8JsonReader readerAtStart = reader;
-
         JsonDocument jObject = JsonDocument.ParseValue(ref reader);
 
         Type targetType = GetType(jObject, objectType, serializer);
@@ -562,7 +559,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
 
         if (targetType == objectType)
         {
-            return ReadPlainObject(ref readerAtStart, targetType, serializer);
+            return ReadPlainObject(jObject.RootElement, targetType, serializer);
         }
 
         return (T?)JsonSerializer.Deserialize(jObject.RootElement, targetType, serializer);
