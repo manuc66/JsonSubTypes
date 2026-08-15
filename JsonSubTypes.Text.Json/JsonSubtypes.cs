@@ -340,36 +340,100 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
 
         string discriminatorJson = JsonSerializer.Serialize(discriminatorValue, serializer);
 
-        using JsonDocument document = JsonDocument.Parse(json);
+        // Stream the payload with a Utf8JsonReader instead of materializing a JsonDocument: the
+        // payload was just written by us into a compact buffer, so re-reading it token by token
+        // avoids the DOM allocations. The discriminator is written first or last and the payload
+        // property of the same name (if any) is skipped.
+        Utf8JsonReader reader = new(json.Span);
+        reader.Read(); // StartObject
 
+        writer.WriteStartObject();
         if (_addDiscriminatorFirst)
         {
-            writer.WriteStartObject();
             writer.WritePropertyName(discriminatorName);
             writer.WriteRawValue(discriminatorJson, skipInputValidation: true);
-            foreach (JsonProperty property in document.RootElement.EnumerateObject())
-            {
-                if (!property.NameEquals(discriminatorName))
-                {
-                    property.WriteTo(writer);
-                }
-            }
-            writer.WriteEndObject();
         }
-        else
+
+        while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
         {
-            writer.WriteStartObject();
-            foreach (JsonProperty property in document.RootElement.EnumerateObject())
+            ReadOnlySpan<byte> propertyName = reader.ValueSpan;
+            bool isDiscriminator = reader.ValueTextEquals(discriminatorName);
+            reader.Read();
+            if (isDiscriminator)
             {
-                if (!property.NameEquals(discriminatorName))
-                {
-                    property.WriteTo(writer);
-                }
+                SkipValue(ref reader);
             }
+            else
+            {
+                writer.WritePropertyName(propertyName);
+                CopyValue(ref reader, writer);
+            }
+        }
+
+        if (!_addDiscriminatorFirst)
+        {
             writer.WritePropertyName(discriminatorName);
             writer.WriteRawValue(discriminatorJson, skipInputValidation: true);
-            writer.WriteEndObject();
         }
+        writer.WriteEndObject();
+    }
+
+    private static void CopyValue(ref Utf8JsonReader reader, Utf8JsonWriter writer)
+    {
+        switch (reader.TokenType)
+        {
+            case JsonTokenType.StartObject:
+                writer.WriteStartObject();
+                while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
+                {
+                    writer.WritePropertyName(reader.ValueSpan);
+                    reader.Read();
+                    CopyValue(ref reader, writer);
+                }
+                writer.WriteEndObject();
+                break;
+            case JsonTokenType.StartArray:
+                writer.WriteStartArray();
+                while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
+                {
+                    CopyValue(ref reader, writer);
+                }
+                writer.WriteEndArray();
+                break;
+            case JsonTokenType.String:
+                writer.WriteStringValue(reader.GetString());
+                break;
+            case JsonTokenType.Number:
+                // Preserve the exact token (decimals, exponents, big ints). Numbers inside an
+                // indented array stay compact, which is numerically exact.
+                writer.WriteRawValue(reader.ValueSpan, skipInputValidation: true);
+                break;
+            case JsonTokenType.True:
+                writer.WriteBooleanValue(true);
+                break;
+            case JsonTokenType.False:
+                writer.WriteBooleanValue(false);
+                break;
+            case JsonTokenType.Null:
+                writer.WriteNullValue();
+                break;
+        }
+    }
+
+    private static void SkipValue(ref Utf8JsonReader reader)
+    {
+        int depth = 0;
+        do
+        {
+            if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
+            {
+                depth++;
+            }
+            else if (reader.TokenType is JsonTokenType.EndObject or JsonTokenType.EndArray)
+            {
+                depth--;
+            }
+        } while (depth > 0 && reader.Read());
     }
 
     private static Action<Utf8JsonWriter, object, JsonSerializerOptions> BuildBaseTypeWriter(Type type)
