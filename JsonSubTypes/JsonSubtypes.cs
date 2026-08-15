@@ -104,9 +104,13 @@ namespace JsonSubTypes
 
 #if NET35
         private static readonly Dictionary<TypeInfo, IEnumerable<object>> _attributesCache = new Dictionary<TypeInfo, IEnumerable<object>>();
+        private static readonly Dictionary<TypeInfo, NullableDictionary<object, Type>> _subTypeMappingCache = new Dictionary<TypeInfo, NullableDictionary<object, Type>>();
+        private static readonly Dictionary<TypeInfo, List<TypeWithPropertyMatchingAttributes>> _typesByPropertyPresenceCache = new Dictionary<TypeInfo, List<TypeWithPropertyMatchingAttributes>>();
 #else
         private static readonly ConcurrentDictionary<TypeInfo, IEnumerable<object>> _attributesCache = new ConcurrentDictionary<TypeInfo, IEnumerable<object>>();
         private static readonly Func<TypeInfo, IEnumerable<object>> _getCustomAttributes = ti => ti.GetCustomAttributes(false);
+        private static readonly ConcurrentDictionary<TypeInfo, NullableDictionary<object, Type>> _subTypeMappingCache = new ConcurrentDictionary<TypeInfo, NullableDictionary<object, Type>>();
+        private static readonly ConcurrentDictionary<TypeInfo, List<TypeWithPropertyMatchingAttributes>> _typesByPropertyPresenceCache = new ConcurrentDictionary<TypeInfo, List<TypeWithPropertyMatchingAttributes>>();
 #endif
 
         public override bool CanRead
@@ -388,9 +392,26 @@ namespace JsonSubTypes
 
         internal virtual List<TypeWithPropertyMatchingAttributes> GetTypesByPropertyPresence(Type parentType)
         {
-            return GetAttributes<KnownSubTypeWithPropertyAttribute>(ToTypeInfo(parentType))
-                .Select(a => new TypeWithPropertyMatchingAttributes(a.SubType, a.PropertyName, a.StopLookupOnMatch))
-                .ToList();
+            var typeInfo = ToTypeInfo(parentType);
+#if NET35
+            lock (_typesByPropertyPresenceCache)
+            {
+                if (_typesByPropertyPresenceCache.TryGetValue(typeInfo, out var res))
+                    return res;
+
+                res = GetAttributes<KnownSubTypeWithPropertyAttribute>(typeInfo)
+                    .Select(a => new TypeWithPropertyMatchingAttributes(a.SubType, a.PropertyName, a.StopLookupOnMatch))
+                    .ToList();
+                _typesByPropertyPresenceCache.Add(typeInfo, res);
+
+                return res;
+            }
+#else
+            return _typesByPropertyPresenceCache.GetOrAdd(typeInfo,
+                ti => GetAttributes<KnownSubTypeWithPropertyAttribute>(ti)
+                    .Select(a => new TypeWithPropertyMatchingAttributes(a.SubType, a.PropertyName, a.StopLookupOnMatch))
+                    .ToList());
+#endif
         }
 
         private Type GetTypeFromDiscriminatorValue(JObject jObject, Type parentType, JsonSerializer serializer)
@@ -521,9 +542,28 @@ namespace JsonSubTypes
 
         internal virtual NullableDictionary<object, Type> GetSubTypeMapping(Type type)
         {
+            var typeInfo = ToTypeInfo(type);
+#if NET35
+            lock (_subTypeMappingCache)
+            {
+                if (_subTypeMappingCache.TryGetValue(typeInfo, out var res))
+                    return res;
+
+                res = BuildAttributeSubTypeMapping(typeInfo);
+                _subTypeMappingCache.Add(typeInfo, res);
+
+                return res;
+            }
+#else
+            return _subTypeMappingCache.GetOrAdd(typeInfo, BuildAttributeSubTypeMapping);
+#endif
+        }
+
+        private static NullableDictionary<object, Type> BuildAttributeSubTypeMapping(TypeInfo typeInfo)
+        {
             var dictionary = new NullableDictionary<object, Type>();
 
-            GetAttributes<KnownSubTypeAttribute>(ToTypeInfo(type))
+            GetAttributes<KnownSubTypeAttribute>(typeInfo)
                 .ToList()
                 .ForEach(x => dictionary.Add(x.AssociatedValue, x.SubType));
 
