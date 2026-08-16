@@ -256,6 +256,44 @@ namespace JsonSubTypes.Text.Json.Aot.Tests
 
     // ---- domain types ----
 
+    [TestFixture]
+    public class GeneratedPresenceModeOptionsTests
+    {
+        private static JsonSerializerOptions Options(bool caseInsensitive, JsonNamingPolicy? namingPolicy)
+        {
+            return new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = caseInsensitive,
+                PropertyNamingPolicy = namingPolicy,
+                Converters = { JsonSubTypesAotConverters.MultiPropBase }
+            };
+        }
+
+        [Test]
+        public void PresenceMatching_HonorsCaseInsensitive()
+        {
+            var result = JsonSerializer.Deserialize<MultiPropBase>("{\"jobtitle\":\"Dev\",\"FirstName\":\"A\"}", Options(caseInsensitive: true, namingPolicy: null));
+
+            Assert.IsInstanceOf<PEmployee>(result);
+        }
+
+        [Test]
+        public void PresenceMatching_HonorsNamingPolicy()
+        {
+            var result = JsonSerializer.Deserialize<MultiPropBase>("{\"jobTitle\":\"Dev\",\"firstName\":\"A\"}", Options(caseInsensitive: false, namingPolicy: JsonNamingPolicy.CamelCase));
+
+            Assert.IsInstanceOf<PEmployee>(result);
+        }
+
+        [Test]
+        public void PresenceMatching_ExactName_WithoutCaseInsensitiveOrPolicy()
+        {
+            var result = JsonSerializer.Deserialize<MultiPropBase>("{\"JobTitle\":\"Dev\",\"FirstName\":\"A\"}", Options(caseInsensitive: false, namingPolicy: null));
+
+            Assert.IsInstanceOf<PEmployee>(result);
+        }
+    }
+
     public enum EAnimalKind
     {
         Cat,

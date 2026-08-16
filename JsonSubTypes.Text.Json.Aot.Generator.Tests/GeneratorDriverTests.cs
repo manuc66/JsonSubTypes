@@ -88,8 +88,8 @@ public class Artist : Person { public string? Skill { get; set; } }
 
             string? text = GeneratorDriverRunner.GetGeneratedSource(run, "PersonJsonSubTypesConverter.g.cs");
             Assert.That(text, Is.Not.Null);
-            StringAssert.Contains("TryGetProperty(\"JobTitle\"", text!);
-            StringAssert.Contains("TryGetProperty(\"Skill\"", text!);
+            StringAssert.Contains("TryGetProperty(root, \"JobTitle\", options", text!);
+            StringAssert.Contains("TryGetProperty(root, \"Skill\", options", text!);
         }
 
         [Test]

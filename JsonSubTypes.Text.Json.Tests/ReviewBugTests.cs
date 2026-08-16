@@ -288,6 +288,26 @@ namespace JsonSubTypes.Tests
         }
 
         [Test]
+        public void DynamicSubtypeWritesDiscriminatorAtRuntime()
+        {
+            // Serialization counterpart: the reverse map (_runtimeTypeToDiscriminator) must write
+            // the discriminator for a subtype registered after the converter was built.
+            var converter = (JsonSubtypes<SelfDeclaredBase>)JsonSubtypesConverterBuilder
+                .Of<SelfDeclaredBase>("Kind")
+                .SerializeDiscriminatorProperty()
+                .Build();
+            converter.RegisterDynamicSubtype("dog", typeof(SelfDeclaredDog));
+
+            var options = new JsonSerializerOptions();
+            options.Converters.Add(converter);
+
+            var json = JsonSerializer.Serialize<SelfDeclaredBase>(new SelfDeclaredDog { CanBark = true }, options);
+
+            StringAssert.Contains("\"Kind\":\"dog\"", json);
+            StringAssert.Contains("\"CanBark\":true", json);
+        }
+
+        [Test]
         public void RegisterDynamicSubtypeRejectsMixedDiscriminatorTypes()
         {
             var converter = (JsonSubtypes<SelfDeclaredBase>)JsonSubtypesConverterBuilder

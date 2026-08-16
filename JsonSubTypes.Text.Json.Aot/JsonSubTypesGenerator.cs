@@ -1111,11 +1111,11 @@ namespace JsonSubTypes.Text.Json.Aot
             foreach (PropertyPresenceRegistration reg in info.PropertyPresences)
             {
                 checks.Add(reg.StopLookupOnMatch
-                    ? "        if (root.TryGetProperty(" + SymbolDisplay.FormatLiteral(reg.PropertyName, quote: true) + ", out _))\n" +
+                    ? "        if (TryGetProperty(root, " + SymbolDisplay.FormatLiteral(reg.PropertyName, quote: true) + ", options, out _))\n" +
                       MemberOpenBrace +
                       "            return typeof(" + reg.FullyQualifiedName + ");\n" +
                       MemberCloseBrace
-                    : "        if (root.TryGetProperty(" + SymbolDisplay.FormatLiteral(reg.PropertyName, quote: true) + ", out _))\n" +
+                    : "        if (TryGetProperty(root, " + SymbolDisplay.FormatLiteral(reg.PropertyName, quote: true) + ", options, out _))\n" +
                       MemberOpenBrace +
                       "            matches.Add(typeof(" + reg.FullyQualifiedName + "));\n" +
                       MemberCloseBrace);
