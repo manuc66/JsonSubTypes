@@ -12,11 +12,11 @@ namespace JsonSubTypes.Text.Json.Aot.Generated
         protected override Type SelectType(JsonElement root, JsonSerializerOptions options)
         {
             System.Collections.Generic.HashSet<Type> matches = new System.Collections.Generic.HashSet<Type>();
-        if (root.TryGetProperty("JobTitle", out _))
+        if (TryGetProperty(root, "JobTitle", options, out _))
         {
             matches.Add(typeof(global::JsonSubTypes.Text.Json.Aot.Generated.TestDomain.Employee));
         }
-        if (root.TryGetProperty("Skill", out _))
+        if (TryGetProperty(root, "Skill", options, out _))
         {
             matches.Add(typeof(global::JsonSubTypes.Text.Json.Aot.Generated.TestDomain.Artist));
         }
