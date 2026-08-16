@@ -525,16 +525,35 @@ namespace JsonSubTypes
 
         private static object GetLookupValue(object key, JToken discriminatorToken, JsonSerializer serializer)
         {
-            // Fast path for the dominant string/int mappings: convert the JToken directly
-            // instead of round-tripping through Newtonsoft's full ToObject reflection.
-            if (key is string && discriminatorToken.Type == JTokenType.String)
+            // Fast path for the dominant string/int mappings, taken only when no converter
+            // registered on the serializer handles the key type: a custom converter must keep
+            // the serializer-aware ToObject path, mirroring the discriminator write path.
+            if (key is string || key is int)
             {
-                return discriminatorToken.Value<string>();
-            }
+                Type keyType = key.GetType();
+                bool hasConverter = false;
+                IList<JsonConverter> converters = serializer.Converters;
+                for (int i = 0; i < converters.Count; i++)
+                {
+                    if (converters[i].CanConvert(keyType))
+                    {
+                        hasConverter = true;
+                        break;
+                    }
+                }
 
-            if (key is int && discriminatorToken.Type == JTokenType.Integer)
-            {
-                return discriminatorToken.Value<int>();
+                if (!hasConverter)
+                {
+                    if (key is string && discriminatorToken.Type == JTokenType.String)
+                    {
+                        return discriminatorToken.Value<string>();
+                    }
+
+                    if (key is int && discriminatorToken.Type == JTokenType.Integer)
+                    {
+                        return discriminatorToken.Value<int>();
+                    }
+                }
             }
 
             return discriminatorToken.ToObject(key.GetType(), serializer);
