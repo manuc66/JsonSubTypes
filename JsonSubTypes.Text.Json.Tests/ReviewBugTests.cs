@@ -1,3 +1,4 @@
+using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using JsonSubTypes.Text.Json;
@@ -284,6 +285,18 @@ namespace JsonSubTypes.Tests
 
             Assert.IsInstanceOf<SelfDeclaredDog>(dog);
             Assert.IsTrue((dog as SelfDeclaredDog)?.CanBark == true);
+        }
+
+        [Test]
+        public void RegisterDynamicSubtypeRejectsMixedDiscriminatorTypes()
+        {
+            var converter = (JsonSubtypes<SelfDeclaredBase>)JsonSubtypesConverterBuilder
+                .Of<SelfDeclaredBase>("Kind")
+                .Build();
+            converter.RegisterDynamicSubtype("dog", typeof(SelfDeclaredDog));
+
+            // A discriminator of a different type would make the cached key type inconsistent.
+            Assert.Throws<ArgumentException>(() => converter.RegisterDynamicSubtype(1, typeof(SelfDeclaredCat)));
         }
 
         [Test]

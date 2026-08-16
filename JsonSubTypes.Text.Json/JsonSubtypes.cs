@@ -4,7 +4,6 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -139,7 +138,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
     private static readonly ConditionalWeakTable<JsonSerializerOptions, IJsonSubtypes[]>
         OptionsConverterCache = new();
 
-    protected readonly string? JsonDiscriminatorPropertyName;
+    private readonly string? _jsonDiscriminatorPropertyName;
 
     private readonly NullableDictionary<object, Type>? _subTypeMapping;
     private readonly List<TypeWithPropertyMatchingAttributes>? _typesByPropertyPresence;
@@ -149,6 +148,10 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
     private readonly Dictionary<Type, object?>? _runtimeTypeToDiscriminator;
     private readonly Assembly[] _additionalAssemblies;
 
+    // Cached discriminator key type, so GetTypeFromMapping does not re-scan the mapping keys on
+    // every object. Invalidate with RegisterDynamicSubtype when the mapping mutates.
+    private Type? _mappingKeyType;
+
     public JsonSubtypes()
     {
         _additionalAssemblies = [];
@@ -156,7 +159,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
 
     public JsonSubtypes(string? jsonDiscriminatorPropertyName)
     {
-        JsonDiscriminatorPropertyName = jsonDiscriminatorPropertyName;
+        _jsonDiscriminatorPropertyName = jsonDiscriminatorPropertyName;
         _serializeDiscriminatorProperty = jsonDiscriminatorPropertyName != null;
         _addDiscriminatorFirst = true;
         _additionalAssemblies = [];
@@ -197,15 +200,39 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
     /// <paramref name="discriminator"/> to <paramref name="type"/> without editing the plugin or
     /// scanning an assembly. The last registration for a discriminator wins, like the builder.
     /// </summary>
+    /// <remarks>
+    /// Call this during setup, before the converter is used for serialization. It mutates the
+    /// mapping and its caches, which is not safe concurrently with serialization on another
+    /// thread; the mapping is otherwise read-only once built.
+    /// </remarks>
     public void RegisterDynamicSubtype(object discriminator, Type type)
     {
+        ArgumentNullException.ThrowIfNull(discriminator);
+        ArgumentNullException.ThrowIfNull(type);
+
+        if (type.IsAbstract || type.IsInterface || !typeof(T).IsAssignableFrom(type))
+        {
+            throw new ArgumentException(
+                $"Type {type.FullName} is not a concrete subtype assignable from {typeof(T).FullName}.", nameof(type));
+        }
+
         if (_subTypeMapping == null)
         {
             throw new InvalidOperationException(
                 "RegisterDynamicSubtype requires a builder-built converter. Build one with JsonSubtypesConverterBuilder.Of(...).Build() first.");
         }
 
+        // All discriminators of one converter must share a type (the mapping is resolved by key
+        // type). Registering a different key type would make the cached key type inconsistent.
+        object? existingKey = _subTypeMapping.NotNullKeys().FirstOrDefault();
+        if (existingKey != null && !existingKey.GetType().IsInstanceOfType(discriminator))
+        {
+            throw new ArgumentException(
+                $"Discriminator type {discriminator.GetType().FullName} does not match the existing discriminators of type {existingKey.GetType().FullName}.", nameof(discriminator));
+        }
+
         _subTypeMapping.Set(discriminator, type);
+        _mappingKeyType = null;
         if (_runtimeTypeToDiscriminator != null)
         {
             _runtimeTypeToDiscriminator[type] = discriminator;
@@ -217,7 +244,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         return ReadJson(ref reader, objectType, serializer);
     }
 
-    public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions serializer)
+    public override void Write(Utf8JsonWriter writer, T? value, JsonSerializerOptions serializer)
     {
         if (value is null)
         {
@@ -227,7 +254,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
 
         Type runtimeType = value.GetType();
 
-        if (JsonDiscriminatorPropertyName == null)
+        if (_jsonDiscriminatorPropertyName == null)
         {
             WritePlain(writer, value, runtimeType, serializer);
             return;
@@ -316,7 +343,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
     private void WriteObjectWithDiscriminator(Utf8JsonWriter writer, ReadOnlyMemory<byte> json,
         object? discriminatorValue, JsonSerializerOptions serializer)
     {
-        string discriminatorName = JsonDiscriminatorPropertyName!;
+        string discriminatorName = _jsonDiscriminatorPropertyName!;
         if (serializer.PropertyNamingPolicy != null)
         {
             discriminatorName = serializer.PropertyNamingPolicy.ConvertName(discriminatorName);
@@ -324,36 +351,100 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
 
         string discriminatorJson = JsonSerializer.Serialize(discriminatorValue, serializer);
 
-        using JsonDocument document = JsonDocument.Parse(json);
+        // Stream the payload with a Utf8JsonReader instead of materializing a JsonDocument: the
+        // payload was just written by us into a compact buffer, so re-reading it token by token
+        // avoids the DOM allocations. The discriminator is written first or last and the payload
+        // property of the same name (if any) is skipped.
+        Utf8JsonReader reader = new(json.Span);
+        reader.Read(); // StartObject
 
+        writer.WriteStartObject();
         if (_addDiscriminatorFirst)
         {
-            writer.WriteStartObject();
             writer.WritePropertyName(discriminatorName);
             writer.WriteRawValue(discriminatorJson, skipInputValidation: true);
-            foreach (JsonProperty property in document.RootElement.EnumerateObject())
-            {
-                if (!property.NameEquals(discriminatorName))
-                {
-                    property.WriteTo(writer);
-                }
-            }
-            writer.WriteEndObject();
         }
-        else
+
+        while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
         {
-            writer.WriteStartObject();
-            foreach (JsonProperty property in document.RootElement.EnumerateObject())
+            ReadOnlySpan<byte> propertyName = reader.ValueSpan;
+            bool isDiscriminator = reader.ValueTextEquals(discriminatorName);
+            reader.Read();
+            if (isDiscriminator)
             {
-                if (!property.NameEquals(discriminatorName))
-                {
-                    property.WriteTo(writer);
-                }
+                SkipValue(ref reader);
             }
+            else
+            {
+                writer.WritePropertyName(propertyName);
+                CopyValue(ref reader, writer);
+            }
+        }
+
+        if (!_addDiscriminatorFirst)
+        {
             writer.WritePropertyName(discriminatorName);
             writer.WriteRawValue(discriminatorJson, skipInputValidation: true);
-            writer.WriteEndObject();
         }
+        writer.WriteEndObject();
+    }
+
+    private static void CopyValue(ref Utf8JsonReader reader, Utf8JsonWriter writer)
+    {
+        switch (reader.TokenType)
+        {
+            case JsonTokenType.StartObject:
+                writer.WriteStartObject();
+                while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
+                {
+                    writer.WritePropertyName(reader.ValueSpan);
+                    reader.Read();
+                    CopyValue(ref reader, writer);
+                }
+                writer.WriteEndObject();
+                break;
+            case JsonTokenType.StartArray:
+                writer.WriteStartArray();
+                while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
+                {
+                    CopyValue(ref reader, writer);
+                }
+                writer.WriteEndArray();
+                break;
+            case JsonTokenType.String:
+                writer.WriteStringValue(reader.GetString());
+                break;
+            case JsonTokenType.Number:
+                // Preserve the exact token (decimals, exponents, big ints). Numbers inside an
+                // indented array stay compact, which is numerically exact.
+                writer.WriteRawValue(reader.ValueSpan, skipInputValidation: true);
+                break;
+            case JsonTokenType.True:
+                writer.WriteBooleanValue(true);
+                break;
+            case JsonTokenType.False:
+                writer.WriteBooleanValue(false);
+                break;
+            case JsonTokenType.Null:
+                writer.WriteNullValue();
+                break;
+        }
+    }
+
+    private static void SkipValue(ref Utf8JsonReader reader)
+    {
+        int depth = 0;
+        do
+        {
+            if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
+            {
+                depth++;
+            }
+            else if (reader.TokenType is JsonTokenType.EndObject or JsonTokenType.EndArray)
+            {
+                depth--;
+            }
+        } while (depth > 0 && reader.Read());
     }
 
     private static Action<Utf8JsonWriter, object, JsonSerializerOptions> BuildBaseTypeWriter(Type type)
@@ -395,7 +486,10 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
                 }
 
                 writer.WritePropertyName(name);
-                JsonSerializer.Serialize(writer, propertyValue, serializer);
+                // Use the declared property type, not the runtime type: System.Text.Json
+                // serializes a property according to its declared contract, and a polymorphic
+                // converter on that declared type must be applied.
+                JsonSerializer.Serialize(writer, propertyValue, item.Property.PropertyType, serializer);
             }
             writer.WriteEndObject();
         };
@@ -412,7 +506,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
 
     private static bool IsIgnoredOnRead(JsonIgnoreAttribute? jsonIgnore)
     {
-        return jsonIgnore != null && jsonIgnore.Condition == JsonIgnoreCondition.Always;
+        return jsonIgnore is { Condition: JsonIgnoreCondition.Always };
     }
 
     private static bool ShouldIgnore(object? defaultValue, JsonIgnoreAttribute? jsonIgnore,
@@ -454,7 +548,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
     private static readonly ConcurrentDictionary<Type, Func<object>>
         BaseTypeFactoryCache = new();
 
-    private static T? ReadPlainObject(JsonElement jObject, Type targetType, JsonSerializerOptions serializer)
+    private static T ReadPlainObject(JsonElement jObject, Type targetType, JsonSerializerOptions serializer)
     {
         object instance;
         try
@@ -513,7 +607,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         switch (reader.TokenType)
         {
             case JsonTokenType.Null:
-                return default;
+                return null;
             case JsonTokenType.StartObject:
                 return ReadObject(ref reader, objectType, serializer);
             case JsonTokenType.StartArray:
@@ -588,20 +682,12 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
             return ReadPlainObject(jObject.RootElement, targetType, serializer);
         }
 
-        return (T?)JsonSerializer.Deserialize(jObject.RootElement, targetType, serializer);
+        return (T?)jObject.RootElement.Deserialize(targetType, serializer);
     }
 
     Type IJsonSubtypes.GetType(JsonDocument jObject, Type parentType, JsonSerializerOptions jsonSerializerOptions)
     {
-        Type? resolvedType;
-        if (JsonDiscriminatorPropertyName == null)
-        {
-            resolvedType = GetTypeByPropertyPresence(jObject, parentType, jsonSerializerOptions);
-        }
-        else
-        {
-            resolvedType = GetTypeFromDiscriminatorValue(jObject, parentType, jsonSerializerOptions);
-        }
+        Type? resolvedType = _jsonDiscriminatorPropertyName == null ? GetTypeByPropertyPresence(jObject, parentType, jsonSerializerOptions) : GetTypeFromDiscriminatorValue(jObject, parentType, jsonSerializerOptions);
 
         return resolvedType ?? GetFallbackSubType(parentType) ?? parentType;
     }
@@ -612,7 +698,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
             [.. s.Converters.OfType<IJsonSubtypes>()]);
 
         Type targetType = parentType;
-        IJsonSubtypes? currentTypeResolver = GetTypeResolver(targetType.GetTypeInfo(), converters);
+        IJsonSubtypes? currentTypeResolver = GetTypeResolver(targetType.GetTypeInfo(), converters, null);
         if (currentTypeResolver == null)
         {
             return targetType;
@@ -627,8 +713,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         // Single-level resolution is the common case: only allocate the nested
         // walk (and its cycle-protection set) when the resolved type carries its
         // own resolver, i.e. for multi-level hierarchies.
-        IJsonSubtypes? nestedResolver = GetTypeResolver(targetType.GetTypeInfo(),
-            converters.Where(c => c != currentTypeResolver));
+        IJsonSubtypes? nestedResolver = GetTypeResolver(targetType.GetTypeInfo(), converters, currentTypeResolver);
         if (nestedResolver == null)
         {
             return targetType;
@@ -646,14 +731,14 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
             }
 
             lastTypeResolver = currentTypeResolver;
-            currentTypeResolver = GetTypeResolver(targetType.GetTypeInfo(),
-                converters.Where(c => c != currentTypeResolver));
+            currentTypeResolver = GetTypeResolver(targetType.GetTypeInfo(), converters, currentTypeResolver);
         }
 
         return targetType;
     }
 
-    private IJsonSubtypes? GetTypeResolver(TypeInfo? targetType, IEnumerable<IJsonSubtypes> jsonConverterCollection)
+    private IJsonSubtypes? GetTypeResolver(TypeInfo? targetType, IJsonSubtypes[] jsonConverters,
+        IJsonSubtypes? excluded)
     {
         if (targetType == null)
         {
@@ -664,17 +749,24 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         JsonSubTypeConverterAttribute? jsonConverterAttribute =
             ConverterAttributeCache.GetOrAdd(target, static type =>
                 GetAttribute<JsonSubTypeConverterAttribute>(type.GetTypeInfo()));
-        if (jsonConverterAttribute != null &&
-            jsonConverterAttribute.ConverterType != null &&
-            jsonConverterAttribute.ConverterType.IsGenericType &&
-            jsonConverterAttribute.ConverterType.GenericTypeArguments.Length > 0 &&
+        if (jsonConverterAttribute?.ConverterType is { IsGenericType: true, GenericTypeArguments.Length: > 0 } &&
             typeof(T).IsAssignableFrom(jsonConverterAttribute.ConverterType.GenericTypeArguments[0]))
         {
             return AttributeResolverCache.GetOrAdd((typeof(T), target),
                 static key => CreateTypeResolver(key.Item2));
         }
 
-        return jsonConverterCollection.FirstOrDefault(c => c.CanConvert(target));
+        // Linear scan without a LINQ Where iterator; the collection is small and this is only
+        // hit on multi-level hierarchies.
+        foreach (IJsonSubtypes converter in jsonConverters)
+        {
+            if (converter != excluded && converter.CanConvert(target))
+            {
+                return converter;
+            }
+        }
+
+        return null;
     }
 
     private static IJsonSubtypes CreateTypeResolver(Type targetType)
@@ -740,8 +832,8 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
     private Type? GetTypeFromDiscriminatorValue(JsonDocument jObject, Type parentType,
         JsonSerializerOptions jsonSerializerOptions)
     {
-        if (JsonDiscriminatorPropertyName == null ||
-            !TryGetValueInJson(jObject.RootElement, JsonDiscriminatorPropertyName, jsonSerializerOptions,
+        if (_jsonDiscriminatorPropertyName == null ||
+            !TryGetValueInJson(jObject.RootElement, _jsonDiscriminatorPropertyName, jsonSerializerOptions,
                 out JsonElement discriminatorValue))
         {
             return null;
@@ -835,9 +927,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         }
 
         string? parentTypeFullName = parentType.FullName;
-        string? searchLocation = parentTypeFullName == null
-            ? null
-            : parentTypeFullName.Substring(0, parentTypeFullName.Length - parentType.Name.Length);
+        string? searchLocation = parentTypeFullName?[..^parentType.Name.Length];
 
         Assembly[] attributeAssemblies = TypeResolution.GetSearchAssemblies(parentType);
         IEnumerable<Assembly> assemblies = attributeAssemblies
@@ -860,58 +950,67 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         return null;
     }
 
-    private static Type? GetTypeFromMapping(NullableDictionary<object, Type> typeMapping,
+    private Type? GetTypeFromMapping(NullableDictionary<object, Type> typeMapping,
         JsonElement discriminatorToken, JsonSerializerOptions jsonSerializerOptions)
     {
         if (discriminatorToken.ValueKind == JsonValueKind.Null)
         {
-            typeMapping.TryGetValue(null, out Type? targetType);
+            typeMapping.TryGetValue(null, out Type? nullTarget);
 
-            return targetType;
+            return nullTarget;
         }
 
-        object? key = typeMapping.NotNullKeys().FirstOrDefault();
-        if (key != null)
+        // The discriminator key type is a property of the mapping, not of the token. Cache it
+        // instead of scanning the keys on every object (the generated converter compiles it).
+        Type? keyType = _mappingKeyType;
+        if (keyType == null)
         {
-            // Fast path: for the dominant string/int mappings, compare the token directly
-            // instead of round-tripping through GetRawText() + JsonSerializer.Deserialize.
-            if (key is string && discriminatorToken.ValueKind == JsonValueKind.String)
-            {
-                string? stringValue = discriminatorToken.GetString();
-                if (stringValue != null && typeMapping.TryGetValue(stringValue, out Type? stringTarget))
-                {
-                    return stringTarget;
-                }
+            keyType = typeMapping.NotNullKeys().FirstOrDefault()?.GetType();
+            _mappingKeyType = keyType;
+        }
 
-                return null;
+        if (keyType == null)
+        {
+            return null;
+        }
+
+        // Fast path: for the dominant string/int mappings, compare the token directly
+        // instead of round-tripping through GetRawText() + JsonSerializer.Deserialize.
+        if (keyType == typeof(string) && discriminatorToken.ValueKind == JsonValueKind.String)
+        {
+            string? stringValue = discriminatorToken.GetString();
+            if (stringValue != null && typeMapping.TryGetValue(stringValue, out Type? stringTarget))
+            {
+                return stringTarget;
             }
 
-            if (key is int && discriminatorToken.TryGetInt32(out int intValue))
-            {
-                if (typeMapping.TryGetValue(intValue, out Type? intTarget))
-                {
-                    return intTarget;
-                }
+            return null;
+        }
 
-                return null;
-            }
-
-            Type targetLookupValueType = key.GetType();
-            object? lookupValue;
-            try
+        if (keyType == typeof(int) && discriminatorToken.TryGetInt32(out int intValue))
+        {
+            if (typeMapping.TryGetValue(intValue, out Type? intTarget))
             {
-                lookupValue = JsonSerializer.Deserialize(discriminatorToken.GetRawText(), targetLookupValueType,
-                    jsonSerializerOptions);
-            }
-            catch (JsonException)
-            {
-                return null;
+                return intTarget;
             }
 
-            if (typeMapping.TryGetValue(lookupValue, out Type? targetType))
-            {
-                return targetType;
-            }
+            return null;
+        }
+
+        object? lookupValue;
+        try
+        {
+            lookupValue = JsonSerializer.Deserialize(discriminatorToken.GetRawText(), keyType,
+                jsonSerializerOptions);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+
+        if (typeMapping.TryGetValue(lookupValue, out Type? targetType))
+        {
+            return targetType;
         }
 
         return null;
