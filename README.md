@@ -433,7 +433,7 @@ Benchmarked with BenchmarkDotNet (`JsonSubTypes.Benchmarks`, .NET 10); the metho
 - **Converter (`Build()`)** is the slowest of the three: it keeps the `JsonDocument` round-trip and adds runtime type resolution. It is the only engine for hierarchies whose subtypes are only known at runtime.
 - **Newtonsoft.Json (`JsonSubTypes`)** is slower and allocates several times more than the STJ converter on the same scenarios.
 
-Reproduce the measurements yourself with `dotnet run -c Release --project JsonSubTypes.Benchmarks`.
+Reproduce the measurements yourself with `dotnet run -c Release --project JsonSubTypes.Benchmarks -- --filter "*"` (a native compiler is needed for the Native AOT job; see [PERFORMANCE.md](PERFORMANCE.md)).
 
 ### Decision matrix
 | Use case | Recommended |
