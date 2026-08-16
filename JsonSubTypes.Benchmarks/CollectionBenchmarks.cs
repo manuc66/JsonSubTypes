@@ -76,19 +76,19 @@ namespace JsonSubTypes.Benchmarks
         }
 
         [Benchmark]
-        public string Col_Converter_Serialize() => JsonSerializer.Serialize(_convAnimals, _converterOptions!);
+        public string Col_Converter_Serialize() => JsonSerializer.Serialize(_convAnimals, BenchmarkGuard.ReflectionOptions(_converterOptions));
 
         [Benchmark]
-        public string Col_Resolver_Serialize() => JsonSerializer.Serialize(_resAnimals, _resolverOptions!);
+        public string Col_Resolver_Serialize() => JsonSerializer.Serialize(_resAnimals, BenchmarkGuard.ReflectionOptions(_resolverOptions));
 
         [Benchmark]
         public string Col_Generated_Serialize() => JsonSerializer.Serialize(_generatedAnimals, _generatedOptions);
 
         [Benchmark]
-        public List<ColConvAnimal>? Col_Converter_Deserialize() => JsonSerializer.Deserialize<List<ColConvAnimal>>(_converterJson!, _converterOptions!);
+        public List<ColConvAnimal>? Col_Converter_Deserialize() => JsonSerializer.Deserialize<List<ColConvAnimal>>(_converterJson!, BenchmarkGuard.ReflectionOptions(_converterOptions));
 
         [Benchmark]
-        public List<ColResAnimal>? Col_Resolver_Deserialize() => JsonSerializer.Deserialize<List<ColResAnimal>>(_resolverJson!, _resolverOptions!);
+        public List<ColResAnimal>? Col_Resolver_Deserialize() => JsonSerializer.Deserialize<List<ColResAnimal>>(_resolverJson!, BenchmarkGuard.ReflectionOptions(_resolverOptions));
 
         [Benchmark]
         public List<ColAnimal>? Col_Generated_Deserialize() => JsonSerializer.Deserialize<List<ColAnimal>>(_generatedJson, _generatedOptions);

@@ -16,7 +16,7 @@ Or filter to a scenario class:
 dotnet run -c Release --project JsonSubTypes.Benchmarks --filter '*PolymorphismBenchmarks*'
 ```
 
-The command runs every benchmark twice: once under the JIT (`DefaultJob`) and once as a native binary (`NativeAOT` job). The reflection-based engines (converter, resolver, Newtonsoft) report `NA` under the NativeAOT job: they need reflection, which the native host disables.
+The command runs every benchmark twice: once under the JIT (`DefaultJob`) and once as a native binary (`NativeAOT` job). The reflection-based engines (converter, resolver, Newtonsoft) cannot run under the NativeAOT job: the native host disables reflection, and their benchmark methods fail with `NotSupportedException`, so the Native AOT table below only reports the generated engine.
 
 ### What is measured
 

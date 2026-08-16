@@ -6,8 +6,9 @@ namespace JsonSubTypes.Benchmarks
 {
     // Newtonsoft.Json baseline: the original package. These benchmarks mirror the single-object
     // and collection scenarios of the System.Text.Json benchmarks so the two packages can be
-    // compared. Newtonsoft runs on reflection only, so these benchmarks report NA under the
-    // NativeAOT job (like the reflection-based STJ engines).
+    // compared. Newtonsoft runs on reflection only, so under the Native AOT job these benchmarks
+    // fail with NotSupportedException (like the reflection-based STJ engines) and produce no
+    // numbers.
     [MemoryDiagnoser]
     public class NewtonsoftBenchmarks
     {
@@ -41,16 +42,32 @@ namespace JsonSubTypes.Benchmarks
         }
 
         [Benchmark]
-        public string Single_Serialize() => JsonConvert.SerializeObject(_animal, _settings);
+        public string Single_Serialize()
+        {
+            BenchmarkGuard.RequireReflection();
+            return JsonConvert.SerializeObject(_animal, _settings);
+        }
 
         [Benchmark]
-        public NwAnimal? Single_Deserialize() => JsonConvert.DeserializeObject<NwAnimal>(_singleJson, _settings);
+        public NwAnimal? Single_Deserialize()
+        {
+            BenchmarkGuard.RequireReflection();
+            return JsonConvert.DeserializeObject<NwAnimal>(_singleJson, _settings);
+        }
 
         [Benchmark]
-        public string Collection_Serialize() => JsonConvert.SerializeObject(_animals, _settings);
+        public string Collection_Serialize()
+        {
+            BenchmarkGuard.RequireReflection();
+            return JsonConvert.SerializeObject(_animals, _settings);
+        }
 
         [Benchmark]
-        public List<NwAnimal>? Collection_Deserialize() => JsonConvert.DeserializeObject<List<NwAnimal>>(_collectionJson, _settings);
+        public List<NwAnimal>? Collection_Deserialize()
+        {
+            BenchmarkGuard.RequireReflection();
+            return JsonConvert.DeserializeObject<List<NwAnimal>>(_collectionJson, _settings);
+        }
     }
 
     public class NwAnimal { public int Age { get; set; } }

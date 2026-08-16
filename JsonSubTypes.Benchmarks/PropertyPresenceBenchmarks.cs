@@ -41,13 +41,13 @@ namespace JsonSubTypes.Benchmarks
         }
 
         [Benchmark]
-        public string Pres_Converter_Serialize() => JsonSerializer.Serialize<ConvPerson>(_convEmployee, _converterOptions!);
+        public string Pres_Converter_Serialize() => JsonSerializer.Serialize<ConvPerson>(_convEmployee, BenchmarkGuard.ReflectionOptions(_converterOptions));
 
         [Benchmark]
         public string Pres_Generated_Serialize() => JsonSerializer.Serialize<PresencePerson>(_presenceEmployee, _generatedOptions);
 
         [Benchmark]
-        public ConvPerson? Pres_Converter_Deserialize() => JsonSerializer.Deserialize<ConvPerson>(_converterJson!, _converterOptions!);
+        public ConvPerson? Pres_Converter_Deserialize() => JsonSerializer.Deserialize<ConvPerson>(_converterJson!, BenchmarkGuard.ReflectionOptions(_converterOptions));
 
         [Benchmark]
         public PresencePerson? Pres_Generated_Deserialize() => JsonSerializer.Deserialize<PresencePerson>(_generatedJson, _generatedOptions);
