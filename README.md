@@ -426,7 +426,7 @@ To preserve full compatibility with advanced features while delegating object se
 
 ### Performance (measured)
 
-Benchmarked with BenchmarkDotNet (`JsonSubTypes.Benchmarks`, .NET 10); the methodology, machine and full result tables are in [PERFORMANCE.md](PERFORMANCE). In short:
+Benchmarked with BenchmarkDotNet (`JsonSubTypes.Benchmarks`, .NET 10); the methodology, machine and full result tables are in [PERFORMANCE.md](PERFORMANCE.md). In short:
 
 - **Resolver (`BuildResolver()`)** is the fastest: it delegates to `System.Text.Json` native polymorphism, with no `JsonDocument` round-trip and no reflection per call.
 - **Generator (`JsonSubTypes.Text.Json.Aot`)** beats the runtime converter on deserialization and allocates far less (compiled routing instead of per-call converter scans). Its Native AOT steady state is comparable to (slightly slower than) JIT; its real advantage is trimming compatibility and startup time.

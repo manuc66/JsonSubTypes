@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deserialization with an open generic base type (e.g. `Base<>`) now closes the generic subtype correctly (e.g. `Nested1<int>` for `Base<int>`) instead of failing. #177
 - Errors and exceptions raised while deserializing a subtype now carry the fully qualified JSON path (e.g. `Property2.Value` instead of `Value`), matching stock Newtonsoft.Json error handling. #182
 
+### JsonSubTypes.Text.Json
+#### Changed
+- The converter caches the resolved `IJsonSubtypes` converter list per `JsonSerializerOptions` (frozen on first use) and resolves single-level hierarchies without per-object allocations.
+- Deserialization reads the resolved subtype from the already-parsed `JsonElement` instead of re-reading the raw bytes through a second materialization.
+- The discriminator write path streams the payload as UTF-8 (`ArrayBufferWriter` + `Utf8JsonWriter`) instead of round-tripping through a UTF-16 string.
+
 ## [1.0.0-rc.3] - 2026-08-12
 
 ### JsonSubTypes.Text.Json
