@@ -24,7 +24,7 @@ JsonConvert.DeserializeObject<Animal>("{\"Kind\":\"Dog\",\"Breed\":\"Rex\"}");
 **After (System.Text.Json):**
 
 ```csharp
-[JsonSubTypeConverter(typeof(JsonSubtypes<Animal>), "Kind")]
+[JsonSubTypeConverter("Kind")]
 [KnownSubType(typeof(Dog), "Dog")]
 [KnownSubType(typeof(Cat), "Cat")]
 public class Animal
@@ -41,7 +41,7 @@ JsonSerializer.Deserialize<Animal>("{\"Kind\":\"Dog\",\"Breed\":\"Rex\"}", optio
 
 Mechanical differences:
 
-- `[JsonConverter(typeof(JsonSubtypes), "Kind")]` becomes `[JsonSubTypeConverter(typeof(JsonSubtypes<Animal>), "Kind")]` — the STJ converter is generic over the base type.
+- `[JsonConverter(typeof(JsonSubtypes), "Kind")]` becomes `[JsonSubTypeConverter("Kind")]` — the converter is `JsonSubtypes<T>`, closed over the annotated type. The explicit `[JsonSubTypeConverter(typeof(JsonSubtypes<Animal>), "Kind")]` form is equivalent.
 - `[JsonSubtypes.KnownSubType]` becomes `[KnownSubType]` (import `JsonSubTypes.Text.Json`).
 - `JsonConvert.SerializeObject`/`DeserializeObject` become `JsonSerializer.Serialize`/`Deserialize`, and you must pass a `JsonSerializerOptions` (there is no equivalent of `DefaultSettings`).
 - The builder (`JsonSubtypesConverterBuilder.Of(...)`, `RegisterSubtype`, `SerializeDiscriminatorProperty`) is the same shape. `JsonSubtypesWithPropertyConverterBuilder` likewise.
