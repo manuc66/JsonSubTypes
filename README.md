@@ -10,8 +10,16 @@ __JsonSubTypes__ is a discriminated Json sub-type Converter implementation for .
 [![CodeFactor](https://www.codefactor.io/repository/github/manuc66/JsonSubTypes/badge)](https://www.codefactor.io/repository/github/manuc66/JsonSubTypes)
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fmanuc66%2FJsonSubTypes.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fmanuc66%2FJsonSubTypes?ref=badge_shield)
 
-> **Note:** this library is built around `Json.NET`/`Newtonsoft.Json` — that is where its API and reputation come from, and the `JsonSubTypes` NuGet package targets it. A `System.Text.Json` port exists as the `JsonSubTypes.Text.Json` package (`.NET 8+`): it shares the same API but is **experimental**. Full documentation, differences and known limitations are in the dedicated section at the bottom: [System.Text.Json variant](#systemtextjson-variant).
+## Which package? State and choices
 
+`JsonSubTypes` exists in two packages that share the same API and registration model (attributes and `JsonSubtypesConverterBuilder`):
+
+- **`JsonSubTypes`** — for `Newtonsoft.Json`, the original and stable package.
+- **`JsonSubTypes.Text.Json`** (`.NET 8+`) — for `System.Text.Json`. **Experimental**: the API is complete and the code fully tested, but the stable `1.0.0` release is still pending.
+
+The examples below use the Newtonsoft.Json package; the API is the same for `System.Text.Json`, so read them either way. If you are targeting `System.Text.Json`, then after these examples jump to the [System.Text.Json variant](#systemtextjson-variant) section, which explains the engines available there (`Build()` converter, `BuildResolver()`, AOT generator) and their differences and limitations.
+
+> **Security:** unless a subtype mapping is explicitly declared, the converter resolves subtypes by *name* from the JSON discriminator (only types assignable from the base are considered). See the [security section](#security) before exposing a name-based hierarchy to untrusted JSON.
 
 ## DeserializeObject with custom type property name
 
@@ -363,8 +371,14 @@ public interface IExpression { }
 - Dotted or nested discriminator property paths (e.g. `"nested.property"`) are supported.
 - **Fallback paths**: serializing the base type itself (rather than a subtype) and deserializing an unknown discriminator back to the base use a reflection-based writer/reader, because the base type's contract is owned by the converter (`System.Text.Json` exposes no property metadata for converter-owned types). `[JsonPropertyName]`, `[JsonIgnore]` (including `JsonIgnoreCondition`), the naming policy and `DefaultIgnoreCondition` are honored; per-property `[JsonConverter]`, `[JsonInclude]` fields, `required` members and parameterized constructors are not supported on these two paths.
 - **Performance**: writing an object with a discriminator serializes it once, then re-parses the JSON (`JsonDocument`) to inject the discriminator property, so payloads spend roughly 2-3x their size in temporary memory on the write path. This is the cost of the converter architecture and of the `MaxDepth + 1` note above.
-- **Security**: name-based subtype resolution (`GetTypeByName`, used when no `[KnownSubType]` mapping is declared) resolves a type name from the JSON discriminator against the base type's assembly (and any assembly registered via `JsonSubTypesTypeResolution`). Only types assignable from the base can be resolved, but do **not** expose a name-based hierarchy to untrusted JSON without validating the payload upstream.
+- **Security**: see the [security section](#security) at the bottom of this section. It applies to both packages; the only difference is the set of assemblies searched for a name-based hit.
 - The property-presence builder (`JsonSubtypesWithPropertyConverterBuilder`) registers subtypes by property name, so two subtypes cannot share the same property name through the builder (use `[KnownSubTypeWithProperty]` attributes for that case).
+
+### Security
+
+When a subtype is resolved by *name* — which happens for both packages **only when no subtype mapping is declared at all** (no `[KnownSubType]` attribute, no `RegisterSubtype` builder call) — the converter turns the JSON discriminator string into a type name and instantiates the matching type. Declaring a mapping at all switches the converter to that mapping, even when no entry matches; the name-based path is never used then.
+
+Only types assignable from the polymorphic base type can be resolved, but any such type present in the base type's assembly (for Newtonsoft.Json) or in that assembly plus any assembly registered via `JsonSubTypesTypeResolution` (for `System.Text.Json`) can be instantiated with attacker-controlled JSON. Do **not** expose a name-based hierarchy to untrusted JSON without validating the payload upstream; prefer explicit `[KnownSubType]` or builder mappings whenever the discriminator can come from outside your own code.
 
 ### Which engine should I use?
 
