@@ -1,4 +1,6 @@
-﻿using System.Text.Json;
+﻿using System;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using JsonSubTypes.Text.Json;
 using NUnit.Framework;
 
@@ -181,6 +183,125 @@ namespace JsonSubTypes.Tests
 
                 obj = JsonSerializer.Deserialize<MainClass>("{\"SubTypeData\":{\"CrazyTypeField\":\"Jack\",\"SubTypeType\": null}}");
                 Assert.AreEqual("Jack", (obj.SubTypeData as NullDiscriminatorClass)?.CrazyTypeField);
+            }
+        }
+
+        [TestFixture]
+        public class DiscriminatorWriteWithCustomConverters
+        {
+            // The System.Text.Json write path always serializes the discriminator through
+            // JsonSerializer.Serialize, so converters registered on the options apply. These tests
+            // pin that behavior: a custom converter on the discriminator type must be honored.
+
+            public class Animal
+            {
+                public int Age { get; set; }
+            }
+
+            public class Cat : Animal
+            {
+                public int Lives { get; set; }
+            }
+
+            public class Dog : Animal
+            {
+                public bool CanHunt { get; set; }
+            }
+
+            private class DoublingIntConverter : JsonConverter<int>
+            {
+                public override int Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+                {
+                    return reader.GetInt32();
+                }
+
+                public override void Write(Utf8JsonWriter writer, int value, JsonSerializerOptions options)
+                {
+                    writer.WriteNumberValue(value * 2);
+                }
+            }
+
+            private class UppercasingStringConverter : JsonConverter<string>
+            {
+                public override string Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+                {
+                    return reader.GetString();
+                }
+
+                public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options)
+                {
+                    writer.WriteStringValue(value.ToUpperInvariant());
+                }
+            }
+
+            [Test]
+            public void StringDiscriminatorSerializes()
+            {
+                var options = new JsonSerializerOptions();
+                options.Converters.Add(JsonSubtypesConverterBuilder
+                    .Of<Animal>("type")
+                    .RegisterSubtype<Cat>("cat")
+                    .RegisterSubtype<Dog>("dog")
+                    .SerializeDiscriminatorProperty()
+                    .Build());
+
+                var json = JsonSerializer.Serialize<Animal>(new Cat { Age = 3, Lives = 9 }, options);
+
+                StringAssert.Contains("\"type\":\"cat\"", json);
+                StringAssert.Contains("\"Age\":3", json);
+                StringAssert.Contains("\"Lives\":9", json);
+            }
+
+            [Test]
+            public void IntDiscriminatorSerializes()
+            {
+                var options = new JsonSerializerOptions();
+                options.Converters.Add(JsonSubtypesConverterBuilder
+                    .Of<Animal>("type")
+                    .RegisterSubtype<Cat>(1)
+                    .RegisterSubtype<Dog>(2)
+                    .SerializeDiscriminatorProperty()
+                    .Build());
+
+                var json = JsonSerializer.Serialize<Animal>(new Cat { Age = 3, Lives = 9 }, options);
+
+                StringAssert.Contains("\"type\":1", json);
+                StringAssert.Contains("\"Age\":3", json);
+                StringAssert.Contains("\"Lives\":9", json);
+            }
+
+            [Test]
+            public void StringDiscriminatorHonorsStringConverter()
+            {
+                var options = new JsonSerializerOptions();
+                options.Converters.Add(new UppercasingStringConverter());
+                options.Converters.Add(JsonSubtypesConverterBuilder
+                    .Of<Animal>("type")
+                    .RegisterSubtype<Cat>("cat")
+                    .RegisterSubtype<Dog>("dog")
+                    .SerializeDiscriminatorProperty()
+                    .Build());
+
+                var json = JsonSerializer.Serialize<Animal>(new Cat { Age = 3, Lives = 9 }, options);
+
+                StringAssert.Contains("\"type\":\"CAT\"", json);
+            }
+
+            [Test]
+            public void IntDiscriminatorHonorsIntConverter()
+            {
+                var options = new JsonSerializerOptions();
+                options.Converters.Add(new DoublingIntConverter());
+                options.Converters.Add(JsonSubtypesConverterBuilder
+                    .Of<Animal>("type")
+                    .RegisterSubtype<Cat>(1)
+                    .RegisterSubtype<Dog>(2)
+                    .SerializeDiscriminatorProperty()
+                    .Build());
+
+                var json = JsonSerializer.Serialize<Animal>(new Cat { Age = 3, Lives = 9 }, options);
+
+                StringAssert.Contains("\"type\":2", json);
             }
         }
 

@@ -104,9 +104,13 @@ namespace JsonSubTypes
 
 #if NET35
         private static readonly Dictionary<TypeInfo, IEnumerable<object>> _attributesCache = new Dictionary<TypeInfo, IEnumerable<object>>();
+        private static readonly Dictionary<TypeInfo, NullableDictionary<object, Type>> _subTypeMappingCache = new Dictionary<TypeInfo, NullableDictionary<object, Type>>();
+        private static readonly Dictionary<TypeInfo, List<TypeWithPropertyMatchingAttributes>> _typesByPropertyPresenceCache = new Dictionary<TypeInfo, List<TypeWithPropertyMatchingAttributes>>();
 #else
         private static readonly ConcurrentDictionary<TypeInfo, IEnumerable<object>> _attributesCache = new ConcurrentDictionary<TypeInfo, IEnumerable<object>>();
         private static readonly Func<TypeInfo, IEnumerable<object>> _getCustomAttributes = ti => ti.GetCustomAttributes(false);
+        private static readonly ConcurrentDictionary<TypeInfo, NullableDictionary<object, Type>> _subTypeMappingCache = new ConcurrentDictionary<TypeInfo, NullableDictionary<object, Type>>();
+        private static readonly ConcurrentDictionary<TypeInfo, List<TypeWithPropertyMatchingAttributes>> _typesByPropertyPresenceCache = new ConcurrentDictionary<TypeInfo, List<TypeWithPropertyMatchingAttributes>>();
 #endif
 
         public override bool CanRead
@@ -273,12 +277,25 @@ namespace JsonSubTypes
 
         private Type GetType(JObject jObject, Type parentType, JsonSerializer serializer)
         {
-            Type targetType = parentType;
-            JsonSubtypes lastTypeResolver = null;
-            JsonSubtypes currentTypeResolver = this;
-            var visitedTypes = new HashSet<Type> { targetType };
+            // Single-level resolution is the common case: resolve once with this converter and
+            // only enter the nested walk (converter scan, list, cycle-protection set) when the
+            // resolved type carries its own resolver, i.e. for multi-level hierarchies.
+            Type targetType = ResolveType(jObject, parentType, serializer);
+            if (targetType == null || targetType == parentType)
+            {
+                return targetType ?? parentType;
+            }
 
-            var jsonConverterCollection = serializer.Converters.OfType<JsonSubtypes>().ToList();
+            JsonSubtypes lastTypeResolver = this;
+            JsonSubtypes currentTypeResolver = GetTypeResolver(ToTypeInfo(targetType),
+                serializer.Converters.OfType<JsonSubtypes>().Where(c => c != this));
+            if (currentTypeResolver == null)
+            {
+                return CloseGenericSubtype(targetType, parentType);
+            }
+
+            var visitedTypes = new HashSet<Type> { parentType, targetType };
+            var jsonConverterCollection = serializer.Converters.OfType<JsonSubtypes>().Where(c => c != this).ToList();
             while (currentTypeResolver != null && currentTypeResolver != lastTypeResolver)
             {
                 targetType = currentTypeResolver.ResolveType(jObject, targetType, serializer);
@@ -292,6 +309,11 @@ namespace JsonSubTypes
                 currentTypeResolver = GetTypeResolver(ToTypeInfo(targetType), jsonConverterCollection);
             }
 
+            return CloseGenericSubtype(targetType, parentType);
+        }
+
+        private static Type CloseGenericSubtype(Type targetType, Type parentType)
+        {
             if (targetType != null && ToTypeInfo(targetType).IsGenericTypeDefinition && !ToTypeInfo(parentType).IsGenericTypeDefinition)
             {
                 Type[] parentTypeArguments = GetGenericTypeArguments(parentType).ToArray();
@@ -370,9 +392,26 @@ namespace JsonSubTypes
 
         internal virtual List<TypeWithPropertyMatchingAttributes> GetTypesByPropertyPresence(Type parentType)
         {
-            return GetAttributes<KnownSubTypeWithPropertyAttribute>(ToTypeInfo(parentType))
-                .Select(a => new TypeWithPropertyMatchingAttributes(a.SubType, a.PropertyName, a.StopLookupOnMatch))
-                .ToList();
+            var typeInfo = ToTypeInfo(parentType);
+#if NET35
+            lock (_typesByPropertyPresenceCache)
+            {
+                if (_typesByPropertyPresenceCache.TryGetValue(typeInfo, out var res))
+                    return res;
+
+                res = GetAttributes<KnownSubTypeWithPropertyAttribute>(typeInfo)
+                    .Select(a => new TypeWithPropertyMatchingAttributes(a.SubType, a.PropertyName, a.StopLookupOnMatch))
+                    .ToList();
+                _typesByPropertyPresenceCache.Add(typeInfo, res);
+
+                return res;
+            }
+#else
+            return _typesByPropertyPresenceCache.GetOrAdd(typeInfo,
+                ti => GetAttributes<KnownSubTypeWithPropertyAttribute>(ti)
+                    .Select(a => new TypeWithPropertyMatchingAttributes(a.SubType, a.PropertyName, a.StopLookupOnMatch))
+                    .ToList());
+#endif
         }
 
         private Type GetTypeFromDiscriminatorValue(JObject jObject, Type parentType, JsonSerializer serializer)
@@ -473,8 +512,7 @@ namespace JsonSubTypes
             var key = typeMapping.NotNullKeys().FirstOrDefault();
             if (key != null)
             {
-                var targetLookupValueType = key.GetType();
-                var lookupValue = discriminatorToken.ToObject(targetLookupValueType, serializer);
+                var lookupValue = GetLookupValue(key, discriminatorToken, serializer);
 
                 if (typeMapping.TryGetValue(lookupValue, out Type targetType))
                 {
@@ -485,11 +523,66 @@ namespace JsonSubTypes
             return null;
         }
 
+        private static object GetLookupValue(object key, JToken discriminatorToken, JsonSerializer serializer)
+        {
+            // Fast path for the dominant string/int mappings, taken only when no converter
+            // registered on the serializer handles the key type: a custom converter must keep
+            // the serializer-aware ToObject path, mirroring the discriminator write path.
+            if (key is string || key is int)
+            {
+                Type keyType = key.GetType();
+                bool hasConverter = false;
+                IList<JsonConverter> converters = serializer.Converters;
+                for (int i = 0; i < converters.Count; i++)
+                {
+                    if (converters[i].CanConvert(keyType))
+                    {
+                        hasConverter = true;
+                        break;
+                    }
+                }
+
+                if (!hasConverter)
+                {
+                    if (key is string && discriminatorToken.Type == JTokenType.String)
+                    {
+                        return discriminatorToken.Value<string>();
+                    }
+
+                    if (key is int && discriminatorToken.Type == JTokenType.Integer)
+                    {
+                        return discriminatorToken.Value<int>();
+                    }
+                }
+            }
+
+            return discriminatorToken.ToObject(key.GetType(), serializer);
+        }
+
         internal virtual NullableDictionary<object, Type> GetSubTypeMapping(Type type)
+        {
+            var typeInfo = ToTypeInfo(type);
+#if NET35
+            lock (_subTypeMappingCache)
+            {
+                if (_subTypeMappingCache.TryGetValue(typeInfo, out var res))
+                    return res;
+
+                res = BuildAttributeSubTypeMapping(typeInfo);
+                _subTypeMappingCache.Add(typeInfo, res);
+
+                return res;
+            }
+#else
+            return _subTypeMappingCache.GetOrAdd(typeInfo, BuildAttributeSubTypeMapping);
+#endif
+        }
+
+        private static NullableDictionary<object, Type> BuildAttributeSubTypeMapping(TypeInfo typeInfo)
         {
             var dictionary = new NullableDictionary<object, Type>();
 
-            GetAttributes<KnownSubTypeAttribute>(ToTypeInfo(type))
+            GetAttributes<KnownSubTypeAttribute>(typeInfo)
                 .ToList()
                 .ForEach(x => dictionary.Add(x.AssociatedValue, x.SubType));
 
