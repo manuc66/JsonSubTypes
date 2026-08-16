@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using JsonSubTypes.Text.Json;
 using NUnit.Framework;
@@ -81,6 +83,11 @@ namespace JsonSubTypes.Tests
         public void PropertyPresence_RoundTrips()
         {
             string json = JsonSerializer.Serialize<PresencePerson>(new PresEmployee { FirstName = "Ann", JobTitle = "Dev" });
+
+            using JsonDocument doc = JsonDocument.Parse(json);
+            Assert.AreEqual(2, doc.RootElement.EnumerateObject().Count());
+            CollectionAssert.AreEquivalent(
+                new[] { "FirstName", "JobTitle" }, doc.RootElement.EnumerateObject().Select(p => p.Name).ToList());
 
             var back = JsonSerializer.Deserialize<PresencePerson>(json);
             Assert.IsInstanceOf<PresEmployee>(back);
