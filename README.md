@@ -406,6 +406,16 @@ Only types assignable from the polymorphic base type can be resolved, but any su
 2. **Resolver (`BuildResolver()`)** — the thin native bridge: simplest and fastest, but limited to the subset the native contract model can express.
 3. **Generator (`JsonSubTypes.Text.Json.Aot`)** — a Roslyn source generator emitting compiled converters: the Native AOT answer, with routing compiled instead of reflected.
 
+**The decisive difference is not speed, it is when the hierarchy is known:**
+
+| | Converter (`Build()`) | Generator (`JsonSubTypes.Text.Json.Aot`) |
+| :--- | :--- | :--- |
+| Subtypes known at **compile time** (attributes on your own types) | ✅ | ✅ |
+| Subtypes known only at **runtime** (plugins, loaded assemblies, config) | ✅ | ✅ (via `RegisterDynamicSubtype` / resolver hooks) |
+| Subtypes in **third-party assemblies** you cannot annotate | ✅ (builder, no attribute needed) | ❌ (generator only sees the source-gen context) |
+
+The generator reads its registrations from `[JsonSubTypesAotConverter]`/`[KnownSubType]`-style **attributes at compile time** (`JsonSubTypesGenerator.cs`). It can only route types visible to the compilation it runs in. The converter's `Build()` accepts a **runtime** registration through the builder, so it is the only engine that can handle hierarchies whose subtypes are discovered at runtime — plugins, assemblies loaded dynamically, or types you do not own. The generator is the better fit when the hierarchy is fixed and known at build time, and the only engine compatible with trimming/Native AOT.
+
 ### Converter known scope & fallback path
 
 To preserve full compatibility with advanced features while delegating object serialization to `System.Text.Json`, the converter isolates base-type serialization to a narrow path (when serializing the base type directly or reading an unregistered fallback type):
@@ -416,23 +426,14 @@ To preserve full compatibility with advanced features while delegating object se
 
 ### Performance (measured)
 
-Measured with BenchmarkDotNet (`JsonSubTypes.Benchmarks`, DefaultJob, .NET 8.0, one machine; serializing/deserializing a `Cat` declared as its `Animal` base). Numbers are machine-specific but reproducible by running that project.
+Benchmarked with BenchmarkDotNet (`JsonSubTypes.Benchmarks`, .NET 10); the methodology, machine and full result tables are in [PERFORMANCE.md](PERFORMANCE.md). In short:
 
-| Benchmark | Converter (`Build()`) | Resolver (`BuildResolver()`) | Generator (`JsonSubTypes.Text.Json.Aot`) |
-| :--- | ---: | ---: | ---: |
-| Serialize | 1.65–1.70 µs / 648 B | 0.40–0.41 µs / 400 B | 1.43–1.47 µs / 440 B |
-| Deserialize | 2.63–2.71 µs / 1264 B | 0.51–0.55 µs / 56 B | 1.50–1.56 µs / 216 B |
+- **Resolver (`BuildResolver()`)** is the fastest: it delegates to `System.Text.Json` native polymorphism, with no `JsonDocument` round-trip and no reflection per call.
+- **Generator (`JsonSubTypes.Text.Json.Aot`)** beats the runtime converter on deserialization and allocates far less (compiled routing instead of per-call converter scans). Its Native AOT steady state is comparable to (slightly slower than) JIT; its real advantage is trimming compatibility and startup time.
+- **Converter (`Build()`)** is the slowest of the three: it keeps the `JsonDocument` round-trip and adds runtime type resolution. It is the only engine for hierarchies whose subtypes are only known at runtime.
+- **Newtonsoft.Json (`JsonSubTypes`)** is slower and allocates several times more than the STJ converter on the same scenarios.
 
-Reading: the resolver is the fastest (native streaming, no double parse). The generated converter beats the runtime converter on deserialization, and allocates ~6× less (compiled routing, no per-call converter scan).
-
-**Native AOT** (generated engine, measured with a BenchmarkDotNet NativeAOT job in the same benchmark project):
-
-| Benchmark | DefaultJob (JIT) | Native AOT |
-| :--- | ---: | ---: |
-| Generated_Serialize | 1.47–1.52 µs / 440 B | 1.63–1.74 µs / 440 B |
-| Generated_Deserialize | 1.46–1.54 µs / 216 B | 1.74–1.82 µs / 216 B |
-
-In steady state, Native AOT is comparable to (slightly slower than) JIT for this workload. The real AOT advantage is trimming compatibility and startup time, not steady-state throughput.
+Reproduce the measurements yourself with `dotnet run -c Release --project JsonSubTypes.Benchmarks -- --filter "*"` (a native compiler is needed for the Native AOT job; see [PERFORMANCE.md](PERFORMANCE.md)).
 
 ### Decision matrix
 | Use case | Recommended |

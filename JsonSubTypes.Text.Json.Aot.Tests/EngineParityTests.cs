@@ -75,6 +75,27 @@ namespace JsonSubTypes.Text.Json.Aot.Tests
         }
 
         [Test]
+        public void SerializeNonAsciiCharacters()
+        {
+            Requires(ParityCapabilities.ValueDiscriminator | ParityCapabilities.DiscriminatorNameCollision);
+            var root = new Root
+            {
+                Content = new SubC
+                {
+                    Name = "caf\u00e9 \u2603 \U0001F4A5"
+                }
+            };
+
+            string str = JsonSerializer.Serialize(root, CreateOptions());
+            var back = JsonSerializer.Deserialize<Root>(str, CreateOptions());
+
+            Assert.AreEqual(root, back);
+            // System.Text.Json escapes non-ASCII by default; assert the exact escaped form so a
+            // regression in the discriminator write path (round-trip through JsonDocument) is caught.
+            StringAssert.Contains("\"Name\":\"caf\\u00E9 \\u2603 \\uD83D\\uDCA5\"", str);
+        }
+
+        [Test]
         public void DeserializeSubType()
         {
             Requires(ParityCapabilities.ValueDiscriminator | ParityCapabilities.DiscriminatorNameCollision);
