@@ -7,6 +7,7 @@ using BenchmarkDotNet.Running;
 using BenchmarkDotNet.Toolchains.NativeAot;
 using JsonSubTypes.Text.Json.Aot.Generated;
 using JsonSubTypes.Text.Json;
+using StjBuilder = JsonSubTypes.Text.Json.JsonSubtypesConverterBuilder;
 
 namespace JsonSubTypes.Benchmarks
 {
@@ -17,7 +18,7 @@ namespace JsonSubTypes.Benchmarks
             IConfig config = ManualConfig.Create(DefaultConfig.Instance)
                 .AddJob(Job.Default)
                 .AddJob(Job.Default
-                    .WithToolchain(NativeAotToolchain.CreateBuilder().UseNuGet("8.0.28").ToToolchain())
+                    .WithToolchain(NativeAotToolchain.Net10_0)
                     .WithId("NativeAOT"));
 
             BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args, config);
@@ -48,14 +49,14 @@ namespace JsonSubTypes.Benchmarks
             if (JsonSerializer.IsReflectionEnabledByDefault)
             {
                 _converterOptions = new JsonSerializerOptions();
-                _converterOptions.Converters.Add(JsonSubtypesConverterBuilder.Of<ConvAnimal>("type")
+                _converterOptions.Converters.Add(StjBuilder.Of<ConvAnimal>("type")
                     .RegisterSubtype<ConvCat>("cat")
                     .RegisterSubtype<ConvDog>("dog")
                     .SerializeDiscriminatorProperty()
                     .Build());
                 _resolverOptions = new JsonSerializerOptions
                 {
-                    TypeInfoResolver = JsonSubtypesConverterBuilder.Of<ResAnimal>("type")
+                    TypeInfoResolver = StjBuilder.Of<ResAnimal>("type")
                         .RegisterSubtype<ResCat>("cat")
                         .RegisterSubtype<ResDog>("dog")
                         .SerializeDiscriminatorProperty()
@@ -73,16 +74,16 @@ namespace JsonSubTypes.Benchmarks
         public string Generated_Serialize() => JsonSerializer.Serialize<BenchAnimal>(_benchCat, _generatedOptions);
 
         [Benchmark]
-        public string Resolver_Serialize() => JsonSerializer.Serialize<ResAnimal>(_resCat, _resolverOptions!);
+        public string Resolver_Serialize() => JsonSerializer.Serialize<ResAnimal>(_resCat, BenchmarkGuard.ReflectionOptions(_resolverOptions));
 
         [Benchmark]
-        public string Converter_Serialize() => JsonSerializer.Serialize<ConvAnimal>(new ConvCat { Age = 3, Lives = 9 }, _converterOptions!);
+        public string Converter_Serialize() => JsonSerializer.Serialize<ConvAnimal>(new ConvCat { Age = 3, Lives = 9 }, BenchmarkGuard.ReflectionOptions(_converterOptions));
 
         [Benchmark]
-        public ConvAnimal? Converter_Deserialize() => JsonSerializer.Deserialize<ConvAnimal>(_converterJson!, _converterOptions!);
+        public ConvAnimal? Converter_Deserialize() => JsonSerializer.Deserialize<ConvAnimal>(_converterJson!, BenchmarkGuard.ReflectionOptions(_converterOptions));
 
         [Benchmark]
-        public ResAnimal? Resolver_Deserialize() => JsonSerializer.Deserialize<ResAnimal>(_resolverJson!, _resolverOptions!);
+        public ResAnimal? Resolver_Deserialize() => JsonSerializer.Deserialize<ResAnimal>(_resolverJson!, BenchmarkGuard.ReflectionOptions(_resolverOptions));
 
         [Benchmark]
         public BenchAnimal? Generated_Deserialize() => JsonSerializer.Deserialize<BenchAnimal>(_generatedJson, _generatedOptions);

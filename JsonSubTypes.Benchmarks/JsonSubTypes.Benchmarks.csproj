@@ -1,13 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
-    <PublishAot>true</PublishAot>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <!-- the converter/resolver benchmarks are JIT-only reference points; only the generated
-         engine is measured under Native AOT -->
+    <!-- the default build is JIT so the reflection-based converter/resolver benchmarks can run;
+         the generated engine is additionally measured under Native AOT via the BenchmarkDotNet
+         NativeAOT toolchain job (no PublishAot here: it would disable reflection for the whole host) -->
     <NoWarn>$(NoWarn);IL2026;IL3050</NoWarn>
   </PropertyGroup>
   <ItemGroup>
@@ -18,5 +18,6 @@
     <ProjectReference Include="..\JsonSubTypes.Text.Json.Aot\JsonSubTypes.Text.Json.Aot.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\JsonSubTypes\JsonSubTypes.csproj" />
   </ItemGroup>
 </Project>
