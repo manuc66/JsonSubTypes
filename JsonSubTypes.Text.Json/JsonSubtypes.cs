@@ -20,24 +20,50 @@ namespace JsonSubTypes.Text.Json;
     AttributeTargets.Property, AllowMultiple = false)]
 public class JsonSubTypeConverterAttribute : JsonConverterAttribute
 {
+    private readonly Type? _converterType;
+
     public string? DiscriminatorPropertyName { get; }
 
-    public JsonSubTypeConverterAttribute(Type converterType, string? discriminatorPropertyName) : base(converterType)
+    public JsonSubTypeConverterAttribute(Type converterType, string? discriminatorPropertyName) : base(IsJsonSubtypes(converterType) ? null! : converterType)
+    {
+        _converterType = IsJsonSubtypes(converterType) ? converterType : null;
+        DiscriminatorPropertyName = discriminatorPropertyName;
+    }
+
+    public JsonSubTypeConverterAttribute(Type converterType) : base(IsJsonSubtypes(converterType) ? null! : converterType)
+    {
+        _converterType = IsJsonSubtypes(converterType) ? converterType : null;
+    }
+
+    // Convenience constructors: they close the generic JsonSubtypes<T> converter over the
+    // annotated type (CreateConverter receives it), so the base type is not repeated on the attribute.
+    public JsonSubTypeConverterAttribute(string? discriminatorPropertyName) : base()
     {
         DiscriminatorPropertyName = discriminatorPropertyName;
     }
 
-    public JsonSubTypeConverterAttribute(Type converterType) : base(converterType)
+    public JsonSubTypeConverterAttribute() : base()
     {
+    }
+
+    private static bool IsJsonSubtypes(Type type)
+    {
+        return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(JsonSubtypes<>);
     }
 
     [RequiresUnreferencedCode("JsonSubTypes.Text.Json uses reflection to create and invoke subtype converters.")]
     [RequiresDynamicCode("JsonSubTypes.Text.Json uses reflection to create subtype converters.")]
     public override JsonConverter CreateConverter(Type typeToConvert)
     {
+        Type converterType = _converterType ?? typeof(JsonSubtypes<>);
+        if (converterType.IsGenericTypeDefinition)
+        {
+            converterType = converterType.MakeGenericType(typeToConvert);
+        }
+
         return DiscriminatorPropertyName == null
-            ? (JsonConverter)Activator.CreateInstance(ConverterType!)!
-            : (JsonConverter)Activator.CreateInstance(ConverterType!, DiscriminatorPropertyName)!;
+            ? (JsonConverter)Activator.CreateInstance(converterType)!
+            : (JsonConverter)Activator.CreateInstance(converterType, DiscriminatorPropertyName)!;
     }
 }
 
@@ -49,7 +75,7 @@ public class KnownSubTypeAttribute(Type subType, object? associatedValue) : Attr
 }
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface)]
-public class FallBackSubTypeAttribute(Type subType) : Attribute
+public class FallbackSubTypeAttribute(Type subType) : Attribute
 {
     public Type SubType { get; } = subType;
 }
@@ -428,9 +454,8 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
     private static readonly ConcurrentDictionary<Type, Func<object>>
         BaseTypeFactoryCache = new();
 
-    private static T? ReadPlainObject(ref Utf8JsonReader reader, Type targetType, JsonSerializerOptions serializer)
+    private static T? ReadPlainObject(JsonElement jObject, Type targetType, JsonSerializerOptions serializer)
     {
-        JsonDocument jObject = JsonDocument.ParseValue(ref reader);
         object instance;
         try
         {
@@ -440,12 +465,12 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         catch (MissingMethodException)
         {
             throw new JsonException(
-                $"Could not create an instance of type {targetType.FullName}: a parameterless constructor is required to fall back to the base type. Position: {reader.Position.GetInteger()}.");
+                $"Could not create an instance of type {targetType.FullName}: a parameterless constructor is required to fall back to the base type.");
         }
 
         Action<object, JsonElement, JsonSerializerOptions> readerFn =
             BaseTypeObjectReaderCache.GetOrAdd(targetType, static type => BuildBaseTypeObjectReader(type));
-        readerFn(instance, jObject.RootElement, serializer);
+        readerFn(instance, jObject, serializer);
         return (T)instance;
     }
 
@@ -549,8 +574,6 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
 
     private T? ReadObject(ref Utf8JsonReader reader, Type objectType, JsonSerializerOptions serializer)
     {
-        Utf8JsonReader readerAtStart = reader;
-
         JsonDocument jObject = JsonDocument.ParseValue(ref reader);
 
         Type targetType = GetType(jObject, objectType, serializer);
@@ -562,7 +585,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
 
         if (targetType == objectType)
         {
-            return ReadPlainObject(ref readerAtStart, targetType, serializer);
+            return ReadPlainObject(jObject.RootElement, targetType, serializer);
         }
 
         return (T?)JsonSerializer.Deserialize(jObject.RootElement, targetType, serializer);
@@ -641,14 +664,21 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         JsonSubTypeConverterAttribute? jsonConverterAttribute =
             ConverterAttributeCache.GetOrAdd(target, static type =>
                 GetAttribute<JsonSubTypeConverterAttribute>(type.GetTypeInfo()));
-        if (jsonConverterAttribute != null &&
-            jsonConverterAttribute.ConverterType != null &&
-            jsonConverterAttribute.ConverterType.IsGenericType &&
-            jsonConverterAttribute.ConverterType.GenericTypeArguments.Length > 0 &&
-            typeof(T).IsAssignableFrom(jsonConverterAttribute.ConverterType.GenericTypeArguments[0]))
+        if (jsonConverterAttribute != null)
         {
-            return AttributeResolverCache.GetOrAdd((typeof(T), target),
-                static key => CreateTypeResolver(key.Item2));
+            Type? converterType = jsonConverterAttribute.ConverterType ?? typeof(JsonSubtypes<>);
+            if (converterType.IsGenericTypeDefinition)
+            {
+                converterType = converterType.MakeGenericType(target);
+            }
+
+            if (converterType.IsGenericType &&
+                converterType.GenericTypeArguments.Length > 0 &&
+                typeof(T).IsAssignableFrom(converterType.GenericTypeArguments[0]))
+            {
+                return AttributeResolverCache.GetOrAdd((typeof(T), target),
+                    static key => CreateTypeResolver(key.Item2));
+            }
         }
 
         return jsonConverterCollection.FirstOrDefault(c => c.CanConvert(target));
@@ -659,7 +689,13 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         JsonSubTypeConverterAttribute? attribute =
             ConverterAttributeCache.GetOrAdd(targetType, static type =>
                 GetAttribute<JsonSubTypeConverterAttribute>(type.GetTypeInfo()));
-        return (IJsonSubtypes)Activator.CreateInstance(attribute!.ConverterType!,
+        Type converterType = attribute!.ConverterType ?? typeof(JsonSubtypes<>);
+        if (converterType.IsGenericTypeDefinition)
+        {
+            converterType = converterType.MakeGenericType(targetType);
+        }
+
+        return (IJsonSubtypes)Activator.CreateInstance(converterType,
             attribute.DiscriminatorPropertyName)!;
     }
 
@@ -932,7 +968,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
 
     internal virtual Type? GetFallbackSubType(Type type)
     {
-        return _fallbackType ?? GetAttribute<FallBackSubTypeAttribute>(type.GetTypeInfo())?.SubType;
+        return _fallbackType ?? GetAttribute<FallbackSubTypeAttribute>(type.GetTypeInfo())?.SubType;
     }
 
     private static IEnumerable<TAttribute> GetAttributes<TAttribute>(TypeInfo typeInfo) where TAttribute : Attribute

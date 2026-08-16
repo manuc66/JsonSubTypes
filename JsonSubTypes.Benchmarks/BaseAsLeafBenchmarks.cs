@@ -45,16 +45,16 @@ namespace JsonSubTypes.Benchmarks
         }
 
         [Benchmark]
-        public string Converter_Serialize() => JsonSerializer.Serialize<ConvBaseAnimal>(_convBase, _converterOptions!);
+        public string Leaf_Converter_Serialize() => JsonSerializer.Serialize<ConvBaseAnimal>(_convBase, _converterOptions!);
 
         [Benchmark]
-        public string Generated_Serialize() => JsonSerializer.Serialize<BaseLeafAnimal>(_generatedBase, _generatedOptions);
+        public string Leaf_Generated_Serialize() => JsonSerializer.Serialize<BaseLeafAnimal>(_generatedBase, _generatedOptions);
 
         [Benchmark]
-        public ConvBaseAnimal? Converter_Deserialize() => JsonSerializer.Deserialize<ConvBaseAnimal>(_converterJson!, _converterOptions!);
+        public ConvBaseAnimal? Leaf_Converter_Deserialize() => JsonSerializer.Deserialize<ConvBaseAnimal>(_converterJson!, _converterOptions!);
 
         [Benchmark]
-        public BaseLeafAnimal? Generated_Deserialize() => JsonSerializer.Deserialize<BaseLeafAnimal>(_generatedJson, _generatedOptions);
+        public BaseLeafAnimal? Leaf_Generated_Deserialize() => JsonSerializer.Deserialize<BaseLeafAnimal>(_generatedJson, _generatedOptions);
     }
 
     public class ConvBaseAnimal { public int Age { get; set; } }

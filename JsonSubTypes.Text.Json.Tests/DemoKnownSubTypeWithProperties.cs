@@ -80,7 +80,7 @@ namespace JsonSubTypes.Tests
         [JsonSubTypeConverter(typeof(JsonSubtypes<ClassA>))]
         [KnownSubTypeWithProperty(typeof(ClassC), nameof(ClassC.Other), StopLookupOnMatch = true)]
         [KnownSubTypeWithProperty(typeof(ClassB), nameof(ClassB.Optional))]
-        [FallBackSubType(typeof(ClassB))]
+        [FallbackSubType(typeof(ClassB))]
         public class ClassA
         {
             public string CommonProp { get; set; }

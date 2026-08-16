@@ -22,12 +22,16 @@ The command runs every benchmark twice: once under the JIT (`DefaultJob`) and on
 
 Each scenario is a micro-benchmark of serializing/deserializing a small object graph, declared as its polymorphic base type. The numbers below are **mean** values from a single representative run, with allocations per operation.
 
-The scenarios:
+Each benchmark class uses a scenario prefix on its method names, so the result rows are unambiguous when the whole suite runs:
 
-- **Single object**: a `Cat` declared as its `Animal` base (two `int` properties).
-- **Collection**: a list of four mixed animals (`Cat`/`Dog`), the common API payload shape.
-- **Nested hierarchy**: a two-level hierarchy (`Payload → Game → Run`), discriminated by two properties.
-- **Property presence**: discrimination by property presence (`KnownSubTypeWithProperty`) instead of a discriminator value.
+- **`Single_`** (`PolymorphismBenchmarks`): a `Cat` declared as its `Animal` base (two `int` properties).
+- **`Col_`** (`CollectionBenchmarks`): a list of four mixed animals (`Cat`/`Dog`), the common API payload shape.
+- **`Nested_`** (`NestedHierarchyBenchmarks`): a two-level hierarchy (`Payload → Game → Run`), discriminated by two properties.
+- **`Pres_`** (`PropertyPresenceBenchmarks`): discrimination by property presence (`KnownSubTypeWithProperty`) instead of a discriminator value.
+- **`Leaf_`** (`BaseAsLeafBenchmarks`): serializing/deserializing the polymorphic base type itself, exercising the converter's reflection-based fallback path.
+- **`Nw_`** (`NewtonsoftBenchmarks`): the Newtonsoft.Json package through `JsonConvert`.
+
+Filter a scenario with the class name: `dotnet run -c Release --project JsonSubTypes.Benchmarks --filter '*CollectionBenchmarks*'`.
 
 ## Machine
 
@@ -73,7 +77,7 @@ The generated engine is the only one compatible with Native AOT. The native buil
 
 | Benchmark | JIT | Native AOT |
 | :--- | ---: | ---: |
-| Generated_Serialize (single) | 1.18 µs / 656 B | 1.43 µs / 640 B |
+| Single_Generated_Serialize | 1.18 µs / 656 B | 1.43 µs / 640 B |
 | Generated_Deserialize (single) | 0.98 µs / 152 B | 1.29 µs / 152 B |
 
 ## Newtonsoft.Json comparison

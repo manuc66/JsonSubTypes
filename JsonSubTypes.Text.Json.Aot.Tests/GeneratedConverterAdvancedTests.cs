@@ -216,6 +216,44 @@ namespace JsonSubTypes.Text.Json.Aot.Tests
         }
     }
 
+    [TestFixture]
+    public class GeneratedNestedWithNativeDiscriminatorPropertyTests
+    {
+        // A nested hierarchy whose discriminators are also native properties of the type
+        // ([JsonPropertyName("$PayloadKind")], ...). The write path must not duplicate them:
+        // the injected discriminator replaces the native property of the same name.
+
+        private static JsonSerializerOptions Options()
+        {
+            return new JsonSerializerOptions
+            {
+                Converters =
+                {
+                    JsonSubTypesAotConverters.PPPayload,
+                    JsonSubTypesAotConverters.PPGame
+                }
+            };
+        }
+
+        [Test]
+        public void Serialize_WritesEachDiscriminatorOnce()
+        {
+            string json = JsonSerializer.Serialize<PPPayload>(new PPRun(), Options());
+
+            Assert.AreEqual("{\"$PayloadKind\":1,\"$GameKind\":0}", json);
+        }
+
+        [Test]
+        public void RoundTrip_ReturnsDeepestSubtype()
+        {
+            var options = Options();
+            string json = JsonSerializer.Serialize<PPPayload>(new PPRun(), options);
+            var back = JsonSerializer.Deserialize<PPPayload>(json, options);
+
+            Assert.IsInstanceOf<PPRun>(back);
+        }
+    }
+
     // ---- domain types ----
 
     public enum EAnimalKind
@@ -560,5 +598,52 @@ public class DNMid : DNRoot
 public class DNLeaf : DNMid
 {
     public int Mark { get; set; }
+}
+
+[JsonSubTypesAotConverter("$PayloadKind")]
+[KnownSubType(typeof(PPGame), PayloadDiscriminator.GAME)]
+[KnownSubType(typeof(PPCom), PayloadDiscriminator.COM)]
+public class PPPayload
+{
+    [JsonPropertyName("$PayloadKind")]
+    public PayloadDiscriminator PayloadKind { get; set; } = PayloadDiscriminator.GAME;
+}
+
+[JsonSubTypesAotConverter("$GameKind")]
+[KnownSubType(typeof(PPRun), GameDiscriminator.RUN)]
+[KnownSubType(typeof(PPWalk), GameDiscriminator.WALK)]
+public class PPGame : PPPayload
+{
+    [JsonPropertyName("$GameKind")]
+    public GameDiscriminator GameKind { get; set; } = GameDiscriminator.WALK;
+}
+
+public class PPRun : PPGame
+{
+    public PPRun()
+    {
+        PayloadKind = PayloadDiscriminator.GAME;
+        GameKind = GameDiscriminator.RUN;
+    }
+}
+
+public class PPWalk : PPGame
+{
+}
+
+public class PPCom : PPPayload
+{
+}
+
+public enum PayloadDiscriminator
+{
+    COM = 0,
+    GAME = 1
+}
+
+public enum GameDiscriminator
+{
+    RUN = 0,
+    WALK = 1
 }
 

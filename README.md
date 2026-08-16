@@ -237,16 +237,18 @@ settings.Converters.Add(JsonSubtypesWithPropertyConverterBuilder
 
 ## System.Text.Json variant
 
-> **Status: experimental.** The `JsonSubTypes.Text.Json` package is a **release candidate** (`1.0.0-rc.x`) and not yet part of the project's stable offering. The code is fully tested (133 unit tests) and the API is complete, but the stable `1.0.0` release will follow once the package has been exercised in more real-world projects.
+> **Status: experimental.** The `JsonSubTypes.Text.Json` package is a **release candidate** (`1.0.0-rc.x`) and not yet part of the project's stable offering. The code is fully tested (200 unit tests) and the API is complete, but the stable `1.0.0` release will follow once the package has been exercised in more real-world projects.
 
 A variant of the library for `System.Text.Json` (.NET 8+) is available in the `JsonSubTypes.Text.Json` namespace and package. It supports the same attribute-driven and builder-driven API, adapted to `System.Text.Json` idioms.
+
+If you are migrating an existing Newtonsoft.Json code base, or deciding between the engines, see [MIGRATION.md](MIGRATION).
 
 ### Attribute based discriminator
 
 ```csharp
 using JsonSubTypes.Text.Json;
 
-[JsonSubTypeConverter(typeof(JsonSubtypes<Animal>), "Sound")]
+[JsonSubTypeConverter(nameof(Animal.Sound))]
 [KnownSubType(typeof(Dog), "Bark")]
 [KnownSubType(typeof(Cat), "Meow")]
 public class Animal
@@ -267,6 +269,10 @@ public class Cat : Animal
     public bool Declawed { get; set; }
 }
 ```
+
+The converter is `JsonSubtypes<T>`, closed over the annotated type — so the attribute does not repeat the base type. The explicit `[JsonSubTypeConverter(typeof(JsonSubtypes<Animal>), "Sound")]` form is equivalent and still supported (needed only when the converter is not `JsonSubtypes<T>`).
+
+N.B. The discriminator is usually a property of the class (use `nameof(...)` so it stays in sync); if it is not, the converter writes it as an injected field instead — a string literal such as `[JsonSubTypeConverter("type")]`.
 
 ```csharp
 var animal = JsonSerializer.Deserialize<Animal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
@@ -316,9 +322,9 @@ var options = new JsonSerializerOptions
 
 The resolver delegates all serialization work to `System.Text.Json`, so it only supports a subset of the converter configuration and throws at build time otherwise: `string` or `int` discriminator values, a single level of hierarchy per base type, and the discriminator always written first. The following native behaviors are exposed as opt-in builder methods:
 
-- `FallBackToNearestAncestor()`: an unregistered derived type is serialized as its nearest registered ancestor instead of throwing.
+- `FallbackToNearestAncestor()`: an unregistered derived type is serialized as its nearest registered ancestor instead of throwing.
 - `IgnoreUnrecognizedTypeDiscriminators()`: an unknown type discriminator falls back to the base type instead of throwing. `SetFallbackSubtype(baseType)` enables the same behavior.
-- When no subtype is registered explicitly, `[KnownSubType]` and `[FallBackSubType]` attributes on the base type are honored.
+- When no subtype is registered explicitly, `[KnownSubType]` and `[FallbackSubType]` attributes on the base type are honored.
 
 For several base type hierarchies, combine builders with `JsonSubtypesConverterBuilder.BuildResolvers(...)`. Combining resolvers through `JsonSerializerOptions.TypeInfoResolverChain` does not work, because each resolver answers for every type and only the first one would be applied.
 
@@ -355,7 +361,7 @@ public class Person { }
 ```csharp
 [JsonSubTypeConverter(typeof(JsonSubtypes<IExpression>), "Type")]
 [KnownSubType(typeof(ConstantExpression), "Constant")]
-[FallBackSubType(typeof(UnknownExpression))]
+[FallbackSubType(typeof(UnknownExpression))]
 public interface IExpression { }
 ```
 
@@ -390,7 +396,7 @@ Only types assignable from the polymorphic base type can be resolved, but any su
 | Enum / `null` discriminator values | ❌ | ❌ | ✅ | ✅ |
 | Custom discriminator property name | ✅ | ✅ | ✅ | ✅ |
 | Property presence matching (`KnownSubTypeWithProperty`) | ❌ | ❌ | ✅ | ✅ |
-| Fallback subtype (`FallBackSubType`) | ❌ | base only | ✅ | ✅ |
+| Fallback subtype (`FallbackSubType`) | ❌ | base only | ✅ | ✅ |
 | Discriminator written last | ❌ | ❌ | ✅ | ✅ |
 | Naming policy / case-insensitive on the discriminator name | ❌ | ⚠️ | ✅ | ✅ |
 | Dotted / nested discriminator path (`"nested.type"`) | ❌ | ❌ | ✅ | ✅ |

@@ -233,6 +233,20 @@ namespace JsonSubTypes.Text.Json.Aot.Tests
         }
 
         [Test]
+        public void PresenceSerialize_WritesAllPropertiesOnce()
+        {
+            Requires(ParityCapabilities.Presence);
+            var employee = new PEmployee { FirstName = "Ann", JobTitle = "Dev", Department = "R&D" };
+
+            string json = JsonSerializer.Serialize<MultiPropBase>(employee, CreateOptions());
+
+            Assert.AreEqual("{\"JobTitle\":\"Dev\",\"Department\":\"R\\u0026D\",\"FirstName\":\"Ann\"}", json);
+
+            var back = JsonSerializer.Deserialize<MultiPropBase>(json, CreateOptions());
+            Assert.IsInstanceOf<PEmployee>(back);
+        }
+
+        [Test]
         public void FallbackReadWithParameterizedConstructor()
         {
             Requires(ParityCapabilities.ValueDiscriminator | ParityCapabilities.BaseFallbackError);
