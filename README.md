@@ -237,7 +237,7 @@ settings.Converters.Add(JsonSubtypesWithPropertyConverterBuilder
 
 ## System.Text.Json variant
 
-> **Status: experimental.** The `JsonSubTypes.Text.Json` package is a **release candidate** (`1.0.0-rc.x`) and not yet part of the project's stable offering. The code is fully tested (202 unit tests) and the API is complete, but the stable `1.0.0` release will follow once the package has been exercised in more real-world projects. Until then the public API is not frozen: it can still change between releases.
+> **Status: experimental.** The `JsonSubTypes.Text.Json` package is a **release candidate** (`1.0.0-rc.x`) and not yet part of the project's stable offering. The code is fully tested (202 converter tests, 84 generated-converter tests plus 14 run only under Native AOT, 74 generator tests) and the API is complete, but the stable `1.0.0` release will follow once the package has been exercised in more real-world projects. Until then the public API is not frozen: it can still change between releases.
 
 A variant of the library for `System.Text.Json` (.NET 8+) is available in the `JsonSubTypes.Text.Json` namespace and package. It supports the same attribute-driven and builder-driven API, adapted to `System.Text.Json` idioms.
 
