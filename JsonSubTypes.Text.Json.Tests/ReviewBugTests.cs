@@ -208,37 +208,101 @@ namespace JsonSubTypes.Tests
         [Test]
         public void CrossAssemblyResolvedWhenAssemblyRegistered()
         {
-            JsonSubTypesTypeResolution.ClearAssemblies();
-            JsonSubTypesTypeResolution.AddAssembly(typeof(PluginDog).Assembly);
-            try
-            {
-                var dog = JsonSerializer.Deserialize<SharedAnimal>(
-                    $"{{\"Kind\":\"{typeof(PluginDog).FullName}\",\"CanBark\":true}}");
+            var dog = JsonSerializer.Deserialize<SharedAnimal>(
+                $"{{\"Kind\":\"{typeof(PluginDog).FullName}\",\"CanBark\":true}}");
 
-                Assert.IsInstanceOf<PluginDog>(dog);
-                Assert.IsTrue((dog as PluginDog)?.CanBark == true);
-            }
-            finally
-            {
-                JsonSubTypesTypeResolution.ClearAssemblies();
-            }
+            Assert.IsInstanceOf<PluginDog>(dog);
+            Assert.IsTrue((dog as PluginDog)?.CanBark == true);
         }
 
         [Test]
         public void CrossAssemblyNotResolvedByDefault()
         {
-            JsonSubTypesTypeResolution.ClearAssemblies();
-            try
-            {
-                var animal = JsonSerializer.Deserialize<SharedAnimal>(
-                    $"{{\"Kind\":\"{typeof(PluginDog).FullName}\",\"CanBark\":true}}");
+            var animal = JsonSerializer.Deserialize<OtherBase>(
+                $"{{\"Kind\":\"{typeof(PluginDog).FullName}\",\"CanBark\":true}}");
 
-                Assert.IsInstanceOf<SharedAnimal>(animal);
-            }
-            finally
-            {
-                JsonSubTypesTypeResolution.ClearAssemblies();
-            }
+            Assert.IsInstanceOf<OtherBase>(animal);
+        }
+
+        // A base type without the attribute: name-based resolution stays in its own assembly.
+        [JsonSubTypeConverter(typeof(JsonSubtypes<OtherBase>), "Kind")]
+        public class OtherBase
+        {
+            public string Kind { get; set; }
+        }
+
+        [Test]
+        public void SelfDeclaredSubtypeResolvedViaRegisteredAssembly()
+        {
+            // SelfDeclaredDog declares itself through [KnownSubTypeOf(typeof(SelfDeclaredBase), "Dog")]
+            // in the plugin assembly. The host registers that assembly at runtime; the base type
+            // knows nothing about the subtype or its assembly. The scan picks up the mapping.
+            var options = new JsonSerializerOptions();
+            options.Converters.Add(JsonSubtypesConverterBuilder
+                .Of<SelfDeclaredBase>("Kind")
+                .RegisterSubtypeAssembly(typeof(SelfDeclaredDog).Assembly)
+                .Build());
+
+            var dog = JsonSerializer.Deserialize<SelfDeclaredBase>("{\"Kind\":\"Dog\",\"CanBark\":true}", options);
+
+            Assert.IsInstanceOf<SelfDeclaredDog>(dog);
+            Assert.IsTrue((dog as SelfDeclaredDog)?.CanBark == true);
+        }
+
+        [Test]
+        public void SelfDeclaredSubtypeResolvedByNameInRegisteredAssembly()
+        {
+            // SelfDeclaredCat declares itself without a value, so it is resolved by type name in
+            // the registered plugin assembly rather than by a discriminator value.
+            var options = new JsonSerializerOptions();
+            options.Converters.Add(JsonSubtypesConverterBuilder
+                .Of<SelfDeclaredCatBase>("Kind")
+                .RegisterSubtypeAssembly(typeof(SelfDeclaredCat).Assembly)
+                .Build());
+
+            var cat = JsonSerializer.Deserialize<SelfDeclaredCatBase>(
+                $"{{\"Kind\":\"{typeof(SelfDeclaredCat).FullName}\",\"Purrs\":true}}", options);
+
+            Assert.IsInstanceOf<SelfDeclaredCat>(cat);
+            Assert.IsTrue((cat as SelfDeclaredCat)?.Purrs == true);
+        }
+
+        [Test]
+        public void DynamicSubtypeRegisteredAtRuntime()
+        {
+            // The runtime hook: register a subtype after the converter is built, without editing
+            // the plugin or scanning an assembly. Mirrors the generator's RegisterDynamicSubtype.
+            var converter = (JsonSubtypes<SelfDeclaredBase>)JsonSubtypesConverterBuilder
+                .Of<SelfDeclaredBase>("Kind")
+                .Build();
+            converter.RegisterDynamicSubtype("dog", typeof(SelfDeclaredDog));
+
+            var options = new JsonSerializerOptions();
+            options.Converters.Add(converter);
+
+            var dog = JsonSerializer.Deserialize<SelfDeclaredBase>("{\"Kind\":\"dog\",\"CanBark\":true}", options);
+
+            Assert.IsInstanceOf<SelfDeclaredDog>(dog);
+            Assert.IsTrue((dog as SelfDeclaredDog)?.CanBark == true);
+        }
+
+        [Test]
+        public void SelfDeclaredSubtypeByPropertyPresence()
+        {
+            // SelfDeclaredEmployee declares itself through
+            // [KnownSubTypeWithPropertyOf(typeof(SelfDeclaredEmployeeBase), "JobTitle")]. The host
+            // registers the plugin assembly; the scan maps the property presence.
+            var options = new JsonSerializerOptions();
+            options.Converters.Add(JsonSubtypesWithPropertyConverterBuilder
+                .Of<SelfDeclaredEmployeeBase>()
+                .RegisterSubtypeAssembly(typeof(SelfDeclaredEmployee).Assembly)
+                .Build());
+
+            var employee = JsonSerializer.Deserialize<SelfDeclaredEmployeeBase>(
+                "{\"FirstName\":\"A\",\"JobTitle\":\"Dev\"}", options);
+
+            Assert.IsInstanceOf<SelfDeclaredEmployee>(employee);
+            Assert.AreEqual("Dev", (employee as SelfDeclaredEmployee)?.JobTitle);
         }
     }
 }

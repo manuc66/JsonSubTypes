@@ -53,7 +53,7 @@ Behaviour that actually differs — check your tests against these:
 - **Property order differs.** STJ emits most-derived-first; there is no `[JsonProperty(Order = N)]` support.
 - **`MaxDepth` needs one more level** because the write path round-trips through a `JsonDocument`.
 - **Fallback paths are narrower**: serializing the base type directly or an unknown discriminator uses a reflection-based path that honors `[JsonIgnore]`, `[JsonPropertyName]`, naming policy and `DefaultIgnoreCondition`, but not per-property `[JsonConverter]`, `[JsonInclude]` fields, `required` members or parameterized constructors.
-- **Cross-assembly subtypes** require opt-in (`JsonSubTypesTypeResolution.AddAssembly`); Newtonsoft never supported them.
+- **Cross-assembly subtypes** require opt-in: `[KnownSubTypeOtherAssembly("AssemblyName")]` on the base type; Newtonsoft never supported them.
 - **Security**: the name-based resolution warning in the README applies to both; see the [security section](./#security) there.
 
 ## Between the System.Text.Json engines

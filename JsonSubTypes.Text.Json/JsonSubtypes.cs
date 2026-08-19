@@ -132,7 +132,7 @@ internal interface IJsonSubtypes
 /// Name-based resolution (used only when no <see cref="KnownSubTypeAttribute"/> mapping is
 /// declared) instantiates the type whose name matches the discriminator, provided it is
 /// assignable from the polymorphic base type and lives in the base type's assembly or in an
-/// assembly registered via <see cref="JsonSubTypesTypeResolution"/>. Any such type present in
+/// assembly registered via <see cref="KnownSubTypeOtherAssembly"/>. Any such type present in
 /// those assemblies can be instantiated with attacker-controlled JSON.
 /// </para>
 /// <para>
@@ -173,9 +173,11 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
     private readonly bool _serializeDiscriminatorProperty;
     private readonly bool _addDiscriminatorFirst;
     private readonly Dictionary<Type, object?>? _runtimeTypeToDiscriminator;
+    private readonly Assembly[] _additionalAssemblies;
 
     public JsonSubtypes()
     {
+        _additionalAssemblies = [];
     }
 
     public JsonSubtypes(string? jsonDiscriminatorPropertyName)
@@ -183,6 +185,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         JsonDiscriminatorPropertyName = jsonDiscriminatorPropertyName;
         _serializeDiscriminatorProperty = jsonDiscriminatorPropertyName != null;
         _addDiscriminatorFirst = true;
+        _additionalAssemblies = [];
     }
 
     internal JsonSubtypes(string? jsonDiscriminatorPropertyName,
@@ -190,13 +193,15 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         List<TypeWithPropertyMatchingAttributes>? typesByPropertyPresence,
         Type? fallbackType,
         bool serializeDiscriminatorProperty,
-        bool addDiscriminatorFirst) : this(jsonDiscriminatorPropertyName)
+        bool addDiscriminatorFirst,
+        Assembly[] additionalAssemblies) : this(jsonDiscriminatorPropertyName)
     {
         _subTypeMapping = subTypeMapping;
         _typesByPropertyPresence = typesByPropertyPresence;
         _fallbackType = fallbackType;
         _serializeDiscriminatorProperty = serializeDiscriminatorProperty;
         _addDiscriminatorFirst = addDiscriminatorFirst;
+        _additionalAssemblies = additionalAssemblies;
         if (subTypeMapping != null)
         {
             _runtimeTypeToDiscriminator = new Dictionary<Type, object?>();
@@ -210,6 +215,27 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
     public override bool CanConvert(Type objectType)
     {
         return objectType == typeof(T);
+    }
+
+    /// <summary>
+    /// Registers a subtype at runtime, after the converter is built. This is the runtime hook for
+    /// hierarchies whose subtypes are only known at runtime (plugins, loaded assemblies): it maps
+    /// <paramref name="discriminator"/> to <paramref name="type"/> without editing the plugin or
+    /// scanning an assembly. The last registration for a discriminator wins, like the builder.
+    /// </summary>
+    public void RegisterDynamicSubtype(object discriminator, Type type)
+    {
+        if (_subTypeMapping == null)
+        {
+            throw new InvalidOperationException(
+                "RegisterDynamicSubtype requires a builder-built converter. Build one with JsonSubtypesConverterBuilder.Of(...).Build() first.");
+        }
+
+        _subTypeMapping.Set(discriminator, type);
+        if (_runtimeTypeToDiscriminator != null)
+        {
+            _runtimeTypeToDiscriminator[type] = discriminator;
+        }
     }
 
     public override T? Read(ref Utf8JsonReader reader, Type objectType, JsonSerializerOptions serializer)
@@ -772,7 +798,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
             JsonValueKind.String => discriminatorValue.GetString(),
             _ => discriminatorValue.ToString()
         };
-        return GetTypeByName(discriminatorStringValue, parentType.GetTypeInfo());
+        return GetTypeByName(discriminatorStringValue, parentType.GetTypeInfo(), _additionalAssemblies);
     }
 
     private static bool TryGetValueInJson(JsonElement root, string propertyName,
@@ -840,7 +866,7 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
         return false;
     }
 
-    private static Type? GetTypeByName(string? typeName, TypeInfo parentType)
+    private static Type? GetTypeByName(string? typeName, TypeInfo parentType, Assembly[] instanceAssemblies)
     {
         if (typeName == null)
         {
@@ -852,7 +878,10 @@ public class JsonSubtypes<T> : JsonConverter<T>, IJsonSubtypes where T : class
             ? null
             : parentTypeFullName.Substring(0, parentTypeFullName.Length - parentType.Name.Length);
 
-        foreach (Assembly assembly in JsonSubTypesTypeResolution.GetSearchAssemblies(parentType.Assembly))
+        Assembly[] attributeAssemblies = TypeResolution.GetSearchAssemblies(parentType);
+        IEnumerable<Assembly> assemblies = attributeAssemblies
+            .Concat(instanceAssemblies.Where(a => !attributeAssemblies.Contains(a)));
+        foreach (Assembly assembly in assemblies)
         {
             Type? typeByName = assembly.GetType(typeName);
             if (typeByName == null && searchLocation != null)
