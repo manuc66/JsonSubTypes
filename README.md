@@ -485,3 +485,11 @@ If this project helped you save money or time or simply makes your life also eas
 
 ## License
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fmanuc66%2FJsonSubTypes.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fmanuc66%2FJsonSubTypes?ref=badge_large)
+
+---
+
+[All projects](https://manuc66.github.io/) ·
+[Source on GitHub](https://github.com/manuc66/JsonSubTypes) ·
+[NuGet](https://www.nuget.org/packages/JsonSubTypes) ·
+[CHANGELOG](CHANGELOG.md) ·
+MIT
