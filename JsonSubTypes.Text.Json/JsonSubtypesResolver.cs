@@ -35,12 +35,12 @@ namespace JsonSubTypes.Text.Json;
 /// unregistered runtime type is never silently handled: an unregistered base type is
 /// serialized without a discriminator, while an unregistered derived type throws
 /// <see cref="NotSupportedException"/> unless
-/// <see cref="JsonSubtypesConverterBuilder.FallBackToNearestAncestor"/> is enabled, in which
+/// <see cref="JsonSubtypesConverterBuilder.FallbackToNearestAncestor"/> is enabled, in which
 /// case it is serialized as its nearest registered ancestor. With discriminator serialization
 /// enabled, the <see cref="JsonSubtypes{T}"/> converter instead throws
 /// <see cref="JsonException"/> for any runtime type that has no registered mapping;</item>
 /// <item>only a single level of hierarchy is resolved per base type: intermediate resolvers are
-/// not chained. <c>KnownSubType</c> and <c>FallBackSubType</c> attributes are honored when no
+/// not chained. <c>KnownSubType</c> and <c>FallbackSubType</c> attributes are honored when no
 /// subtype is registered explicitly, but <c>JsonSubTypeConverter</c> is not (the resolver must
 /// be built explicitly);</item>
 /// <item><see cref="JsonSerializerOptions.PropertyNamingPolicy"/> is not applied to the

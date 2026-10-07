@@ -14,16 +14,16 @@ namespace JsonSubTypes.Tests
             return new JsonSerializerOptions { TypeInfoResolver = resolver };
         }
 
-        // ---- FallBackToNearestAncestor ----
+        // ---- FallbackToNearestAncestor ----
 
         [Test]
-        public void FallBackToNearestAncestor_SerializesUnregisteredDerivedAsNearestAncestor()
+        public void FallbackToNearestAncestor_SerializesUnregisteredDerivedAsNearestAncestor()
         {
             var options = Options(JsonSubtypesConverterBuilder.Of<IWidget>("$type")
                 .RegisterSubtype<Widget>("widget")
                 .RegisterSubtype<RoundWidget>("round")
                 .SerializeDiscriminatorProperty()
-                .FallBackToNearestAncestor()
+                .FallbackToNearestAncestor()
                 .BuildResolver());
 
             string json = JsonSerializer.Serialize<IWidget>(new FancyRoundWidget { Diameter = 4, Finish = "matte" }, options);
@@ -32,13 +32,13 @@ namespace JsonSubTypes.Tests
         }
 
         [Test]
-        public void FallBackToNearestAncestor_RegisteredTypesAreUnchanged()
+        public void FallbackToNearestAncestor_RegisteredTypesAreUnchanged()
         {
             var options = Options(JsonSubtypesConverterBuilder.Of<IWidget>("$type")
                 .RegisterSubtype<Widget>("widget")
                 .RegisterSubtype<RoundWidget>("round")
                 .SerializeDiscriminatorProperty()
-                .FallBackToNearestAncestor()
+                .FallbackToNearestAncestor()
                 .BuildResolver());
 
             string json = JsonSerializer.Serialize<IWidget>(new RoundWidget { Diameter = 4 }, options);
@@ -47,7 +47,7 @@ namespace JsonSubTypes.Tests
         }
 
         [Test]
-        public void WithoutFallBackToNearestAncestor_UnregisteredDerivedThrows()
+        public void WithoutFallbackToNearestAncestor_UnregisteredDerivedThrows()
         {
             var options = Options(JsonSubtypesConverterBuilder.Of<IWidget>("$type")
                 .RegisterSubtype<Widget>("widget")
@@ -60,12 +60,12 @@ namespace JsonSubTypes.Tests
         }
 
         [Test]
-        public void Build_WithFallBackToNearestAncestor_Throws()
+        public void Build_WithFallbackToNearestAncestor_Throws()
         {
             var builder = JsonSubtypesConverterBuilder.Of<IWidget>("$type")
                 .RegisterSubtype<RoundWidget>("round")
                 .SerializeDiscriminatorProperty()
-                .FallBackToNearestAncestor();
+                .FallbackToNearestAncestor();
 
             var exception = Assert.Throws<NotSupportedException>(() => builder.Build());
             StringAssert.Contains("only supported by BuildResolver", exception?.Message);
@@ -177,7 +177,7 @@ namespace JsonSubTypes.Tests
         }
 
         [Test]
-        public void FallBackSubTypeAttributeEqualToBase_IsHonored()
+        public void FallbackSubTypeAttributeEqualToBase_IsHonored()
         {
             var options = Options(JsonSubtypesConverterBuilder.Of<FbVehicle>("$type")
                 .SerializeDiscriminatorProperty()
@@ -189,7 +189,7 @@ namespace JsonSubTypes.Tests
         }
 
         [Test]
-        public void FallBackSubTypeAttributeNonBase_Throws()
+        public void FallbackSubTypeAttributeNonBase_Throws()
         {
             var builder = JsonSubtypesConverterBuilder.Of<CbVehicle>("$type")
                 .SerializeDiscriminatorProperty();
@@ -296,7 +296,7 @@ namespace JsonSubTypes.Tests
     }
 
     [KnownSubType(typeof(FbCar), "car")]
-    [FallBackSubType(typeof(FbVehicle))]
+    [FallbackSubType(typeof(FbVehicle))]
     public class FbVehicle
     {
         public int Wheels { get; set; }
@@ -308,7 +308,7 @@ namespace JsonSubTypes.Tests
     }
 
     [KnownSubType(typeof(CbCar), "car")]
-    [FallBackSubType(typeof(CbBike))]
+    [FallbackSubType(typeof(CbBike))]
     public class CbVehicle
     {
     }

@@ -89,7 +89,7 @@ public class JsonSubtypesConverterBuilder
     /// <c>System.Text.Json</c> supports it (.NET 8 and later). Only supported by
     /// <see cref="BuildResolver"/>; <see cref="Build"/> throws if this is set.
     /// </summary>
-    public JsonSubtypesConverterBuilder FallBackToNearestAncestor()
+    public JsonSubtypesConverterBuilder FallbackToNearestAncestor()
     {
         _fallBackToNearestAncestor = true;
         return this;
@@ -102,7 +102,7 @@ public class JsonSubtypesConverterBuilder
         if (_ignoreUnrecognizedTypeDiscriminators || _fallBackToNearestAncestor)
         {
             throw new NotSupportedException(
-                "IgnoreUnrecognizedTypeDiscriminators and FallBackToNearestAncestor are only supported by BuildResolver(). Use Build() to obtain the JsonSubtypes converter without these options.");
+                "IgnoreUnrecognizedTypeDiscriminators and FallbackToNearestAncestor are only supported by BuildResolver(). Use Build() to obtain the JsonSubtypes converter without these options.");
         }
 
         if (_serializeDiscriminatorProperty)
@@ -150,13 +150,13 @@ public class JsonSubtypesConverterBuilder
     /// <see cref="IgnoreUnrecognizedTypeDiscriminators"/>. A fallback to a subtype other than
     /// the base type is not supported;</item>
     /// <item>when no subtype is registered explicitly, <c>KnownSubType</c> and
-    /// <c>FallBackSubType</c> attributes on the base type are honored;</item>
+    /// <c>FallbackSubType</c> attributes on the base type are honored;</item>
     /// <item><see cref="SerializeDiscriminatorProperty()"/> must have been called and the
     /// discriminator must be written first (the native resolver always writes the discriminator
     /// property, always first, and only for runtime types that are registered as subtypes,
     /// including the base type when it is registered). An unregistered derived type can be
     /// serialized as its nearest registered ancestor with
-    /// <see cref="FallBackToNearestAncestor"/>;</item>
+    /// <see cref="FallbackToNearestAncestor"/>;</item>
     /// <item>only a single level of hierarchy is resolved per base type. To handle several base
     /// type hierarchies, combine builders with <see cref="BuildResolvers"/>. Combining
     /// resolvers through <see cref="JsonSerializerOptions.TypeInfoResolverChain"/> does not work,
@@ -286,11 +286,11 @@ public class JsonSubtypesConverterBuilder
         return dictionary;
     }
 
-    private static FallBackSubTypeAttribute? GetFallbackSubTypeAttribute(Type type)
+    private static FallbackSubTypeAttribute? GetFallbackSubTypeAttribute(Type type)
     {
         foreach (object attribute in type.GetTypeInfo().GetCustomAttributes(false))
         {
-            if (attribute is FallBackSubTypeAttribute fallback)
+            if (attribute is FallbackSubTypeAttribute fallback)
             {
                 return fallback;
             }

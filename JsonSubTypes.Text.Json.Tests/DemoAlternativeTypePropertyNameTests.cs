@@ -173,7 +173,7 @@ namespace JsonSubTypes.Tests
         public class DemoAlternativeTypePropertyNameTests
         {
             [JsonSubTypeConverter(typeof(JsonSubtypes<IAnimal>), "Kind")]
-            [FallBackSubType(typeof(UnknownAnimal))]
+            [FallbackSubType(typeof(UnknownAnimal))]
             public interface IAnimal
             {
                 string Kind { get; }
@@ -225,7 +225,7 @@ namespace JsonSubTypes.Tests
         {
             [JsonSubTypeConverter(typeof(JsonSubtypes<IAnimal>), "Kind")]
             [KnownSubType(typeof(Dog), null)]
-            [FallBackSubType(typeof(UnknownAnimal))]
+            [FallbackSubType(typeof(UnknownAnimal))]
             public interface IAnimal
             {
                 string Kind { get; }

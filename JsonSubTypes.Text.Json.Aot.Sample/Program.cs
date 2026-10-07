@@ -96,7 +96,7 @@ public class Dog : Animal
 [JsonSubTypesAotConverter]
 [KnownSubTypeWithProperty(typeof(Employee), "JobTitle")]
 [KnownSubTypeWithProperty(typeof(Artist), "Skill")]
-[FallBackSubType(typeof(Person))]
+[FallbackSubType(typeof(Person))]
 public class Person
 {
     public string? FirstName { get; set; }

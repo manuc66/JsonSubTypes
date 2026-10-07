@@ -31,6 +31,20 @@ The command runs every benchmark twice: once under the JIT (`DefaultJob`) and on
 - Each reported value is the **mean** of a single BenchmarkDotNet run (warm-up + multiple iterations, outliers removed), as shown in the [sample run](#sample-run-verified) below.
 - Never compare times across machines. Comparing allocations across machines is meaningful.
 
+### Scenario prefixes
+
+Each benchmark class uses a scenario prefix on its method names, so the result rows are unambiguous when the whole suite runs:
+
+- **`Single_`** (`PolymorphismBenchmarks`): a `Cat` declared as its `Animal` base (two `int` properties).
+- **`Col_`** (`CollectionBenchmarks`): a list of four mixed animals (`Cat`/`Dog`), the common API payload shape.
+- **`Nested_`** (`NestedHierarchyBenchmarks`): a two-level hierarchy (`Payload → Game → Run`), discriminated by two properties.
+- **`Pres_`** (`PropertyPresenceBenchmarks`): discrimination by property presence (`KnownSubTypeWithProperty`) instead of a discriminator value.
+- **`Leaf_`** (`BaseAsLeafBenchmarks`): serializing/deserializing the polymorphic base type itself, exercising the converter's reflection-based fallback path.
+- **`Nw_`** (`NewtonsoftBenchmarks`): the Newtonsoft.Json package through `JsonConvert`.
+- **`Tn_`** (`NewtonsoftTypeNameHandlingBenchmarks`): Newtonsoft's built-in `TypeNameHandling.Auto` baseline (`$type`), on the same single-object and collection scenarios as `Nw_`.
+
+Filter a scenario with the class name: `dotnet run -c Release --project JsonSubTypes.Benchmarks --filter '*CollectionBenchmarks*'`.
+
 ## Machine
 
 The numbers below and in the sample run were measured on the same machine, which BenchmarkDotNet reports as:
@@ -75,8 +89,8 @@ The generated engine is the only one compatible with Native AOT. The native buil
 
 | Benchmark | JIT | Native AOT |
 | :--- | ---: | ---: |
-| Generated_Serialize (single) | 1.18 µs / 656 B | 1.43 µs / 640 B |
-| Generated_Deserialize (single) | 0.98 µs / 152 B | 1.29 µs / 152 B |
+| Single_Generated_Serialize | 1.18 µs / 656 B | 1.43 µs / 640 B |
+| Single_Generated_Deserialize | 0.98 µs / 152 B | 1.29 µs / 152 B |
 
 ## Newtonsoft.Json comparison
 
@@ -101,7 +115,7 @@ The ordering is structural, not a tuning artifact:
 
 ## Sample run (verified)
 
-Verbatim output of the reproduction command above (`--filter "*"`) on the documented machine, .NET 10.0.10 / BenchmarkDotNet 0.15.8, run on 2026-08-16. The single-object summary is shown; the collection, nested-hierarchy, property-presence and Newtonsoft summaries reproduced the corresponding tables within the same run-to-run noise. The reflection-based rows under `NativeAOT` are the expected `NA` (see [How to reproduce](#how-to-reproduce)).
+Verbatim output of the reproduction command above (`--filter "*"`) on the documented machine, .NET 10.0.10 / BenchmarkDotNet 0.15.8, run on 2026-08-16. The method names are as printed by that run; today they carry the [scenario prefixes](#scenario-prefixes) above. The single-object summary is shown; the collection, nested-hierarchy, property-presence and Newtonsoft summaries reproduced the corresponding tables within the same run-to-run noise. The reflection-based rows under `NativeAOT` are the expected `NA` (see [How to reproduce](#how-to-reproduce)).
 
 ```
 BenchmarkDotNet v0.15.8, Linux Manjaro Linux

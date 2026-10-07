@@ -52,28 +52,28 @@ namespace JsonSubTypes.Benchmarks
         }
 
         [Benchmark]
-        public string Single_Serialize()
+        public string Nw_Single_Serialize()
         {
             BenchmarkGuard.RequireReflection();
             return JsonConvert.SerializeObject(_animal, _settings);
         }
 
         [Benchmark]
-        public NwAnimal? Single_Deserialize()
+        public NwAnimal? Nw_Single_Deserialize()
         {
             BenchmarkGuard.RequireReflection();
             return JsonConvert.DeserializeObject<NwAnimal>(_singleJson, _settings);
         }
 
         [Benchmark]
-        public string Collection_Serialize()
+        public string Nw_Collection_Serialize()
         {
             BenchmarkGuard.RequireReflection();
             return JsonConvert.SerializeObject(_animals, _settings);
         }
 
         [Benchmark]
-        public List<NwAnimal>? Collection_Deserialize()
+        public List<NwAnimal>? Nw_Collection_Deserialize()
         {
             BenchmarkGuard.RequireReflection();
             return JsonConvert.DeserializeObject<List<NwAnimal>>(_collectionJson, _settings);

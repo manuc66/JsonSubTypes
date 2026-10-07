@@ -15,7 +15,7 @@ namespace JsonSubTypes.Text.Json.Aot
         private const string JsonSubTypesAotConverterAttributeName = "JsonSubTypesAotConverterAttribute";
         private const string KnownSubTypeAttributeName = "KnownSubTypeAttribute";
         private const string KnownSubTypeWithPropertyAttributeName = "KnownSubTypeWithPropertyAttribute";
-        private const string FallBackSubTypeAttributeName = "FallBackSubTypeAttribute";
+        private const string FallbackSubTypeAttributeName = "FallbackSubTypeAttribute";
         private const string SystemTextJsonSerializationNamespace = "System.Text.Json.Serialization";
         private const string DiagnosticId = "JSTAOT001";
         private const string DuplicateDiscriminatorDiagnosticId = "JSTAOT002";
@@ -228,8 +228,8 @@ namespace JsonSubTypes.Text.Json.Aot
                     case KnownSubTypeWithPropertyAttributeName:
                         ProcessKnownSubTypeWithProperty(attr, info);
                         break;
-                    case FallBackSubTypeAttributeName:
-                        ProcessFallBackSubType(attr, info);
+                    case FallbackSubTypeAttributeName:
+                        ProcessFallbackSubType(attr, info);
                         break;
                 }
             }
@@ -304,7 +304,7 @@ namespace JsonSubTypes.Text.Json.Aot
             });
         }
 
-        private static void ProcessFallBackSubType(AttributeData attr, BaseTypeInfo info)
+        private static void ProcessFallbackSubType(AttributeData attr, BaseTypeInfo info)
         {
             if (attr.ConstructorArguments[0].Value is ITypeSymbol fallback)
             {
@@ -1176,20 +1176,25 @@ namespace JsonSubTypes.Text.Json.Aot
             foreach (NestedChain nested in info.NestedTypes)
             {
                 List<string> discLines = [];
+                List<string> discriminatorNames = [];
                 foreach (ChainEntry entry in nested.Chain)
                 {
                     string discriminatorName = entry.DiscriminatorName == info.DiscriminatorPropertyName
                     ? "DiscriminatorPropertyNameValue"
                     : SymbolDisplay.FormatLiteral(entry.DiscriminatorName, quote: true);
-                discLines.Add($"                        writer.WritePropertyName({discriminatorName});");
+                    discLines.Add($"                        writer.WritePropertyName({discriminatorName});");
                     discLines.Add($"                        {EmitDiscriminatorValueStatement(entry.Discriminator)}");
+                    discriminatorNames.Add(discriminatorName);
                 }
                 string payload = $$"""
                             string payload = JsonSerializer.Serialize(value, options.GetTypeInfo(runtimeType));
                             using JsonDocument payloadDocument = JsonDocument.Parse(payload);
                             foreach (JsonProperty property in payloadDocument.RootElement.EnumerateObject())
                             {
-                                property.WriteTo(writer);
+                                if ({{string.Join(" && ", discriminatorNames.Select(n => $"!property.NameEquals({n})"))}})
+                                {
+                                    property.WriteTo(writer);
+                                }
                             }
                             writer.WriteEndObject();
                             return true;
