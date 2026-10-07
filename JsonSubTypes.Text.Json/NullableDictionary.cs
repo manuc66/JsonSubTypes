@@ -44,6 +44,19 @@ internal class NullableDictionary<TKey, TValue> where TKey : notnull
         }
     }
 
+    public void Set(TKey? key, TValue value)
+    {
+        if (key is null)
+        {
+            _hasNullKey = true;
+            _nullKeyValue = value;
+        }
+        else
+        {
+            _dictionary[key] = value;
+        }
+    }
+
     public IEnumerable<TKey> NotNullKeys()
     {
         return _dictionary.Keys;

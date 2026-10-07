@@ -5,5 +5,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\JsonSubTypes.Text.Json.Tests.Shared\JsonSubTypes.Text.Json.Tests.Shared.csproj" />
+    <ProjectReference Include="..\JsonSubTypes.Text.Json\JsonSubTypes.Text.Json.csproj" />
   </ItemGroup>
 </Project>

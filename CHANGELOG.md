@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Added
 - New `JsonSubTypeConverterAttribute` convenience constructors that close the generic `JsonSubtypes<T>` converter over the annotated type, so the base type does not need to be repeated: `[JsonSubTypeConverter("Kind")]` instead of `[JsonSubTypeConverter(typeof(JsonSubtypes<Animal>), "Kind")]`.
 #### Changed
+- Replaced the global `JsonSubTypesTypeResolution.AddAssembly` registry with a declarative `[KnownSubTypeOtherAssembly("AssemblyName")]` attribute on the base type. Resolution is now per-type instead of process-wide, so it no longer leaks across serialization profiles. The attribute takes an assembly name, keeping the base type free of a compile-time reference to the plugin.
 - Renamed `FallBackSubTypeAttribute` to `FallbackSubTypeAttribute` and `FallBackToNearestAncestor()` to `FallbackToNearestAncestor()` for consistent capitalization. The `FallBack*` names still work in `JsonSubTypes` (Newtonsoft), which keeps its historical API.
 #### Fixed
 - The attribute-based converter now writes the discriminator on serialization, as documented: the attribute's `CreateConverter` override was previously bypassed by `System.Text.Json` (the converter was built through its parameterless constructor), so the discriminator was only read, never written. The attribute now routes through `CreateConverter`, which also activates the discriminator-injection write path for registered subtypes.

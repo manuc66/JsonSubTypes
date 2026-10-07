@@ -16,6 +16,7 @@ public class JsonSubtypesConverterBuilder
     private readonly Type _baseType;
     private readonly string _discriminatorProperty;
     private readonly NullableDictionary<object, Type> _subTypeMapping = new();
+    private readonly List<Assembly> _additionalAssemblies = [];
     private Type? _fallbackType;
     private bool _serializeDiscriminatorProperty;
     private bool _addDiscriminatorFirst;
@@ -47,6 +48,47 @@ public class JsonSubtypesConverterBuilder
     public JsonSubtypesConverterBuilder RegisterSubtype<T>(object? value)
     {
         return RegisterSubtype(typeof(T), value);
+    }
+
+    /// <summary>
+    /// Adds an assembly to search, in addition to the base type's own assembly, when resolving
+    /// subtypes by name from the discriminator. Unlike <c>[KnownSubTypeOtherAssembly]</c>, this
+    /// accepts an assembly loaded at runtime, which the attribute cannot name at compile time.
+    /// Types in the assembly that carry <c>[KnownSubTypeOf(base)]</c> with a discriminator value
+    /// are also registered as subtypes of the base type (the self-declaring plugin pattern).
+    /// </summary>
+    public JsonSubtypesConverterBuilder RegisterSubtypeAssembly(Assembly assembly)
+    {
+        _additionalAssemblies.Add(assembly);
+        ScanForSelfDeclaredSubtypes(assembly);
+        return this;
+    }
+
+    private void ScanForSelfDeclaredSubtypes(Assembly assembly)
+    {
+        Type[] types;
+        try
+        {
+            types = assembly.GetTypes();
+        }
+        catch (ReflectionTypeLoadException e)
+        {
+            // An assembly can reference types it cannot load (e.g. an optional dependency that is
+            // not deployed). Scan the types that did load; skipping the rest is safe because a
+            // self-declared subtype must be loadable to be instantiated.
+            types = e.Types.Where(t => t != null).Cast<Type>().ToArray();
+        }
+
+        foreach (Type type in types)
+        {
+            foreach (KnownSubTypeOfAttribute attribute in type.GetCustomAttributes<KnownSubTypeOfAttribute>(inherit: false))
+            {
+                if (attribute.BaseType == _baseType && attribute.DiscriminatorValue != null)
+                {
+                    _subTypeMapping.Add(attribute.DiscriminatorValue, type);
+                }
+            }
+        }
     }
 
     public JsonSubtypesConverterBuilder SetFallbackSubtype(Type fallbackSubtype)
@@ -127,12 +169,14 @@ public class JsonSubtypesConverterBuilder
                 typeof(List<TypeWithPropertyMatchingAttributes>),
                 typeof(Type),
                 typeof(bool),
-                typeof(bool)
+                typeof(bool),
+                typeof(Assembly[])
             ], null)!;
         return (JsonConverter)constructor.Invoke(
         [
             _discriminatorProperty, _subTypeMapping, null, _fallbackType,
-                _serializeDiscriminatorProperty, _addDiscriminatorFirst
+                _serializeDiscriminatorProperty, _addDiscriminatorFirst,
+                _additionalAssemblies.ToArray()
         ]);
     }
 
