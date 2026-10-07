@@ -432,14 +432,14 @@ To preserve full compatibility with advanced features while delegating object se
 
 ### Performance (measured)
 
-Benchmarked with BenchmarkDotNet (`JsonSubTypes.Benchmarks`, .NET 10); the methodology, machine and full result tables are in [PERFORMANCE.md](PERFORMANCE). In short:
+Benchmarked with BenchmarkDotNet (`JsonSubTypes.Benchmarks`, .NET 10); the methodology, machine and full result tables are in [PERFORMANCE.md](PERFORMANCE.md). In short:
 
 - **Resolver (`BuildResolver()`)** is the fastest: it delegates to `System.Text.Json` native polymorphism, with no `JsonDocument` round-trip and no reflection per call.
 - **Generator (`JsonSubTypes.Text.Json.Aot`)** beats the runtime converter on deserialization and allocates far less (compiled routing instead of per-call converter scans). Its Native AOT steady state is comparable to (slightly slower than) JIT; its real advantage is trimming compatibility and startup time.
 - **Converter (`Build()`)** is the slowest of the three: it keeps the `JsonDocument` round-trip and adds runtime type resolution. It is the only engine for hierarchies whose subtypes are only known at runtime.
 - **Newtonsoft.Json (`JsonSubTypes`)** is slower and allocates several times more than the STJ converter on the same scenarios.
 
-Reproduce the measurements yourself with `dotnet run -c Release --project JsonSubTypes.Benchmarks`.
+Reproduce the measurements yourself with `dotnet run -c Release --project JsonSubTypes.Benchmarks -- --filter "*"` (a native compiler is needed for the Native AOT job; see [PERFORMANCE.md](PERFORMANCE.md)).
 
 ### Decision matrix
 | Use case | Recommended |
@@ -491,3 +491,11 @@ If this project helped you save money or time or simply makes your life also eas
 
 ## License
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fmanuc66%2FJsonSubTypes.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fmanuc66%2FJsonSubTypes?ref=badge_large)
+
+---
+
+[All projects](https://manuc66.github.io/) ·
+[Source on GitHub](https://github.com/manuc66/JsonSubTypes) ·
+[NuGet](https://www.nuget.org/packages/JsonSubTypes) ·
+[CHANGELOG](CHANGELOG.md) ·
+MIT

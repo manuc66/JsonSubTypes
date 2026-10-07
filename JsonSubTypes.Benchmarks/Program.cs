@@ -81,16 +81,16 @@ namespace JsonSubTypes.Benchmarks
         public string Single_Generated_Serialize() => JsonSerializer.Serialize<BenchAnimal>(_benchCat, _generatedOptions);
 
         [Benchmark]
-        public string Single_Resolver_Serialize() => JsonSerializer.Serialize<ResAnimal>(_resCat, _resolverOptions!);
+        public string Single_Resolver_Serialize() => JsonSerializer.Serialize<ResAnimal>(_resCat, BenchmarkGuard.ReflectionOptions(_resolverOptions));
 
         [Benchmark]
-        public string Single_Converter_Serialize() => JsonSerializer.Serialize<ConvAnimal>(new ConvCat { Age = 3, Lives = 9 }, _converterOptions!);
+        public string Single_Converter_Serialize() => JsonSerializer.Serialize<ConvAnimal>(new ConvCat { Age = 3, Lives = 9 }, BenchmarkGuard.ReflectionOptions(_converterOptions));
 
         [Benchmark]
-        public ConvAnimal? Single_Converter_Deserialize() => JsonSerializer.Deserialize<ConvAnimal>(_converterJson!, _converterOptions!);
+        public ConvAnimal? Single_Converter_Deserialize() => JsonSerializer.Deserialize<ConvAnimal>(_converterJson!, BenchmarkGuard.ReflectionOptions(_converterOptions));
 
         [Benchmark]
-        public ResAnimal? Single_Resolver_Deserialize() => JsonSerializer.Deserialize<ResAnimal>(_resolverJson!, _resolverOptions!);
+        public ResAnimal? Single_Resolver_Deserialize() => JsonSerializer.Deserialize<ResAnimal>(_resolverJson!, BenchmarkGuard.ReflectionOptions(_resolverOptions));
 
         [Benchmark]
         public BenchAnimal? Single_Generated_Deserialize() => JsonSerializer.Deserialize<BenchAnimal>(_generatedJson, _generatedOptions);
