@@ -7,14 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### JsonSubTypes.Text.Json
+#### Added
+- New `JsonSubTypeConverterAttribute` convenience constructors that close the generic `JsonSubtypes<T>` converter over the annotated type, so the base type does not need to be repeated: `[JsonSubTypeConverter("Kind")]` instead of `[JsonSubTypeConverter(typeof(JsonSubtypes<Animal>), "Kind")]`.
 #### Changed
 - Replaced the global `JsonSubTypesTypeResolution.AddAssembly` registry with a declarative `[KnownSubTypeOtherAssembly("AssemblyName")]` attribute on the base type. Resolution is now per-type instead of process-wide, so it no longer leaks across serialization profiles. The attribute takes an assembly name, keeping the base type free of a compile-time reference to the plugin.
 - Renamed `FallBackSubTypeAttribute` to `FallbackSubTypeAttribute` and `FallBackToNearestAncestor()` to `FallbackToNearestAncestor()` for consistent capitalization. The `FallBack*` names still work in `JsonSubTypes` (Newtonsoft), which keeps its historical API.
+#### Fixed
+- The attribute-based converter now writes the discriminator on serialization, as documented: the attribute's `CreateConverter` override was previously bypassed by `System.Text.Json` (the converter was built through its parameterless constructor), so the discriminator was only read, never written. The attribute now routes through `CreateConverter`, which also activates the discriminator-injection write path for registered subtypes.
+
+## [2.2.0] - 2026-10-07
 
 ### JsonSubTypes
+#### Added
+- `JsonSubtypesConverter` exposes `protected static bool IsClosedGenericFormOf(Type objectType, Type genericType)`, so custom converters built on the public base can reuse the closed-generic base matching.
+
 #### Fixed
 - Deserialization with an open generic base type (e.g. `Base<>`) now closes the generic subtype correctly (e.g. `Nested1<int>` for `Base<int>`) instead of failing. #177
 - Errors and exceptions raised while deserializing a subtype now carry the fully qualified JSON path (e.g. `Property2.Value` instead of `Value`), matching stock Newtonsoft.Json error handling. #182
+
+#### Changed
+- Faster deserialization and serialization, output unchanged: the attribute-derived subtype mapping and property-presence list are cached per type, single-level type resolution skips the multi-level converter walk, and string/int discriminators are converted directly instead of round-tripping through `JToken.FromObject`/`ToObject` reflection. A custom `JsonConverter` registered on the serializer for the discriminator type still takes the serializer-aware path on both read and write. Measured with BenchmarkDotNet on net10: single deserialize 2.54µs → 2.33µs, collection deserialize 10.21µs → 7.72µs, single serialize 1.54µs → 1.31µs, collection serialize 5.51µs → 4.86µs.
+- Generic subtype matching is restricted to the base class hierarchy: `CanConvert` no longer claims types that merely implement an unrelated generic interface of the base type.
+- The name-based resolution risk (declared only when no subtype mapping exists) is documented on the converters, so it shows up in the IDE, and in the README security section.
+
+#### Security
+- netstandard1.3: `System.Net.Http` and `System.Text.RegularExpressions` are pinned to the patched 4.3.4 and 4.3.1; `NETStandard.Library 1.6.1` otherwise resolves them to the vulnerable 4.3.0 versions.
+
+## [1.0.0-rc.4] - 2026-10-07
+
+### JsonSubTypes.Text.Json
+#### Changed
+- The converter caches the resolved `IJsonSubtypes` converter list per `JsonSerializerOptions` (frozen on first use) and resolves single-level hierarchies without per-object allocations.
+- Deserialization reads the resolved subtype from the already-parsed `JsonElement` instead of re-reading the raw bytes through a second materialization.
+- The discriminator write path streams the payload as UTF-8 (`ArrayBufferWriter` + `Utf8JsonWriter`) instead of round-tripping through a UTF-16 string.
+
+#### Security
+- The name-based resolution risk (declared only when no subtype mapping exists) is documented on the converter and in the README security section.
+
+## [1.0.0-rc.2] - 2026-10-07
+
+### JsonSubTypes.Text.Json.Aot
+#### Changed
+- **Breaking (pre-1.0)**: the package is renamed `JsonSubTypes.Aot` → `JsonSubTypes.Text.Json.Aot`: new NuGet package id, new project/namespace, and the generated-code namespace becomes `JsonSubTypes.Text.Json.Aot.Generated` instead of `JsonSubTypes.Aot.Generated`. Update the `PackageReference` and the `using` directives. The previously published `JsonSubTypes.Aot` 1.0.0-rc.1 is superseded and receives no further updates.
+- Generated converters get unique names and are emitted without a `.g.cs` suffix, a shared converter base class carries the common skeleton once per compilation, and the value-mode `Write` is hardened (redundant `&& true` removed).
+- Generator diagnostics now check the cancellation token before every report, so generation stops promptly.
+- Bumped the build-time `Microsoft.CodeAnalysis.CSharp` dependency from 5.6.0 to 5.9.0 (not shipped in the package).
 
 ## [1.0.0-rc.3] - 2026-08-12
 

@@ -237,18 +237,18 @@ settings.Converters.Add(JsonSubtypesWithPropertyConverterBuilder
 
 ## System.Text.Json variant
 
-> **Status: experimental.** The `JsonSubTypes.Text.Json` package is a **release candidate** (`1.0.0-rc.x`) and not yet part of the project's stable offering. The code is fully tested (196 unit tests) and the API is complete, but the stable `1.0.0` release will follow once the package has been exercised in more real-world projects.
+> **Status: experimental.** The `JsonSubTypes.Text.Json` package is a **release candidate** (`1.0.0-rc.x`) and not yet part of the project's stable offering. The code is fully tested (200 unit tests) and the API is complete, but the stable `1.0.0` release will follow once the package has been exercised in more real-world projects.
 
 A variant of the library for `System.Text.Json` (.NET 8+) is available in the `JsonSubTypes.Text.Json` namespace and package. It supports the same attribute-driven and builder-driven API, adapted to `System.Text.Json` idioms.
 
-If you are migrating an existing Newtonsoft.Json code base, or deciding between the engines, see [MIGRATION.md](MIGRATION).
+If you are migrating an existing Newtonsoft.Json code base, or deciding between the engines, see [MIGRATION.md](MIGRATION.md).
 
 ### Attribute based discriminator
 
 ```csharp
 using JsonSubTypes.Text.Json;
 
-[JsonSubTypeConverter(typeof(JsonSubtypes<Animal>), "Sound")]
+[JsonSubTypeConverter(nameof(Animal.Sound))]
 [KnownSubType(typeof(Dog), "Bark")]
 [KnownSubType(typeof(Cat), "Meow")]
 public class Animal
@@ -269,6 +269,10 @@ public class Cat : Animal
     public bool Declawed { get; set; }
 }
 ```
+
+The converter is `JsonSubtypes<T>`, closed over the annotated type — so the attribute does not repeat the base type. The explicit `[JsonSubTypeConverter(typeof(JsonSubtypes<Animal>), "Sound")]` form is equivalent and still supported (needed only when the converter is not `JsonSubtypes<T>`).
+
+N.B. The discriminator is usually a property of the class (use `nameof(...)` so it stays in sync); if it is not, the converter writes it as an injected field instead — a string literal such as `[JsonSubTypeConverter("type")]`.
 
 ```csharp
 var animal = JsonSerializer.Deserialize<Animal>("{\"Sound\":\"Bark\",\"Breed\":\"Jack Russell Terrier\"}");
@@ -428,14 +432,14 @@ To preserve full compatibility with advanced features while delegating object se
 
 ### Performance (measured)
 
-Benchmarked with BenchmarkDotNet (`JsonSubTypes.Benchmarks`, .NET 10); the methodology, machine and full result tables are in [PERFORMANCE.md](PERFORMANCE). In short:
+Benchmarked with BenchmarkDotNet (`JsonSubTypes.Benchmarks`, .NET 10); the methodology, machine and full result tables are in [PERFORMANCE.md](PERFORMANCE.md). In short:
 
 - **Resolver (`BuildResolver()`)** is the fastest: it delegates to `System.Text.Json` native polymorphism, with no `JsonDocument` round-trip and no reflection per call.
 - **Generator (`JsonSubTypes.Text.Json.Aot`)** beats the runtime converter on deserialization and allocates far less (compiled routing instead of per-call converter scans). Its Native AOT steady state is comparable to (slightly slower than) JIT; its real advantage is trimming compatibility and startup time.
 - **Converter (`Build()`)** is the slowest of the three: it keeps the `JsonDocument` round-trip and adds runtime type resolution. It is the only engine for hierarchies whose subtypes are only known at runtime.
 - **Newtonsoft.Json (`JsonSubTypes`)** is slower and allocates several times more than the STJ converter on the same scenarios.
 
-Reproduce the measurements yourself with `dotnet run -c Release --project JsonSubTypes.Benchmarks`.
+Reproduce the measurements yourself with `dotnet run -c Release --project JsonSubTypes.Benchmarks -- --filter "*"` (a native compiler is needed for the Native AOT job; see [PERFORMANCE.md](PERFORMANCE.md)).
 
 ### Decision matrix
 | Use case | Recommended |
@@ -487,3 +491,11 @@ If this project helped you save money or time or simply makes your life also eas
 
 ## License
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fmanuc66%2FJsonSubTypes.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fmanuc66%2FJsonSubTypes?ref=badge_large)
+
+---
+
+[All projects](https://manuc66.github.io/) ·
+[Source on GitHub](https://github.com/manuc66/JsonSubTypes) ·
+[NuGet](https://www.nuget.org/packages/JsonSubTypes) ·
+[CHANGELOG](CHANGELOG.md) ·
+MIT
