@@ -60,7 +60,7 @@ jobs:
       # DLLs already published (different commit / toolchain), failing validation.
       - name: Publish JsonSubTypes
         run: |
-          id=jsonSubTypes
+          id=jsonsubtypes
           version=$(dotnet msbuild JsonSubTypes/JsonSubTypes.csproj -getProperty:Version -p:Configuration=Release | tail -n 1)
           if curl -sf -o /dev/null "https://api.nuget.org/v3-flatcontainer/$id/$version/$id.$version.nupkg"; then
             echo "JsonSubTypes $version already on nuget.org, skipping"
@@ -70,7 +70,7 @@ jobs:
 
       - name: Publish JsonSubTypes.Text.Json
         run: |
-          id=jsonSubTypes.text.json
+          id=jsonsubtypes.text.json
           version=$(dotnet msbuild JsonSubTypes.Text.Json/JsonSubTypes.Text.Json.csproj -getProperty:Version -p:Configuration=Release | tail -n 1)
           if curl -sf -o /dev/null "https://api.nuget.org/v3-flatcontainer/$id/$version/$id.$version.nupkg"; then
             echo "JsonSubTypes.Text.Json $version already on nuget.org, skipping"
@@ -80,7 +80,7 @@ jobs:
 
       - name: Publish JsonSubTypes.Text.Json.Aot
         run: |
-          id=jsonSubTypes.aot
+          id=jsonsubtypes.text.json.aot
           version=$(dotnet msbuild JsonSubTypes.Text.Json.Aot/JsonSubTypes.Text.Json.Aot.csproj -getProperty:Version -p:Configuration=Release | tail -n 1)
           if curl -sf -o /dev/null "https://api.nuget.org/v3-flatcontainer/$id/$version/$id.$version.nupkg"; then
             echo "JsonSubTypes.Text.Json.Aot $version already on nuget.org, skipping"
