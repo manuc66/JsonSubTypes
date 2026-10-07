@@ -11,7 +11,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       # A tag can be pushed with a failing build (GitHub's branch protection does
       # not cover tags), so gate publishing on the tagged commit's CI checks.
