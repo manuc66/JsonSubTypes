@@ -241,7 +241,7 @@ settings.Converters.Add(JsonSubtypesWithPropertyConverterBuilder
 
 A variant of the library for `System.Text.Json` (.NET 8+) is available in the `JsonSubTypes.Text.Json` namespace and package. It supports the same attribute-driven and builder-driven API, adapted to `System.Text.Json` idioms.
 
-If you are migrating an existing Newtonsoft.Json code base, or deciding between the engines, see [MIGRATION.md](MIGRATION).
+If you are migrating an existing Newtonsoft.Json code base, or deciding between the engines, see [MIGRATION.md](MIGRATION.md).
 
 ### Attribute based discriminator
 

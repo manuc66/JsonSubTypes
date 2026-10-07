@@ -43,6 +43,7 @@ Mechanical differences:
 
 - `[JsonConverter(typeof(JsonSubtypes), "Kind")]` becomes `[JsonSubTypeConverter("Kind")]` — the converter is `JsonSubtypes<T>`, closed over the annotated type. The explicit `[JsonSubTypeConverter(typeof(JsonSubtypes<Animal>), "Kind")]` form is equivalent.
 - `[JsonSubtypes.KnownSubType]` becomes `[KnownSubType]` (import `JsonSubTypes.Text.Json`).
+- `[JsonSubtypes.FallBackSubType]` becomes `[FallbackSubType]` — the STJ spelling is `Fallback`, not `FallBack`, so the attribute must be renamed; the builder's `SetFallbackSubtype` keeps the name it has on both sides.
 - `JsonConvert.SerializeObject`/`DeserializeObject` become `JsonSerializer.Serialize`/`Deserialize`, and you must pass a `JsonSerializerOptions` (there is no equivalent of `DefaultSettings`).
 - The builder (`JsonSubtypesConverterBuilder.Of(...)`, `RegisterSubtype`, `SerializeDiscriminatorProperty`) is the same shape. `JsonSubtypesWithPropertyConverterBuilder` likewise.
 
